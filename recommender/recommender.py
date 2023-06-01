@@ -1,0 +1,83 @@
+import abc
+from recommender.model import *
+import importlib
+import torch
+import pandas as pd
+import utils
+
+
+class Recommender:
+    """
+    Recommender System class
+    """
+    def __init__(self, config, data):
+        self.data = data
+        self.config = config
+        self.page_size = config["page_size"]
+        module = importlib.import_module("recommender.model")
+        self.model = getattr(module, config["model"])(config)
+        self.record = {}
+        self.positive = {}
+        for user in self.data.get_full_users():
+            self.record[user] = []
+            self.positive[user] = []
+
+    def get_full_sort_items(self, user):
+        """
+        Get a list of sorted items for a given user.
+        """
+        items = self.data.get_full_items()
+        user_tensor = torch.tensor(user)
+        items_tensor = torch.tensor(items)
+        sorted_items = self.model.get_full_sort_items(user_tensor, items_tensor)
+        sorted_items = [item for item in sorted_items if item not in self.record[user]]
+        sorted_item_names = self.data.get_item_names(sorted_items)
+        return sorted_item_names
+
+    def get_search_items(self, item_name):
+        return self.data.search_items(item_name)
+
+    def update_history(self, user_id, item_names):
+        """
+        Update the history of a given user.
+        """
+        item_names = [item_name.strip(" <>'\"") for item_name in item_names]
+        item_ids = self.data.get_item_ids(item_names)
+        self.record[user_id].extend(item_ids)
+
+    def update_positive(self, user_id, item_names):
+        """
+        Update the positive history of a given user.
+        """
+        item_ids = self.data.get_item_ids(item_names)
+        if len(item_ids) == 0:
+            print("No item found")
+            print(item_names)
+            print(item_ids)
+            return
+        self.positive[user_id].extend(item_ids)
+
+    def save_interaction(self, trial, epoch):
+        """
+        Save the interaction history to a csv file.
+        """
+        inters = []
+        users = self.data.get_full_users()
+        for user in users:
+            print(self.positive[user])
+            print(self.record[user])
+            for item in self.positive[user]:
+                new_row = {"user_id": user, "item_id": item, "rating": 1}
+                inters.append(new_row)
+
+            for item in self.record[user]:
+                if item in self.positive[user]:
+                    continue
+                new_row = {"user_id": user, "item_id": item, "rating": 0}
+                inters.append(new_row)
+
+        df = pd.concat(inters, ignore_index=True)
+        df.to_csv(
+            str(trial) + "_" + str(epoch) + "_" + self.config["interaction_path"],
+            index=False,
+        )
