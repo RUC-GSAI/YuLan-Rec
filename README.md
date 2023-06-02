@@ -15,7 +15,9 @@
 [![Conda Latest Release](https://anaconda.org/aibox/recbole/badges/version.svg)](https://anaconda.org/aibox/recbole)
 ![license](https://img.shields.io/badge/License-Apache2.0-brightgreen) -->
 
-RecAgent is a simulator for a large-scale recommendation system, designed to simulate user behavior in various scenarios such as browsing, searching, watching, and engaging in social interactions related to recommendations. This project aims to provide a flexible and customizable environment for testing and evaluating recommendation algorithms and strategies.
+RecAgent is an LLM-based recommender simulator. It holds the promise of simulating more reliable user behaviors in a real-world recommender system. This simulator is mainly composed of two modules: (1) the user module and (2) the recommender module. The user can browse the recommendation website, communicate with the other users and broadcast messages on the social media. The recommender is designed to provide the recommendation list to the users, and one can design different models to implement the recommender. Each user maintains an individual memory, which is updated by the user behaviors, and different users take actions based on LLMs by retrieving their own memories, All the users can freely evolve in the simulator. This simulator is highly flexible and customizable, where one can design different recommendation scenarios and algorithms.
+
+
 <p align="center">
   <img src="asset/img/framework.png" alt="RecAgnet Framework" width="100%">
   <br>
