@@ -12,7 +12,7 @@ from langchain.experimental.generative_agents import (
     GenerativeAgent,
     GenerativeAgentMemory,
 )
-import utils
+from utils import utils
 
 
 class RecAgent(GenerativeAgent):
@@ -149,7 +149,6 @@ class RecAgent(GenerativeAgent):
         # kwargs[self.memory."most_recent_memories2"] = consumed_tokens
 
         result = self.chain(prompt=prompt).run(**kwargs).strip()
-        # print("full_result: ",result)
         return result
     
     def get_memories_until_limit(self, consumed_tokens: int) -> str:
@@ -224,7 +223,7 @@ class RecAgent(GenerativeAgent):
         )
         return choice, action
 
-    def buy_items(self, items: str) -> str:
+    def buy_items(self, observation: str) -> str:
         """Feel about each item bought."""
         call_to_action_template = (
             "{agent_name} has not seen these movies before. "
@@ -232,7 +231,7 @@ class RecAgent(GenerativeAgent):
             + "Feelings is slpit by semicolon."
             + "\n\n"
         )
-        observation = f"{self.name} has just finished watching {items}."
+       
         full_result = self._generate_reaction(observation, call_to_action_template)
         results = full_result.split(".")
         feelings = ""
@@ -249,7 +248,7 @@ class RecAgent(GenerativeAgent):
         self.memory.save_context(
             {},
             {
-                self.memory.add_memory_key: f"{self.name} has watched {items} and felt "
+                self.memory.add_memory_key: f"{self.name} felt: "
                 f"{feelings}",
             },
         )

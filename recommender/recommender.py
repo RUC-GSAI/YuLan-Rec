@@ -3,7 +3,7 @@ from recommender.model import *
 import importlib
 import torch
 import pandas as pd
-import utils
+from utils import utils
 
 
 class Recommender:
@@ -51,21 +51,16 @@ class Recommender:
         """
         item_ids = self.data.get_item_ids(item_names)
         if len(item_ids) == 0:
-            print("No item found")
-            print(item_names)
-            print(item_ids)
             return
         self.positive[user_id].extend(item_ids)
 
-    def save_interaction(self, trial, epoch):
+    def save_interaction(self):
         """
         Save the interaction history to a csv file.
         """
         inters = []
         users = self.data.get_full_users()
         for user in users:
-            print(self.positive[user])
-            print(self.record[user])
             for item in self.positive[user]:
                 new_row = {"user_id": user, "item_id": item, "rating": 1}
                 inters.append(new_row)
@@ -76,8 +71,8 @@ class Recommender:
                 new_row = {"user_id": user, "item_id": item, "rating": 0}
                 inters.append(new_row)
 
-        df = pd.concat(inters, ignore_index=True)
+        df = pd.DataFrame(inters)
         df.to_csv(
-            str(trial) + "_" + str(epoch) + "_" + self.config["interaction_path"],
+            self.config["interaction_path"],
             index=False,
         )

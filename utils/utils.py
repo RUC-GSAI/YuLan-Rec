@@ -17,6 +17,7 @@ def set_logger(log_file, name="default"):
         log_file (str): log file path
         name (str): logger name
     """
+
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 
@@ -24,6 +25,20 @@ def set_logger(log_file, name="default"):
         "%(asctime)s - %(levelname)s - %(module)s - %(funcName)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+    output_folder = 'output'
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Create the 'log' folder if it doesn't exist
+    log_folder = os.path.join(output_folder, 'log')
+    if not os.path.exists(log_folder):
+        os.makedirs(log_folder)
+
+    # Create the 'message' folder if it doesn't exist
+    message_folder = os.path.join(output_folder, 'message')
+    if not os.path.exists(message_folder):
+        os.makedirs(message_folder)
+    log_file=os.path.join(log_folder, log_file)
     handler = logging.FileHandler(log_file, mode="w")
     handler.setLevel(logging.INFO)
     handler.setFormatter(formatter)
@@ -132,7 +147,6 @@ def layout_img(background, img, place: Tuple[int, int]):
     """
     back_h, back_w, _ = background.shape
     height, width, _ = img.shape
-    # print('img_position: ', height, width)
     for i, j in itertools.product(range(height), range(width)):
         if img[i, j, 3]:
             background[place[0] + i, place[1] + j] = img[i, j, :3]

@@ -28,8 +28,8 @@ import re
 from recommender.recommender import Recommender
 from recommender.data.data import Data
 from agents.recagent import RecAgent
-import utils
-from message import Message
+from utils import utils
+from utils.message import Message
 
 
 class Simulator:
@@ -110,15 +110,20 @@ class Simulator:
                 if "BUY" in choice:
                     self.logger.info(f"{name} watched {action}")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} watches {action}."))
-                    observation=agent.buy_items(action)
-                    self.logger.info(f"{name} feels:{observation}")
-                    message.append(Message(agent_id,"RECOMMENDER",f"{name} feels:{observation}"))
+                    
                     item_names=utils.extract_item_names(action)
                     if len(item_names)==0:
                         item_names=action.split(";")
                         item_names=[s.strip(' "\'\t\n')for s in item_names]
                     agent.update_watched_history(item_names)
                     self.recsys.update_positive(agent_id, item_names)
+                    item_descriptions=self.data.get_item_descriptions(item_names)
+                    observation=f"{name} has just finished watching"
+                    for i in range(len(item_names)):
+                        observation=observation+f" {item_names[i]}:{item_descriptions[i]};"
+                    feelings=agent.buy_items(observation)
+                    self.logger.info(f"{name} feels:{feelings}")
+                    message.append(Message(agent_id,"RECOMMENDER",f"{name} feels:{feelings}"))
                     searched_name=None
                     leave=True
 
@@ -328,13 +333,9 @@ def main():
         recagent.logger.info(f"Round {recagent.round_cnt}")
         message=recagent.all_step()
         messages.append(message)
-        records=[]
-        if os.path.exists(args.output_file):
-            with open(args.output_file, "r") as file:
-                records = json.load(file)
-        records.append(message)
-        with open(args.output_file, "w") as file:
-            json.dump(records, file, default=lambda o: o.__dict__, indent=4)
+        output_file =  os.path.join("output/message",args.output_file)
+        with open(output_file, "w") as file:
+            json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
         recagent.recsys.save_interaction()
 
 

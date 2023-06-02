@@ -1,5 +1,5 @@
 <div align=center>
-<h1>RecAgent</h1>
+<h1>RecAgent: A Novel Simulation Paradigm for Recommender Systems</h1>
 <a href="https://pypi.org/project/recbole/">
         <img src="https://img.shields.io/pypi/v/recbole" alt="PyPi Latest Release">
     </a>
@@ -11,11 +11,10 @@
 
 </div>
 
-<!-- [![PyPi Latest Release](https://img.shields.io/pypi/v/recbole)](https://pypi.org/project/recbole/)
-[![Conda Latest Release](https://anaconda.org/aibox/recbole/badges/version.svg)](https://anaconda.org/aibox/recbole)
-![license](https://img.shields.io/badge/License-Apache2.0-brightgreen) -->
 
-RecAgent is a simulator for a large-scale recommendation system, designed to simulate user behavior in various scenarios such as browsing, searching, watching, and engaging in social interactions related to recommendations. This project aims to provide a flexible and customizable environment for testing and evaluating recommendation algorithms and strategies.
+RecAgent is an LLM-based recommender simulator. It holds the promise of simulating more reliable user behaviors in a real-world recommender system. This simulator is mainly composed of two modules: (1) the user module and (2) the recommender module. The user can browse the recommendation website, communicate with the other users and broadcast messages on the social media. The recommender is designed to provide the recommendation list to the users, and one can design different models to implement the recommender. Each user maintains an individual memory, which is updated by the user behaviors, and different users take actions based on LLMs by retrieving their own memories, All the users can freely evolve in the simulator. This simulator is highly flexible and customizable, where one can design different recommendation scenarios and algorithms.
+
+
 <p align="center">
   <img src="asset/img/framework.png" alt="RecAgnet Framework" width="100%">
   <br>
@@ -78,7 +77,7 @@ item_path: data/item.csv
 user_path: data/user.csv
 # path for relationship data
 relationship_path: data/relationship.csv
-# path for save interaction records
+# path for save interactions
 interaction_path: data/interaction.csv
 # directory name for faiss index
 index_name: faiss_index
@@ -107,7 +106,7 @@ api_keys:
 Run the simulation script:
 
 ```shell
-python -u simulator.py --config_file config/config.yaml --output_file output/record/record.json --log_file output/log/simulation.log
+python -u simulator.py --config_file config/config.yaml --output_file messages.json --log_file simulation.log
 ```
 
 `config_file` is the path of the configuration file. `output_file` is the path of the output file, which is a JSON file containing all messages generated during the simulation. `log_file` set the path of the log file.
@@ -145,7 +144,7 @@ We also have a local website demo.
 Run the website demo script:
 
 ```shell
-python -u run_demo.py --config_file config/config.yaml --output_file output/dataset/output.txt --log_file output/log/simulation.log
+python -u run_demo.py --config_file config/config.yaml --output_file messages.json --log_file simulation.log
 ```
 Then you can visit the demo at `http://127.0.0.1:7861`.
 <p align="center">

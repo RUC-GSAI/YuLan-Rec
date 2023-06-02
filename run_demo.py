@@ -3,7 +3,7 @@ import argparse
 from yacs.config import CfgNode
 
 from demo import Demo
-import utils
+from utils import utils
 
 
 def parse_args():

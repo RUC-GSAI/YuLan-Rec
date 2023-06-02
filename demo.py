@@ -4,8 +4,8 @@ import gradio as gr
 from typing import Dict, List
 
 from simulator import Simulator
-from message import Message
-from utils import layout_img, get_avatar1, html_format, chat_format, rec_format, social_format, round_format
+from utils.message import Message
+from utils.utils import layout_img, get_avatar1, html_format, chat_format, rec_format, social_format, round_format
 
 
 class Demo:
@@ -33,7 +33,6 @@ class Demo:
     def init_background(self):
         background = cv2.imread("./asset/img/background1.png")
         back_h, back_w, _ = background.shape
-        # print('background: ', back_h, back_w)
 
         small_height_list = [350, 130, 130, 130,
                              350, 130, 350, 350,
@@ -150,7 +149,6 @@ class Demo:
         """
         self.round=self.round+1
         for i in range(self.agent_num):
-            print(i)
             next_message = self.simulator.one_step(i)         
             data = self.format_message(next_message)
             for d in data:

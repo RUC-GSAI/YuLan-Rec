@@ -56,8 +56,8 @@ class Data:
             reader = csv.reader(file)
             next(reader)  # Skip the header line
             for row in reader:
-                item_id, title, genre = row
-                self.items[int(item_id)] = {"name": title, "genre": genre}
+                item_id, title, genre,description = row
+                self.items[int(item_id)] = {"name": title, "genre": genre,"description":description}
 
     def load_users(self, file_path):
         """
@@ -121,3 +121,10 @@ class Data:
             print(f"{user_id} has no contact.")
             return []
         return self.users[user_id]["contact"]
+    
+    def get_item_descriptions(self,item_names):
+        item_descriptions = []
+        for item_id, item_info in self.items.items():
+            if item_info["name"] in item_names:
+                item_descriptions.append(item_info["description"])
+        return item_descriptions
