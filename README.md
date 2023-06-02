@@ -1,5 +1,5 @@
 <div align=center>
-<h1>RecAgent</h1>
+<h1>RecAgent:A Novel Simulation Paradigm for Recommender Systems</h1>
 <a href="https://pypi.org/project/recbole/">
         <img src="https://img.shields.io/pypi/v/recbole" alt="PyPi Latest Release">
     </a>
