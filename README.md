@@ -7,7 +7,7 @@
         <img src="https://anaconda.org/aibox/recbole/badges/version.svg" alt="Conda Latest Release">
     </a>
     <img src="https://img.shields.io/badge/License-Apache2.0-blue" alt="license">
-    <img src="https://img.shields.io/github/stars/Paitesanshi/RecAgent" alt="license">
+    <img src="https://img.shields.io/github/stars/RUC-GSAI/YuLan-RecAgent" alt="license">
 
 </div>
 
@@ -77,16 +77,16 @@ item_path: data/item.csv
 user_path: data/user.csv
 # path for relationship data
 relationship_path: data/relationship.csv
-# path for save interactions
+# path for save interaction records
 interaction_path: data/interaction.csv
 # directory name for faiss index
-index_name: faiss_index
+index_name: data/faiss_index
 # recommender system model
 model: Random
 # number of epochs
-epoch: 15
-# number of agents
-num_agents: 3
+epoch: 1
+# number of agents, which cannot exceed the number of user in user.csv
+num_agents: 1
 # number of items to be recommended in one page
 page_size: 5
 # temperature for LLM
@@ -101,6 +101,8 @@ api_keys:
   - xxxxx
 ```
 
+The first `num_agents` users in `user.csv` will be loaded. Note that the `num_agents` in `config.yaml` cannot exceed the total number of users in `user.csv`.
+
 ### 1. Example
 
 Run the simulation script:
@@ -114,7 +116,7 @@ python -u simulator.py --config_file config/config.yaml --output_file messages.j
 We will obtain some output like:
 ```
 api_keys: ['xxxxx', 'xxxxx']
-epoch: 15
+epoch: 1
 execution_mode: serial
 index_name: faiss_index
 interaction_path: data/interaction.csv
@@ -122,7 +124,7 @@ item_path: data/item.csv
 log_name: 82754
 max_token: 1500
 model: Random
-num_agents: 3
+num_agents: 1
 page_size: 5
 relationship_path: data/relationship.csv
 temperature: 0.8
