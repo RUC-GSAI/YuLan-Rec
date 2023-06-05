@@ -220,7 +220,7 @@ class Demo:
                             show_progress=False)
 
         self.simulator.load_simulator()
-        self.agent_num = len(self.simulator.agents)
-        self.agent_dict = {agent.id: agent.name for agent in self.simulator.agents}
+        self.agent_num = len(self.simulator.agents.keys())
+        self.agent_dict = {agent.id: agent.name for id,agent in self.simulator.agents.items()}
 
         demo.queue(concurrency_count=1, max_size=1).launch(height="100%", width="100%")

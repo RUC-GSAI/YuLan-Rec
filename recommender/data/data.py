@@ -84,9 +84,11 @@ class Data:
 
     def get_item_ids(self, item_names):
         item_ids = []
-        for item_id, item_info in self.items.items():
-            if item_info["name"] in item_names:
-                item_ids.append(item_id)
+        for item in item_names:
+            for item_id, item_info in self.items.items():
+                if item_info["name"] in item:
+                    item_ids.append(item_id)
+                    break
         return item_ids
 
     def get_full_users(self):
@@ -97,9 +99,11 @@ class Data:
 
     def get_user_ids(self, user_names):
         user_ids = []
-        for user_id, user_info in self.users.items():
-            if user_info["name"] in user_names:
-                user_ids.append(user_id)
+        for user in user_names:
+            for user_id, user_info in self.users.items():
+                if user_info["name"] ==user:
+                    user_ids.append(user_id)
+                    break
         return user_ids
 
     def search_items(self, item, k=5):
@@ -123,8 +127,13 @@ class Data:
         return self.users[user_id]["contact"]
     
     def get_item_descriptions(self,item_names):
+        """
+        Get description of items.
+        """
         item_descriptions = []
-        for item_id, item_info in self.items.items():
-            if item_info["name"] in item_names:
-                item_descriptions.append(item_info["description"])
+        for item in item_names:
+            for item_id, item_info in self.items.items():
+                if item_info["name"] in item:
+                    item_descriptions.append(item_info["description"])
+                    break
         return item_descriptions

@@ -12,15 +12,14 @@
 </div>
 
 
-RecAgent is an LLM-based recommender simulator, which is expected to open a novel simulation based study paradigm in the recommendation domain. RecAgent is composed of two modules: (1) the user module and (2) the recommender module. The user module aims to simulate the real users, which can browse the recommendation website, communicate with the other users and broadcast messages on the social media. The recommender module is designed to provide the recommendation list to the users, and one can design different models to implement the recommender module. Each user maintains an individual memory, which can be automatically updated by the user behaviors. Different users take actions based on LLMs by retrieving their own memories, All the users can freely evolve in the simulator. RecAgent is highly flexible and customizable, where one can design different recommendation scenarios and algorithms.
-
+RecAgent is an LLM-based recommender simulator, which is expected to open a novel simulation based study paradigm in the recommendation domain. RecAgent is composed of two modules: (1) the user module and (2) the recommender module. The user module aims to simulate the real users, which can browse the recommendation website, communicate with the other users and broadcast messages on the social media. The recommender module is designed to provide the recommendation list to the users, and one can design different models to implement the recommender module. Each user maintains an individual memory, which can be automatically updated by the user behaviors. Different users take actions based on LLMs by retrieving their own memories, All the users can freely evolve in the simulator. RecAgent is highly flexible and customizable, where one can design different recommendation scenarios and algorithms. You can get the introduction video of RecAgent through the [Baidu Netdisk](https://pan.baidu.com/s/1ch8sinzFBi9XlEqp4xiYXQ?pwd=xsmq) or [Google Drive](https://drive.google.com/file/d/1IgsoWUipgZvnBnPSOUtbsZkm5yoyJskt/view?usp=sharing).
 
 <p align="center">
   <img src="asset/img/framework.png" alt="RecAgnet Framework" width="100%">
   <br>
   <b>Figure 1</b>: RecAgent Framework
 </p>
-<!-- ![Interface](asset/img/interface.png) -->
+
 
 ## Table of Contents
 
@@ -147,7 +146,7 @@ Run the website demo script:
 ```shell
 python -u run_demo.py --config_file config/config.yaml --output_file messages.json --log_file simulation.log
 ```
-Then you can visit the demo at `http://127.0.0.1:7861`.
+Then you can visit the demo at `http://127.0.0.1:7860`.
 <p align="center">
   <img src="asset/img/interface.png" alt="RecAgnet Interface" width="100%">
   <br>

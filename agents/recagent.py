@@ -29,6 +29,7 @@ class RecAgent(GenerativeAgent):
 
     BUFFERSIZE = 10
     """The size of the agent's history buffer"""
+
     max_dialogue_token_limit: int = 600
     """The maximum number of tokens to use in a dialogue"""
 
@@ -42,7 +43,7 @@ class RecAgent(GenerativeAgent):
             + "\n{agent_name}'s status: {agent_status}"
             + "\n{agent_name} recently heared {heared_history} on social media."
             + "\n{agent_name} recently watched {watched_history} on recommender system."
-            + "\n Other than that {agent_name} doesn't know any movies."
+            + "\nOther than that {agent_name} doesn't know any movies."
             + "\nSummary of relevant context from {agent_name}'s memory:"
             + "\n{relevant_memories}"
             + "\nMost recent observations: {most_recent_memories}"
@@ -99,13 +100,12 @@ class RecAgent(GenerativeAgent):
             + "\n{relevant_memories}"
             + "\nSummary of relevant context from {agent_name2}'s memory:"
             + "\n{relevant_memories2}"
-            + "\nMost recent observations: {most_recent_memories}"
+            + "\nMost recent observations of {agent_name}: {most_recent_memories}"
+            + "\nMost recent observations of {agent_name2}: {most_recent_memories2}"
             + "\nObservation: {observation}"
             + "\nAll occurrences of movie names should be enclosed with <>"
             + "\n\n"
             + suffix
-            # +"\n Please act as {agent_name} well.'"
-            # +"\n Explain the reason for this reaction."
         )
         now = datetime.now() if now is None else now
         agent_summary_description = self.get_summary(now=now)
@@ -143,11 +143,14 @@ class RecAgent(GenerativeAgent):
         )
 
         consumed_tokens = self.llm.get_num_tokens(
+            prompt.format(most_recent_memories="",most_recent_memories2="", **kwargs)
+        )
+        most_recent_memories2=agent2.get_memories_until_limit(consumed_tokens)
+        kwargs["most_recent_memories2"] = most_recent_memories2
+        consumed_tokens = self.llm.get_num_tokens(
             prompt.format(most_recent_memories="", **kwargs)
         )
         kwargs[self.memory.most_recent_memories_token_key] = consumed_tokens
-        # kwargs[self.memory."most_recent_memories2"] = consumed_tokens
-
         result = self.chain(prompt=prompt).run(**kwargs).strip()
         return result
     
@@ -199,10 +202,9 @@ class RecAgent(GenerativeAgent):
         call_to_action_template = (
             "{agent_name} must take one of the four actions below:(1) Buy some movies in the item list returned by recommender system.\n(2) See the next page. \n(3) Search items.\n(4) Leave the recommender system."
             + "\nIf {agent_name} has recently heard about a particular movie on a social media, {agent_name} might want to search for that movie on the recommender system."
-            # +"\nIf {agent_name} has searched for a particular movie on the recommender system, {agent_name} might want to watch that movie.\n"
             + "\nWhat action would {agent_name} like to take? Respond in one line."
-            + "\nIf {agent_name} want to watch movies on recommender system, write:\n [BUY]:: oen of movie names in the recommendation list returned by the recommender system, only movie names, separated by semicolons."
-            + "\nIf {agent_name} want to see the next page, write:\n [NEXT]:: {agent_name} see the next page"
+            + "\nIf {agent_name} want to watch movies in returned list, write:\n [BUY]:: movie names in the list returned by the recommender system, only movie names, separated by semicolons."
+            + "\nIf {agent_name} want to see the next page, write:\n [NEXT]:: {agent_name} looks the next page"
             + "\nIf {agent_name} want to search specific item, write:\n [SEARCH]:: single, specific item name want to search"
             + "\nIf {agent_name} want to leave the recommender system, write:\n [LEAVE]:: {agent_name} leaves the recommender system"
             + "\n\n"
@@ -223,11 +225,11 @@ class RecAgent(GenerativeAgent):
         )
         return choice, action
 
-    def buy_items(self, observation: str) -> str:
+    def generate_feelings(self, observation: str) -> str:
         """Feel about each item bought."""
         call_to_action_template = (
             "{agent_name} has not seen these movies before. "
-            + "If you were {agent_name}, how will you feel about each movie after watching the movie? Respond all in one line."
+            + "If you were {agent_name}, how will you feel about each movie just watched? Respond all in one line."
             + "Feelings is slpit by semicolon."
             + "\n\n"
         )

@@ -88,8 +88,8 @@ class Simulator:
         message=[]
         choice, observation = agent.take_action()
         if "RECOMMENDER" in choice:
-            self.logger.info(f"{name} is going to recommender system.")
-            message.append(Message(agent_id,"RECOMMENDER",f"{name} opens the recommender system."))
+            self.logger.info(f"{name} enters the recommender system.")
+            message.append(Message(agent_id,"RECOMMENDER",f"{name} enters the recommender system."))
             leave = False
             rec_items = self.recsys.get_full_sort_items(agent_id)
             page = 0
@@ -108,44 +108,53 @@ class Simulator:
                 choice,action=agent.take_recommender_action(observation)
                 self.recsys.update_history(agent_id, rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size])
                 if "BUY" in choice:
-                    self.logger.info(f"{name} watched {action}")
-                    message.append(Message(agent_id,"RECOMMENDER",f"{name} watches {action}."))
                     
                     item_names=utils.extract_item_names(action)
                     if len(item_names)==0:
                         item_names=action.split(";")
                         item_names=[s.strip(' "\'\t\n')for s in item_names]
+
+                    self.logger.info(f"{name} watches {item_names}")
+                    message.append(Message(agent_id,"RECOMMENDER",f"{name} watches {item_names}."))
                     agent.update_watched_history(item_names)
                     self.recsys.update_positive(agent_id, item_names)
                     item_descriptions=self.data.get_item_descriptions(item_names)
+                    if len(item_descriptions)==0:
+                        self.logger.info(f"{name} leaves the recommender system.")
+                        message.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
+                        leave=True
+                        continue
                     observation=f"{name} has just finished watching"
                     for i in range(len(item_names)):
                         observation=observation+f" {item_names[i]}:{item_descriptions[i]};"
-                    feelings=agent.buy_items(observation)
+                    feelings=agent.generate_feelings(observation)
                     self.logger.info(f"{name} feels:{feelings}")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} feels:{feelings}"))
                     searched_name=None
                     leave=True
 
                 elif "NEXT" in choice:
-                    self.logger.info(f"{name} is looking next page.")
+                    self.logger.info(f"{name} looks next page.")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} looks next page."))
                     if (page + 1) * self.recsys.page_size < len(rec_items):
                         page = page + 1
                     else:
                         self.logger.info("No more items.")
-                        self.logger.info(f"{name} is leaving the recommender system.")
-                        message.append(Message(agent_id,"RECOMMENDER",f"No more items. {name} is leaving the recommender system."))
+                        self.logger.info(f"{name} leaves the recommender system.")
+                        message.append(Message(agent_id,"RECOMMENDER",f"No more items. {name} leaves the recommender system."))
                         leave = True
                 elif "SEARCH" in choice:
 
                     observation = f"{name} is searching in recommender system."
                     item_name=agent.search_item(observation)
-                    self.logger.info(f"{name} is searching {item_name}.")
+                    self.logger.info(f"{name} searches {item_name}.")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} searches {item_name}."))
                     item_names=utils.extract_item_names(item_name)
                     if item_names==[]:
-                        agent.memory.add_memory(f"There are no items related in the system",now=datetime.now())
+                        agent.memory.add_memory(f"There are no items related in the system.",now=datetime.now())
+                        self.logger.info("There are no related items in the system.")
+                        message.append(Message(agent_id,"RECOMMENDER",f"There are no related products in the system."))
+                        leave=True
                         continue
                     item_name=item_names[0]
                     search_items = self.recsys.get_search_items(item_name)
@@ -156,18 +165,13 @@ class Simulator:
                         page=0
                         searched_name=item_name
                     else:
-                        agent.memory.add_memory(f"There are no items related to {item_name} in the system",now=datetime.now())
-                        self.logger.info("There are no related products in the system ")
-                        message.append(Message(agent_id,"RECOMMENDER",f"There are no related products in the system "))
+                        agent.memory.add_memory(f"There are no items related to {item_name} in the system.",now=datetime.now())
+                        self.logger.info("There are no related items in the system.")
+                        message.append(Message(agent_id,"RECOMMENDER",f"There are no related products in the system."))
                 else:
-                    self.logger.info(f"{name} is leaving the recommender system.")
-                    message.append(Message(agent_id,"RECOMMENDER",f"{name} is leaving the recommender system."))
+                    self.logger.info(f"{name} leaves the recommender system.")
+                    message.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
                     leave = True
-                cnt=cnt+1
-                if cnt>3:
-                    self.logger.info(f"{name} is leaving the recommender system.")
-                    message.append(Message(agent_id,"RECOMMENDER",f"{name} is leaving the recommender system."))
-                    break
         elif "SOCIAL" in observation:
 
             contacts=self.data.get_all_contacts(agent_id)
@@ -204,7 +208,7 @@ class Simulator:
                 item_names=utils.extract_item_names(observation,"SOCIAL")
                 self.logger.info(agent.name+" posted: "+observation)
                 message.append(Message(agent_id,"POST",agent.name+" posts: "+observation))
-                for i in range(len(self.agents)):
+                for i in self.agents.keys():
                     if self.agents[i].name in contacts:
                         self.agents[i].memory.add_memory(agent.name+" posts: "+observation,now=datetime.now())
                         self.agents[i].update_heared_history(item_names)
@@ -268,7 +272,7 @@ class Simulator:
         """
         Create agents in parallel
         """
-        agents = []
+        agents = {}
         api_keys = list(self.config['api_keys'])
         num_agents = int(self.config['num_agents'])
         if self.config['execution_mode']=='parallel':
@@ -279,12 +283,12 @@ class Simulator:
                     futures.append( executor.submit(self.create_agent, i, api_key))
                 for future in tqdm(concurrent.futures.as_completed(futures)):
                     agent = future.result()
-                    agents.append(agent)
+                    agents[agent.id]=agent
         else:
             for i in tqdm(range(num_agents)):
                 api_key = api_keys[i % len(api_keys)]
                 agent = self.create_agent(i, api_key)
-                agents.append(agent)
+                agents[agent.id]=agent
 
         return agents
 
