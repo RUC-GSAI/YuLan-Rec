@@ -12,7 +12,7 @@
 </div>
 
 
-RecAgent is an LLM-based recommender simulator. It holds the promise of simulating more reliable user behaviors in a real-world recommender system. This simulator is mainly composed of two modules: (1) the user module and (2) the recommender module. The user can browse the recommendation website, communicate with the other users and broadcast messages on the social media. The recommender is designed to provide the recommendation list to the users, and one can design different models to implement the recommender. Each user maintains an individual memory, which is updated by the user behaviors, and different users take actions based on LLMs by retrieving their own memories, All the users can freely evolve in the simulator. This simulator is highly flexible and customizable, where one can design different recommendation scenarios and algorithms.
+RecAgent is an LLM-based recommender simulator, which is expected to open a novel simulation based study paradigm in the recommendation domain. RecAgent is composed of two modules: (1) the user module and (2) the recommender module. The user module aims to simulate the real users, which can browse the recommendation website, communicate with the other users and broadcast messages on the social media. The recommender module is designed to provide the recommendation list to the users, and one can design different models to implement the recommender module. Each user maintains an individual memory, which can be automatically updated by the user behaviors. Different users take actions based on LLMs by retrieving their own memories, All the users can freely evolve in the simulator. RecAgent is highly flexible and customizable, where one can design different recommendation scenarios and algorithms.
 
 
 <p align="center">
@@ -37,18 +37,17 @@ RecAgent is an LLM-based recommender simulator. It holds the promise of simulati
 
 ## Features
 
-- Simulation of user reactions to recommender systems
-- Simulation of chat behavior between users
-- Simulation of the behavior of users posting and broadcasting information
-- Customizable recommendation algorithm
-- Flexible data import and export mechanism
-- Parallel simulation for acceleration
-- Configurable system parameters
-- Realistic user behavior modeling
+- Simulation of the interactions between the users and recommender system
+- Simulation of the chatting behaviors between different users
+- Simulation of the broadcasting behaviors of the users on the social media
+- Customizable recommender algorithm
+- Flexible data import and export mechanisms
+- Parallel ChatGPT API support
+
 
 ## Installation
 
-To install RecAgent, follow these steps:
+To install RecAgent, one can follow the following steps:
 
 1. Clone the repository:
 
