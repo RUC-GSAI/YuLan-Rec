@@ -51,7 +51,7 @@ To install RecAgent, one can follow the following steps:
 1. Clone the repository:
 
    ```shell
-   git clone https://github.com/your-username/RecAgent.git
+   git clone https://github.com/RUC-GSAI/YuLan-Rec.git
     ```
 
 2. Install the required dependencies:
