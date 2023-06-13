@@ -166,33 +166,61 @@ class RecAgent(GenerativeAgent):
         result=self.memory.format_memories_simple(result)
         return result
         
-    def take_action(self) -> Tuple[str, str]:
+
+    def generate_plan(
+        self, observation: str, now: Optional[datetime] = None
+    ) -> Tuple[bool, str]:
+        call_to_action_template = (
+            "What is {agent_name}'s plan for today? Write it down in an hourly basis, starting at 9:00, a time point, 24-hour format. "
+
+            +"Here is {agent_name}'s plan today: "
+            +"\n\n"
+        )
+        result = self._generate_reaction(
+            observation,call_to_action_template , now=now
+        )
+   
+        #result = full_result.strip().split("\n")[0]
+        # AAA
+        self.memory.save_context(
+            {},
+            {
+                self.memory.add_memory_key: f"{self.name} observed "
+                f"{observation} and reacted by {result}",
+                self.memory.now_key: now,
+            },
+        )
+
+        return False, result
+    
+    def take_action(self,now) -> Tuple[str, str]:
         """Take one of the actions below.
         (1) Enter the Recommender.
         (2) Enter the Social Media.
         (3) Do Nothing.
         """
         call_to_action_template = (
-            "What action would {agent_name} like to take? Explain why {agent_name} do this and not others? Respond in one line."
+            "What action would {agent_name} like to take? Respond in one line."
             + "\nIf {agent_name} want to enter the Recommender System, write:\n [RECOMMENDER]:: {agent_name} enter the Recommender System"
             + "\nIf {agent_name} want to enter the Social Media, write:\n [SOCIAL]:: {agent_name} enter the Social Media"
             + "\nIf {agent_name} want to do nothing, write:\n [NOTHING]:: {agent_name} does nothing"
         )
-        observation = f"{self.name} must take one of the actions below:(1) Enter the Recommender System. If so, {self.name} will be recommended some movies, from which {self.name} can watch some movies, or search for movies by himself.\n(2) Enter the Social Media. {self.name} can chat with friends or publish a post to all friends of {self.name}.\n(3) Do Nothing."
-        full_result = self._generate_reaction(observation, call_to_action_template)
+        observation = f"{self.name} must take only ONE of the actions below:(1) Enter the Recommender System. If so, {self.name} will be recommended some movies, from which {self.name} can watch some movies, or search for movies by himself.\n(2) Enter the Social Media. {self.name} can chat with friends or publish a post to all friends of {self.name}.\n(3) Do Nothing."
+        full_result = self._generate_reaction(observation, call_to_action_template,now)
         result = full_result.strip().split("\n")[0]
         choice = result.split("::")[0]
-        action = result.split("::")[1]
+        #action = result.split("::")[1]
 
         self.memory.save_context(
             {},
             {
                 self.memory.add_memory_key: f"{self.name} take action: " f"{result}",
+                self.memory.now_key: now,
             },
         )
         return choice, result
 
-    def take_recommender_action(self, observation) -> Tuple[str, str]:
+    def take_recommender_action(self, observation,now) -> Tuple[str, str]:
         """Take one of the four actions below.
         (1) Buy movies among the recommended items.
         (2) Next page.
@@ -209,7 +237,7 @@ class RecAgent(GenerativeAgent):
             + "\nIf {agent_name} want to leave the recommender system, write:\n [LEAVE]:: {agent_name} leaves the recommender system"
             + "\n\n"
         )
-        full_result = self._generate_reaction(observation, call_to_action_template)
+        full_result = self._generate_reaction(observation, call_to_action_template,now)
         result = full_result.strip().split("\n")[0]
         if result.find("::") != -1:
             choice = result.split("::")[0]
@@ -221,20 +249,51 @@ class RecAgent(GenerativeAgent):
             {},
             {
                 self.memory.add_memory_key: f"{self.name} took action: {result}",
+                self.memory.now_key: now,
             },
         )
         return choice, action
 
-    def generate_feelings(self, observation: str) -> str:
+    # def generate_feelings(self, observation: str,now) -> str:
+    #     """Feel about each item bought."""
+    #     call_to_action_template = (
+    #         "{agent_name} has not seen these movies before. "
+    #         + "If you were {agent_name}, how will you feel about each movie just watched? Respond all in one line."
+    #         + "Feelings is slpit by semicolon."
+    #         + "\n\n"
+    #     )
+       
+    #     full_result = self._generate_reaction(observation, call_to_action_template,now)
+    #     results = full_result.split(".")
+    #     feelings = ""
+    #     for result in results:
+    #         if result.find("language model") != -1:
+    #             break
+    #         feelings += result
+    #     if feelings == "":
+    #         results = full_result.split(",")
+    #         for result in results:
+    #             if result.find("language model") != -1:
+    #                 break
+    #             feelings += result
+    #     self.memory.save_context(
+    #         {},
+    #         {
+    #             self.memory.add_memory_key: f"{self.name} felt: "
+    #             f"{feelings}",
+    #             self.memory.now_key: now,
+    #         },
+    #     )
+    #     return feelings
+    def generate_feeling(self, observation: str,now) -> str:
         """Feel about each item bought."""
         call_to_action_template = (
-            "{agent_name} has not seen these movies before. "
-            + "If you were {agent_name}, how will you feel about each movie just watched? Respond all in one line."
-            + "Feelings is slpit by semicolon."
+            "{agent_name} has not seen this movie before. "
+            + "If you were {agent_name}, how will you feel about this movie just watched? Respond all in one line."
             + "\n\n"
         )
        
-        full_result = self._generate_reaction(observation, call_to_action_template)
+        full_result = self._generate_reaction(observation, call_to_action_template,now)
         results = full_result.split(".")
         feelings = ""
         for result in results:
@@ -252,11 +311,12 @@ class RecAgent(GenerativeAgent):
             {
                 self.memory.add_memory_key: f"{self.name} felt: "
                 f"{feelings}",
+                self.memory.now_key: now,
             },
         )
         return feelings
 
-    def search_item(self, observation) -> str:
+    def search_item(self, observation,now) -> str:
         """Search item by the item name."""
 
         call_to_action_template = (
@@ -264,17 +324,18 @@ class RecAgent(GenerativeAgent):
             + "\n\n"
         )
 
-        full_result = self._generate_reaction(observation, call_to_action_template)
+        full_result = self._generate_reaction(observation, call_to_action_template,now)
         result = full_result.strip().split("\n")[0]
         self.memory.save_context(
             {},
             {
                 self.memory.add_memory_key: f"{self.name} wants to search and watch {result} in recommender system.",
+                self.memory.now_key: now,
             },
         )
         return result
 
-    def take_social_action(self, observation) -> Tuple[str, str]:
+    def take_social_action(self, observation,now) -> Tuple[str, str]:
         """Take one of the four actions below.
         (1) Chat with one acquaintance. [CHAT]:: TO [acquaintance]: what to say.
         (2) Publish posting to all acquaintances. [POST]:: what to say.
@@ -286,7 +347,7 @@ class RecAgent(GenerativeAgent):
             + "\nIf {agent_name} want to publish posting to all acquaintances, write:\n [POST]::what to post."
             + "\n\n"
         )
-        full_result = self._generate_reaction(observation, call_to_action_template)
+        full_result = self._generate_reaction(observation, call_to_action_template,now)
         result = full_result.strip().split("\n")[0]
         choice = result.split("::")[0]
         action = result.split("::")[1]
@@ -294,6 +355,7 @@ class RecAgent(GenerativeAgent):
             {},
             {
                 self.memory.add_memory_key: f"{self.name} took action: {result}",
+                self.memory.now_key: now,
             },
         )
         return choice, action
@@ -367,7 +429,7 @@ class RecAgent(GenerativeAgent):
         )
         return full_result
 
-    def publish_posting(self, observation) -> str:
+    def publish_posting(self, observation,now) -> str:
         """Publish posting to all acquaintances."""
         call_to_action_template = (
             "Posts should be related to recent watched movies on recommender systems."
@@ -376,22 +438,23 @@ class RecAgent(GenerativeAgent):
             + "\n\n"
         )
 
-        result = self._generate_reaction(observation, call_to_action_template)
+        result = self._generate_reaction(observation, call_to_action_template,now)
         self.memory.save_context(
             {},
             {
                 self.memory.add_memory_key: f"{self.name} is publishing posting to all acquaintances. {self.name} posted {result}",
+                self.memory.now_key: now,
             },
         )
         return result
 
-    def update_watched_history(self, items):
+    def update_watched_history(self, items,now):
         """Update history by the items bought. If the number of items in the history achieves the BUFFERSIZE, delete the oldest item."""
         self.watched_history.extend(items)
         if len(self.watched_history) > self.BUFFERSIZE:
             self.watched_history = self.watched_history[-self.BUFFERSIZE :]
 
-    def update_heared_history(self, items):
+    def update_heared_history(self, items,now):
         """Update history by the items heard. If the number of items in the history achieves the BUFFERSIZE, delete the oldest item."""
         self.heared_history.extend(items)
         if len(self.heared_history) > self.BUFFERSIZE:

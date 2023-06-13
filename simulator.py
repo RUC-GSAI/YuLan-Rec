@@ -14,6 +14,8 @@ import time
 import concurrent.futures
 import json
 from langchain.chat_models import ChatOpenAI
+from llm.chatglm import ChatGLM
+from llm.yulan import YuLan
 from langchain.docstore import InMemoryDocstore
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
@@ -30,7 +32,7 @@ from recommender.data.data import Data
 from agents.recagent import RecAgent
 from utils import utils
 from utils.message import Message
-
+import utils.interval as interval
 
 class Simulator:
     """
@@ -40,6 +42,8 @@ class Simulator:
         self.config = config
         self.logger = logger
         self.round_cnt=0
+        self.now = datetime.now().replace(hour=8, minute=0, second=0)  
+        self.interval=interval.parse_interval(config['interval'])
         
     
     def load_simulator(self):
@@ -86,14 +90,13 @@ class Simulator:
         agent = self.agents[agent_id]
         name = agent.name
         message=[]
-        choice, observation = agent.take_action()
+        choice, observation = agent.take_action(self.now)
         if "RECOMMENDER" in choice:
             self.logger.info(f"{name} enters the recommender system.")
             message.append(Message(agent_id,"RECOMMENDER",f"{name} enters the recommender system."))
             leave = False
             rec_items = self.recsys.get_full_sort_items(agent_id)
             page = 0
-            cnt=0
             searched_name=None
             while not leave:            
                 self.logger.info(
@@ -105,7 +108,7 @@ class Simulator:
                     observation=observation+f" {name} has searched for {searched_name} in recommender system and recommender system returns item list:{rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]} as search results."
                 else:
                     observation=observation+f"{name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}."
-                choice,action=agent.take_recommender_action(observation)
+                choice,action=agent.take_recommender_action(observation,self.now)
                 self.recsys.update_history(agent_id, rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size])
                 if "BUY" in choice:
                     
@@ -116,7 +119,7 @@ class Simulator:
 
                     self.logger.info(f"{name} watches {item_names}")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} watches {item_names}."))
-                    agent.update_watched_history(item_names)
+                    agent.update_watched_history(item_names,self.now)
                     self.recsys.update_positive(agent_id, item_names)
                     item_descriptions=self.data.get_item_descriptions(item_names)
                     if len(item_descriptions)==0:
@@ -124,11 +127,12 @@ class Simulator:
                         message.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
                         leave=True
                         continue
-                    observation=f"{name} has just finished watching"
+                    #observation=f"{name} has just finished watching"
+                    
                     for i in range(len(item_names)):
-                        observation=observation+f" {item_names[i]}:{item_descriptions[i]};"
-                    feelings=agent.generate_feelings(observation)
-                    self.logger.info(f"{name} feels:{feelings}")
+                        observation=f"{name} has just finished watching {item_names[i]}:{item_descriptions[i]}."
+                        feelings=agent.generate_feeling(observation,self.now+ timedelta(hours=2*(i+1)))
+                        self.logger.info(f"{name} feels:{feelings}")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} feels:{feelings}"))
                     searched_name=None
                     leave=True
@@ -146,7 +150,7 @@ class Simulator:
                 elif "SEARCH" in choice:
 
                     observation = f"{name} is searching in recommender system."
-                    item_name=agent.search_item(observation)
+                    item_name=agent.search_item(observation,self.now)
                     self.logger.info(f"{name} searches {item_name}.")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} searches {item_name}."))
                     item_names=utils.extract_item_names(item_name)
@@ -178,7 +182,7 @@ class Simulator:
             self.logger.info(f"{name} is going to social media.")
             message.append(Message(agent_id,"SOCIAL",f"{name} is going to social media."))
             social=f"{name} is going to social media. {name} and {contacts} are acquaintances. {name} can chat with acquaintances, or post to all acquaintances. What will {name} do?"
-            choice, action=agent.take_social_action(social)
+            choice, action=agent.take_social_action(social,self.now)
             if "CHAT" in choice:
                 
                 agent_name2=action.strip(" \t\n'\"")
@@ -187,7 +191,7 @@ class Simulator:
                 self.logger.info(f"{name} is chatting with {agent_name2}.")
                 message.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
                 observation=f"{name} is going to chat with {agent2.name}."
-                conversation=agent.generate_dialogue(agent2,observation)
+                conversation=agent.generate_dialogue(agent2,observation,self.now)
                 self.logger.info(conversation)
                 msgs=[]
                 matches = re.findall(r'\[([^]]+)\]:\s*(.*)', conversation)
@@ -204,7 +208,7 @@ class Simulator:
             else:
                 self.logger.info(f"{name} is posting.")
                 observation=f"{name} want to post for all acquaintances."
-                observation = agent.publish_posting(observation)
+                observation = agent.publish_posting(observation,self.now)
                 item_names=utils.extract_item_names(observation,"SOCIAL")
                 self.logger.info(agent.name+" posted: "+observation)
                 message.append(Message(agent_id,"POST",agent.name+" posts: "+observation))
@@ -240,13 +244,15 @@ class Simulator:
             for i in tqdm(range(self.config['num_agents'])):
                 msgs = self.one_step(i)
                 messages.extend(msgs)
+        self.now=interval.add_interval(self.now,self.interval)
         return messages
     
     def create_agent(self,i, api_key):
         """
         Create an agent with the given id.
         """
-        LLM = ChatOpenAI(max_tokens=self.config['max_token'], temperature=self.config['temperature'], openai_api_key=api_key)
+        #LLM = ChatOpenAI(max_tokens=self.config['max_token'], temperature=self.config['temperature'], openai_api_key=api_key)
+        LLM=YuLan(max_token=2048,logger=self.logger)
         agent_memory = GenerativeAgentMemory(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
