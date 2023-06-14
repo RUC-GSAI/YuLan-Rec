@@ -15,7 +15,7 @@ simulator_restore_file_name:
 # recommender system model
 model: Random
 # number of epochs
-epoch: 4
+epoch: 1
 # number of agents, which cannot exceed the number of user in user.csv
 num_agents: 1
 # number of items to be recommended in one page

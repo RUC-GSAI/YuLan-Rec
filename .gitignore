@@ -164,4 +164,5 @@ output/
 develop.yaml
 data/simulator
 data/interaction.csv
+config/myconfig.yaml
 .vscode/
