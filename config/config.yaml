@@ -24,7 +24,5 @@ max_token: 1500
 execution_mode: serial
 # list of api keys for LLM API
 api_keys:
-  - xxxxx
-  - xxxxx
-
+  - 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
 

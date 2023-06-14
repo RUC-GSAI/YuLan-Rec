@@ -76,6 +76,27 @@ class Data:
                     "observations": observations,
                 }
 
+    def load_role(self, id, name, age, traits, status, observations, relations):
+        """
+        @ Zeyu Zhang
+        """
+        self.role_id = id
+        self.users[id] = {
+            "name": name,
+            "age": int(age),
+            "traits": traits,
+            "status": status,
+            "observations": observations,
+        }
+        for rel_name, rel_value in relations:
+            user_ids = self.get_user_ids([name, rel_name])
+            if "contact" not in self.users[user_ids[0]]:
+                self.users[user_ids[0]]["contact"] = []
+            self.users[user_ids[0]]["contact"].append(rel_name)
+            if "contact" not in self.users[user_ids[1]]:
+                self.users[user_ids[1]]["contact"] = []
+            self.users[user_ids[1]]["contact"].append(name)
+
     def get_full_items(self):
         return list(self.items.keys())
 
@@ -105,6 +126,12 @@ class Data:
                     user_ids.append(user_id)
                     break
         return user_ids
+
+    def get_user_num(self):
+        """
+        Return the number of users.
+        """
+        return len(self.users.keys())
 
     def search_items(self, item, k=5):
         """

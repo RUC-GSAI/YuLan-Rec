@@ -28,6 +28,7 @@ import re
 from recommender.recommender import Recommender
 from recommender.data.data import Data
 from agents.recagent import RecAgent
+from agents.roleagent import RoleAgent
 from utils import utils
 from utils.message import Message
 
@@ -46,8 +47,8 @@ class Simulator:
         """Load and initiate the simulator."""
         os.environ["OPENAI_API_KEY"] = self.config["api_keys"][0]
         self.data = Data(self.config)
-        self.recsys = Recommender(self.config, self.data)
         self.agents = self.agent_creation()
+        self.recsys = Recommender(self.config, self.data)
         self.logger.info("Simulator loaded.")
 
 
@@ -108,7 +109,6 @@ class Simulator:
                 choice,action=agent.take_recommender_action(observation)
                 self.recsys.update_history(agent_id, rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size])
                 if "BUY" in choice:
-                    
                     item_names=utils.extract_item_names(action)
                     if len(item_names)==0:
                         item_names=action.split(";")
@@ -182,13 +182,27 @@ class Simulator:
             if "CHAT" in choice:
                 
                 agent_name2=action.strip(" \t\n'\"")
-                agent_id2=self.data.get_user_ids(agent_name2)[0]
+                agent_id2=self.data.get_user_ids([agent_name2])[0]
                 agent2=self.agents[agent_id2]
                 self.logger.info(f"{name} is chatting with {agent_name2}.")
                 message.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
-                observation=f"{name} is going to chat with {agent2.name}."
-                conversation=agent.generate_dialogue(agent2,observation)
-                self.logger.info(conversation)
+
+                if self.config['play_role']:
+                    conversation = ''
+                    observation = f"{name} is going to chat with {agent2.name}."
+                    contin,result, role_dia = agent.generate_role_dialogue(agent2,observation,conversation)
+                    conversation += role_dia + result
+                    self.logger.info(role_dia)
+                    self.logger.info(result)
+                    while contin:
+                        contin, result, role_dia = agent.generate_role_dialogue(agent2, observation, conversation)
+                        conversation += role_dia + result
+                        self.logger.info(role_dia)
+                        self.logger.info(result)
+                else:
+                    observation = f"{name} is going to chat with {agent2.name}."
+                    conversation=agent.generate_dialogue(agent2,observation)
+                    self.logger.info(conversation)
                 msgs=[]
                 matches = re.findall(r'\[([^]]+)\]:\s*(.*)', conversation)
                 for match in matches:
@@ -227,6 +241,11 @@ class Simulator:
         """
         messages=[]
         futures = []
+        # The user's role takes one step first.
+        if self.config['play_role']:
+            role_msg = self.one_step(self.data.role_id)
+            messages.extend(role_msg)
+
         if self.config['execution_mode']=='parallel':
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 for i in tqdm(range(self.config['num_agents'])):
@@ -268,6 +287,49 @@ class Simulator:
             agent.memory.add_memory(observation, now=datetime.now())
         return agent
 
+    def create_user_role(self,i,api_key):
+        """
+        @ Zeyu Zhang
+        Create a user controllable agent.
+        """
+        # The real version.
+        # name = input("Please input the name of role: \n")
+        # age = int(input("Please input the age of role: \n"))
+        # traits = input("Please input the traits of role: \n")
+        # status = input("Please input the status of role: \n")
+        # observations = input("Please input the observations of role: \n").strip(".").split(".")
+        # relations = input("Please input the relations by names-relation, split by comma. \n").strip(",").split(",")
+
+        # The debug version.
+        name, age, traits, status, observations = 'Zeyu', 23, 'happy', 'nice', 'He has a girl friend. He has watched many films.'.strip(".").split(".")
+        relations = "Jake 1,Olivia 1".strip(",").split(",")
+        relations = [r.split(' ') for r in relations]
+
+        LLM = ChatOpenAI(max_tokens=self.config['max_token'], temperature=self.config['temperature'],
+                         openai_api_key=api_key)
+        agent_memory = GenerativeAgentMemory(
+            llm=LLM,
+            memory_retriever=self.create_new_memory_retriever(),
+            verbose=False,
+            reflection_threshold=8
+        )
+        agent = RoleAgent(
+            id=i,
+            name=name,
+            age=age,
+            traits=traits,
+            status=status,
+            memory_retriever=self.create_new_memory_retriever(),
+            llm=LLM,
+            memory=agent_memory,
+        )
+        for observation in observations:
+            agent.memory.add_memory(observation, now=datetime.now())
+
+        self.data.load_role(i,name,age,traits,status,observations,relations)
+
+        return agent
+
     def agent_creation(self):
         """
         Create agents in parallel
@@ -275,6 +337,14 @@ class Simulator:
         agents = {}
         api_keys = list(self.config['api_keys'])
         num_agents = int(self.config['num_agents'])
+        # Add ONE user controllable user into the simulator if the flag is true.
+        # We block the main thread when the user is creating the role.
+        if self.config['play_role']:
+            role_id = self.data.get_user_num()
+            api_key = api_keys[role_id % len(api_keys)]
+            agent = self.create_user_role(role_id, api_key)
+            agents[role_id] = agent
+
         if self.config['execution_mode']=='parallel':
             futures=[]
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -309,6 +379,9 @@ def parse_args():
         "-n", "--log_name", type=str, default=str(os.getpid()), help="Name of logger"
     )
     parser.add_argument(
+        "-p", "--play_role", action="store_true", help="Add a user controllable role"
+    )
+    parser.add_argument(
         "opts",
         default=None,
         nargs=argparse.REMAINDER,
@@ -325,6 +398,7 @@ def main():
     # create config
     config = CfgNode(new_allowed=True)
     config = utils.add_variable_to_config(config, "log_name", args.log_name)
+    config = utils.add_variable_to_config(config, "play_role", args.play_role)
     config.merge_from_file(args.config_file)
     logger.info(f"\n{config}")
     
