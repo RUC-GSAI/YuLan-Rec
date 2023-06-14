@@ -54,7 +54,7 @@ class Simulator:
     def save(self, save_dir_name):
         """Save the simulator status of current epoch """
         utils.ensure_dir(save_dir_name)
-        save_file_name = os.path.join(save_dir_name, f"Round-{self.round_cnt} | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.pickle")
+        save_file_name = os.path.join(save_dir_name, f"Round[{self.round_cnt}]-AgentNum[{self.config['num_agents']}]-{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.pickle")
         with open(save_file_name, "wb") as f:
             pickle.dump(self.__dict__, f)
 
