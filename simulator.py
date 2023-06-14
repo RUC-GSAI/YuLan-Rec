@@ -182,7 +182,7 @@ class Simulator:
             if "CHAT" in choice:
                 
                 agent_name2=action.strip(" \t\n'\"")
-                agent_id2=self.data.get_user_ids(agent_name2)[0]
+                agent_id2=self.data.get_user_ids([agent_name2])[0]
                 agent2=self.agents[agent_id2]
                 self.logger.info(f"{name} is chatting with {agent_name2}.")
                 message.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
