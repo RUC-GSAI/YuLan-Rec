@@ -9,7 +9,7 @@ class YuLan(LLM):
     max_token: int
     URL:str="http://183.174.229.156:8080/generate"
     headers:dict = {'Content-Type': 'application/json'}
-    payload:dict ={'input_text': ''}
+    payload:dict ={'prompt': ''}
     logger: Any
         
     @property
@@ -23,12 +23,12 @@ class YuLan(LLM):
         history: Optional[List[str]] = None,
         run_manager: Optional[CallbackManagerForLLMRun] = None,
     ) -> str:
-        self.payload['input_text']=prompt
+        self.payload['prompt']=prompt
         response = requests.post(self.URL, headers=self.headers, data=json.dumps(self.payload))
       
         if response.status_code == 200:
             result = response.json()
-            return result['generated_text']
+            return result['response']
         else:
             self.logger.error('YuLan error occurred with status code:', response.text)
         return response.text

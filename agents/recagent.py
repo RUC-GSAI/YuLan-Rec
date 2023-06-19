@@ -33,6 +33,9 @@ class RecAgent(GenerativeAgent):
     max_dialogue_token_limit: int = 600
     """The maximum number of tokens to use in a dialogue"""
 
+    available_time: datetime = Field(default_factory=datetime.now)
+    """The time when the agent is available"""
+
     def _generate_reaction(
         self, observation: str, suffix: str, now: Optional[datetime] = None
     ) -> str:
@@ -44,8 +47,6 @@ class RecAgent(GenerativeAgent):
             + "\n{agent_name} recently heared {heared_history} on social media."
             + "\n{agent_name} recently watched {watched_history} on recommender system."
             + "\nOther than that {agent_name} doesn't know any movies."
-            + "\nSummary of relevant context from {agent_name}'s memory:"
-            + "\n{relevant_memories}"
             + "\nMost recent observations: {most_recent_memories}"
             + "\nObservation: {observation}"
             + "\nAll occurrences of movie names should be enclosed with <>"
@@ -55,7 +56,6 @@ class RecAgent(GenerativeAgent):
         )
         now = datetime.now() if now is None else now
         agent_summary_description = self.get_summary(now=now)
-        relevant_memories_str = self.summarize_related_memories(observation)
         current_time_str = (
             datetime.now().strftime("%B %d, %Y, %I:%M %p")
             if now is None
@@ -64,7 +64,6 @@ class RecAgent(GenerativeAgent):
         kwargs: Dict[str, Any] = dict(
             agent_summary_description=agent_summary_description,
             current_time=current_time_str,
-            relevant_memories=relevant_memories_str,
             agent_name=self.name,
             observation=observation,
             agent_status=self.status,
@@ -96,10 +95,6 @@ class RecAgent(GenerativeAgent):
             + "\n{agent_name} recently watched {watched_history} on recommender system."
             + "\n{agent_name2} recently heared {heared_history2} on social media."
             + "\n{agent_name2} recently watched {watched_history2} on recommender system."
-            + "\nSummary of relevant context from {agent_name}'s memory:"
-            + "\n{relevant_memories}"
-            + "\nSummary of relevant context from {agent_name2}'s memory:"
-            + "\n{relevant_memories2}"
             + "\nMost recent observations of {agent_name}: {most_recent_memories}"
             + "\nMost recent observations of {agent_name2}: {most_recent_memories2}"
             + "\nObservation: {observation}"
@@ -109,9 +104,7 @@ class RecAgent(GenerativeAgent):
         )
         now = datetime.now() if now is None else now
         agent_summary_description = self.get_summary(now=now)
-        relevant_memories_str = self.summarize_related_memories(observation)
         agent_summary_description2 = agent2.get_summary(now=now)
-        relevant_memories_str2 = agent2.summarize_related_memories(observation)
         current_time_str = (
             datetime.now().strftime("%B %d, %Y, %I:%M %p")
             if now is None
@@ -120,7 +113,6 @@ class RecAgent(GenerativeAgent):
         kwargs: Dict[str, Any] = dict(
             agent_summary_description=agent_summary_description,
             current_time=current_time_str,
-            relevant_memories=relevant_memories_str,
             agent_name=self.name,
             observation=observation,
             agent_status=self.status,
@@ -131,7 +123,6 @@ class RecAgent(GenerativeAgent):
             if len(self.heared_history) > 0
             else "nothing",
             agent_summary_description2=agent_summary_description2,
-            relevant_memories2=relevant_memories_str2,
             agent_name2=agent2.name,
             agent_status2=agent2.status,
             watched_history2=agent2.watched_history
@@ -228,7 +219,7 @@ class RecAgent(GenerativeAgent):
         (4) Leave the recommender system.
         """
         call_to_action_template = (
-            "{agent_name} must take one of the four actions below:(1) Buy some movies in the item list returned by recommender system.\n(2) See the next page. \n(3) Search items.\n(4) Leave the recommender system."
+            "{agent_name} must take one of the four actions below:(1) Watch some movies in the item list returned by recommender system. Each movie is two hours long.\n(2) See the next page. \n(3) Search items.\n(4) Leave the recommender system."
             + "\nIf {agent_name} has recently heard about a particular movie on a social media, {agent_name} might want to search for that movie on the recommender system."
             + "\nWhat action would {agent_name} like to take? Respond in one line."
             + "\nIf {agent_name} want to watch movies in returned list, write:\n [BUY]:: movie names in the list returned by the recommender system, only movie names, separated by semicolons."

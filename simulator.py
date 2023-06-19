@@ -90,6 +90,10 @@ class Simulator:
         agent = self.agents[agent_id]
         name = agent.name
         message=[]
+        if agent.available_time>self.now:
+            self.logger.info(f"{name} is watching movie at {self.now}.")
+            message.append(Message(agent_id,"RECOMMENDER",f"{name} is watching movie at {self.now}."))
+            return message
         choice, observation = agent.take_action(self.now)
         if "RECOMMENDER" in choice:
             self.logger.info(f"{name} enters the recommender system.")
@@ -133,6 +137,7 @@ class Simulator:
                         observation=f"{name} has just finished watching {item_names[i]}:{item_descriptions[i]}."
                         feelings=agent.generate_feeling(observation,self.now+ timedelta(hours=2*(i+1)))
                         self.logger.info(f"{name} feels:{feelings}")
+                    agent.available_time=self.now+ timedelta(hours=2*len(item_names))
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} feels:{feelings}"))
                     searched_name=None
                     leave=True
@@ -251,8 +256,8 @@ class Simulator:
         """
         Create an agent with the given id.
         """
-        #LLM = ChatOpenAI(max_tokens=self.config['max_token'], temperature=self.config['temperature'], openai_api_key=api_key)
-        LLM=YuLan(max_token=2048,logger=self.logger)
+        LLM = ChatOpenAI(max_tokens=self.config['max_token'], temperature=self.config['temperature'], openai_api_key=api_key)
+        #LLM=YuLan(max_token=2048,logger=self.logger)
         agent_memory = GenerativeAgentMemory(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
@@ -268,6 +273,7 @@ class Simulator:
             memory_retriever=self.create_new_memory_retriever(),
             llm=LLM,
             memory=agent_memory,
+            available_time=self.now
         )
         observations = self.data.users[i]["observations"].strip(".").split(".")
         for observation in observations:
