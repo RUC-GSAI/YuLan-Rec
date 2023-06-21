@@ -27,6 +27,8 @@ max_token: 1500
 # execution mode, serial or parallel
 execution_mode: serial
 # list of api keys for LLM API
+interval: 5h
+# time interval for action of agents. The form is a number + a single letter, and the letter may be s, m, h, d, M, y
 api_keys:
   - jpgSSLwTE1kUhJSgrNBaT3BlbkFJAz2jKODFtQo57REvlI8M
   - Txjvy0mTppqDn7NZ7SkCT3BlbkFJhdZtrvOT3UnCKeKmeZMe

@@ -162,6 +162,7 @@ output/
 
 .DS_Store
 develop.yaml
+
 data/simulator
 data/interaction.csv
 config/myconfig.yaml
