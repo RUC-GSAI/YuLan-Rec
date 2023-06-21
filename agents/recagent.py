@@ -36,6 +36,9 @@ class RecAgent(GenerativeAgent):
     available_time: datetime = Field(default_factory=datetime.now)
     """The time when the agent is available"""
 
+    current_state: Optional[str] = None
+    """Agent current state ['watch', 'social', None]"""
+
     def _generate_reaction(
         self, observation: str, suffix: str, now: Optional[datetime] = None
     ) -> str:
@@ -450,3 +453,41 @@ class RecAgent(GenerativeAgent):
         self.heared_history.extend(items)
         if len(self.heared_history) > self.BUFFERSIZE:
             self.heared_history = self.heared_history[-self.BUFFERSIZE :]
+            
+    def agree_to_respond(self, agent2, now):
+        # TODO 查看是不是每次都输出YES
+        """React to a chat request."""
+        prompt = PromptTemplate.from_template(
+            "{agent_summary_description}"
+            + "\nIt is {current_time}."
+            + "\n{agent_name}'s status: {agent_status}"
+            + "\nMost recent observations: {most_recent_memories}"
+            + "\n{agent_name} and {agent2_name} are acquaintances."
+            + "\nNow, {agent_name} is watching movies and {agent2_name} wants to chat with {agent_name}. Should {agent_name} stop watching and chat with {agent2_name}?"
+            + "\nAnswer YES or NO."
+            + "\n\n"
+        )
+        agent_summary_description = self.get_summary(now=now)
+        current_time_str = (
+            datetime.now().strftime("%B %d, %Y, %I:%M %p")
+            if now is None
+            else now.strftime("%B %d, %Y, %I:%M %p")
+        )
+        kwargs: Dict[str, Any] = dict(
+            agent_summary_description=agent_summary_description,
+            current_time=current_time_str,
+            agent_name=self.name,
+            agent2_name=agent2,
+            agent_status=self.status,
+        )
+        consumed_tokens = self.llm.get_num_tokens(
+            prompt.format(most_recent_memories="", **kwargs)
+        )
+        kwargs[self.memory.most_recent_memories_token_key] = consumed_tokens
+        
+        answer = self.chain(prompt=prompt).run(**kwargs).strip()
+
+        final_answer = True if answer == "YES" else False
+
+        return final_answer
+   

@@ -42,7 +42,7 @@ class Simulator:
         self.config = config
         self.logger = logger
         self.round_cnt=0
-        self.now = datetime.now().replace(hour=8, minute=0, second=0)  
+        self.now = datetime.now().replace(hour=8, minute=0, second=0)
         self.interval=interval.parse_interval(config['interval'])
         
     
@@ -90,12 +90,20 @@ class Simulator:
         agent = self.agents[agent_id]
         name = agent.name
         message=[]
-        if agent.available_time>self.now:
-            self.logger.info(f"{name} is watching movie at {self.now}.")
-            message.append(Message(agent_id,"RECOMMENDER",f"{name} is watching movie at {self.now}."))
-            return message
+        # if agent's previous task is completed, current_state is None
+        if agent.available_time <= self.now:
+            agent.current_state = None
+
+        if agent.current_state == "watch":
+            return None
+
         choice, observation = agent.take_action(self.now)
+        if agent.current_state == "social" and "SOCIAL" not in choice:
+            # if the agent state is social, he can only continue social or do nothing
+            return None
+        
         if "RECOMMENDER" in choice:
+            agent.current_state = "watch"
             self.logger.info(f"{name} enters the recommender system.")
             message.append(Message(agent_id,"RECOMMENDER",f"{name} enters the recommender system."))
             leave = False
@@ -113,6 +121,7 @@ class Simulator:
                 else:
                     observation=observation+f"{name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}."
                 choice,action=agent.take_recommender_action(observation,self.now)
+                # 如果是buy的话输出时间  
                 self.recsys.update_history(agent_id, rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size])
                 if "BUY" in choice:
                     
@@ -137,7 +146,7 @@ class Simulator:
                         observation=f"{name} has just finished watching {item_names[i]}:{item_descriptions[i]}."
                         feelings=agent.generate_feeling(observation,self.now+ timedelta(hours=2*(i+1)))
                         self.logger.info(f"{name} feels:{feelings}")
-                    agent.available_time=self.now+ timedelta(hours=2*len(item_names))
+                    agent.available_time = self.now + timedelta(hours=2 * len(item_names))  # TODO 改时间 
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} feels:{feelings}"))
                     searched_name=None
                     leave=True
@@ -181,18 +190,27 @@ class Simulator:
                     self.logger.info(f"{name} leaves the recommender system.")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
                     leave = True
-        elif "SOCIAL" in observation:
-
+        elif "SOCIAL" in choice:
+            agent.current_state = "social"
             contacts=self.data.get_all_contacts(agent_id)
             self.logger.info(f"{name} is going to social media.")
             message.append(Message(agent_id,"SOCIAL",f"{name} is going to social media."))
             social=f"{name} is going to social media. {name} and {contacts} are acquaintances. {name} can chat with acquaintances, or post to all acquaintances. What will {name} do?"
             choice, action=agent.take_social_action(social,self.now)
+            # TODO 这里可以选择时间 维护一个agent chat time 多个聊天取最大的time
             if "CHAT" in choice:
-                
                 agent_name2=action.strip(" \t\n'\"")
                 agent_id2=self.data.get_user_ids(agent_name2)[0]
                 agent2=self.agents[agent_id2]
+                if agent2.current_state == "watch":
+                    agreement = agent2.agree_to_respond(agent, self.now)
+                    if not agreement:
+                        agent.current_state = None
+                        self.logger.info(f"{name} does nothing.")
+                        message.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
+                        return message  # TODO 这里也可以替换成one_step 让该agent重新做选择
+                agent2.current_state = "social"
+                # TODO 更新agent2的时间
                 self.logger.info(f"{name} is chatting with {agent_name2}.")
                 message.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
                 observation=f"{name} is going to chat with {agent2.name}."
@@ -227,7 +245,6 @@ class Simulator:
         else:
             self.logger.info(f"{name} does nothing.")
             message.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
-            leave=True
         return message
 
     def all_step(self):
@@ -244,11 +261,13 @@ class Simulator:
 
             for future in concurrent.futures.as_completed(futures):
                 msgs = future.result()
-                messages.extend(msgs)
+                if msgs is not None:
+                    messages.extend(msgs)
         else:
             for i in tqdm(range(self.config['num_agents'])):
                 msgs = self.one_step(i)
-                messages.extend(msgs)
+                if msgs is not None:
+                    messages.extend(msgs)
         self.now=interval.add_interval(self.now,self.interval)
         return messages
     
