@@ -217,3 +217,8 @@ def round_format(round: int, agent_name: str):
     round_info += f'&nbsp;&nbsp; Round: {round}  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Actor: {agent_name}  &nbsp;&nbsp;'
     round_info += f'</div>'
     return round_info
+
+def ensure_dir(dir_path):
+    """Make sure the directory exists, if it does not exist, create it """
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)

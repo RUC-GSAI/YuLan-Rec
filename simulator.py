@@ -27,6 +27,9 @@ from langchain.experimental.generative_agents import (
 import math
 import faiss
 import re
+import pickle
+
+
 from recommender.recommender import Recommender
 from recommender.data.data import Data
 from agents.recagent import RecAgent
@@ -48,12 +51,26 @@ class Simulator:
     
     def load_simulator(self):
         """Load and initiate the simulator."""
-        os.environ["OPENAI_API_KEY"] = self.config["api_keys"][0]
         self.data = Data(self.config)
         self.recsys = Recommender(self.config, self.data)
         self.agents = self.agent_creation()
         self.logger.info("Simulator loaded.")
 
+    def save(self, save_dir_name):
+        """Save the simulator status of current epoch """
+        utils.ensure_dir(save_dir_name)
+        save_file_name = os.path.join(save_dir_name, f"Round[{self.round_cnt}]-AgentNum[{self.config['num_agents']}]-{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.pickle")
+        with open(save_file_name, "wb") as f:
+            pickle.dump(self.__dict__, f)
+
+    @classmethod
+    def restore(cls, restore_file_name, config, logger):
+        """Restore the simulator status from the specific file"""
+        with open(restore_file_name + ".pickle", "rb") as f:
+            obj = cls.__new__(cls)
+            obj.__dict__ = pickle.load(f)
+            obj.config, obj.logger = config, logger
+            return obj
 
     def relevance_score_fn(self,score: float) -> float:
         """Return a similarity score on a scale [0, 1]."""
@@ -358,12 +375,21 @@ def main():
     config = utils.add_variable_to_config(config, "log_name", args.log_name)
     config.merge_from_file(args.config_file)
     logger.info(f"\n{config}")
-    
+
+    os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
+
     # run
-    recagent=Simulator(config,logger)
-    recagent.load_simulator()
+    if config['simulator_restore_file_name']:
+        restore_path = os.path.join(config['simulator_dir'], config['simulator_restore_file_name'])
+        recagent = Simulator.restore(restore_path, config, logger)
+        logger.info(f"Successfully Restore simulator from the file <{restore_path}>\n")
+        logger.info(f"Start from the epoch {recagent.round_cnt + 1}\n")
+    else:
+        recagent=Simulator(config,logger)
+        recagent.load_simulator()
+
     messages=[]
-    for i in range(config['epoch']):
+    for i in range(recagent.round_cnt + 1, config['epoch'] + 1):
         recagent.round_cnt=recagent.round_cnt+1
         recagent.logger.info(f"Round {recagent.round_cnt}")
         message=recagent.all_step()
@@ -372,6 +398,7 @@ def main():
         with open(output_file, "w") as file:
             json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
         recagent.recsys.save_interaction()
+        recagent.save(os.path.join(config['simulator_dir']))
 
 
 if __name__ == "__main__":
