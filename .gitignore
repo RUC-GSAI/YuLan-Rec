@@ -167,3 +167,4 @@ data/simulator
 data/interaction.csv
 config/myconfig.yaml
 .vscode/
+test.py

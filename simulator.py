@@ -41,10 +41,11 @@ class Simulator:
     """
     Simulator class for running the simulation.
     """
-    def __init__(self,config: CfgNode, logger: logging.Logger):
+    def __init__(self, config: CfgNode, logger: logging.Logger):
         self.config = config
         self.logger = logger
         self.round_cnt=0
+        self.file_id_list = []
         self.now = datetime.now().replace(hour=8, minute=0, second=0)
         self.interval=interval.parse_interval(config['interval'])
         
@@ -59,7 +60,9 @@ class Simulator:
     def save(self, save_dir_name):
         """Save the simulator status of current epoch """
         utils.ensure_dir(save_dir_name)
-        save_file_name = os.path.join(save_dir_name, f"Round[{self.round_cnt}]-AgentNum[{self.config['num_agents']}]-{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.pickle")
+        ID = utils.generate_id(self.config['simulator_dir'])
+        self.file_id_list.append(ID)
+        save_file_name = os.path.join(save_dir_name, f"{ID}-Round[{self.round_cnt}]-AgentNum[{self.config['num_agents']}]-{datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pickle")
         with open(save_file_name, "wb") as f:
             pickle.dump(self.__dict__, f)
 
@@ -341,7 +344,6 @@ class Simulator:
         return agents
 
 
-
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -399,7 +401,6 @@ def main():
             json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
         recagent.recsys.save_interaction()
         recagent.save(os.path.join(config['simulator_dir']))
-
 
 if __name__ == "__main__":
     main()
