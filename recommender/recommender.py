@@ -18,6 +18,7 @@ class Recommender:
         self.model = getattr(module, config["model"])(config)
         self.record = {}
         self.positive = {}
+        self.inter_df = None
         for user in self.data.get_full_users():
             self.record[user] = []
             self.positive[user] = []
@@ -76,3 +77,5 @@ class Recommender:
             self.config["interaction_path"],
             index=False,
         )
+
+        self.inter_df = df

@@ -5,6 +5,7 @@ import logging
 from typing import Any, Dict, Optional,List,Tuple
 import re
 import itertools
+import random
 
 from yacs.config import CfgNode
 import os
@@ -222,3 +223,13 @@ def ensure_dir(dir_path):
     """Make sure the directory exists, if it does not exist, create it """
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
+
+def generate_id(dir_name):
+    ensure_dir(dir_name)
+    existed_id = set()
+    for f in os.listdir(dir_name):
+        existed_id.add(f.split('-')[0])
+    id = random.randint(1, 999999999)
+    while id in existed_id:
+        id = random.randint(1, 999999999)
+    return id
