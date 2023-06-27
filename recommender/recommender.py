@@ -78,4 +78,4 @@ class Recommender:
             index=False,
         )
 
-        self.df = df
+        self.inter_df = df
