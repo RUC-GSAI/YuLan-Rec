@@ -45,11 +45,13 @@ class Simulator:
         self.config = config
         self.logger = logger
         self.round_cnt=0
-        self.file_id_list = []
+        self.file_name_path = []
         self.now = datetime.now().replace(hour=8, minute=0, second=0)
         self.interval=interval.parse_interval(config['interval'])
         
-    
+    def get_file_name_path(self):
+        return self.file_name_path
+
     def load_simulator(self):
         """Load and initiate the simulator."""
         self.data = Data(self.config)
@@ -61,10 +63,14 @@ class Simulator:
         """Save the simulator status of current epoch """
         utils.ensure_dir(save_dir_name)
         ID = utils.generate_id(self.config['simulator_dir'])
-        self.file_id_list.append(ID)
-        save_file_name = os.path.join(save_dir_name, f"{ID}-Round[{self.round_cnt}]-AgentNum[{self.config['num_agents']}]-{datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pickle")
+        file_name = f"{ID}-Round[{self.round_cnt}]-AgentNum[{self.config['num_agents']}]-{datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pickle"
+        self.file_name_path.append(file_name)
+        save_file_name = os.path.join(save_dir_name, file_name)
         with open(save_file_name, "wb") as f:
             pickle.dump(self.__dict__, f)
+        self.logger.info("Current simulator Save in: \n" + str(save_file_name) + "\n")
+        self.logger.info("Simulator File Path (root -> node): \n" + str(self.file_name_path) + "\n")
+
 
     @classmethod
     def restore(cls, restore_file_name, config, logger):
