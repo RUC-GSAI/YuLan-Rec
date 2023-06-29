@@ -360,6 +360,7 @@ class Simulator:
             id=i,
             name=self.data.users[i]["name"],
             age=self.data.users[i]["age"],
+            gender=self.data.users[i]["gender"],
             traits=self.data.users[i]["traits"],
             status=self.data.users[i]["status"],
             memory_retriever=self.create_new_memory_retriever(),
@@ -478,6 +479,93 @@ def parse_args():
     return args
 
 
+def reset_system(recagent, logger):
+    # Reset the system
+    reset = input("Do you want to reset the system? [y/n]: ")
+    all_agents = [v for k, v in recagent.agents.items()]
+    log_string = ""
+    if reset in "y":
+        for agent in all_agents:
+            agent.reset_agent()
+        log_string = "The system is reset, and the historic records are removed."
+    else:
+        log_string = "The system keeps unchanged."
+    recagent.round_msg.append(Message("system","System",log_string))
+    return log_string
+
+
+def modify_attr(recagent, logger):
+    all_agents = [v for k, v in recagent.agents.items()]
+    agents_name = [agent.name for agent in all_agents]
+
+    # Modify agent attribute
+    modify = input("Do you want to modify agent's attribute? [y/n]: ")
+    log_string = ""
+    if modify in "y":
+        while True:
+            modify_name = input("Please type the agent name, select from: " + str(sorted([agent.name for agent in all_agents], reverse=False)) + ' : ')
+            if modify_name not in agents_name:
+                logger.info("Please type the correct agent name.")
+            else:
+                break
+        target = [agent for agent in all_agents if agent.name == modify_name][0]
+        target.modify_agent()
+        log_string += "The attributes of {modify_name} are: \n"
+        log_string += "The age of {} is : {}\n".format(modify_name, [agent.age for agent in all_agents if agent.name == modify_name])
+        log_string += "The gender of {} is : {}\n".format(modify_name, [agent.gender for agent in all_agents if agent.name == modify_name])
+        log_string += "The traits of {} is : {}\n".format(modify_name, [agent.traits for agent in all_agents if agent.name == modify_name])
+        log_string += "The status of {} is : {}\n".format(modify_name, [agent.status for agent in all_agents if agent.name == modify_name])
+    else:
+        log_string = "The attributes of agent keep unchanged."
+    
+    recagent.round_msg.append(Message("system","System",log_string))
+    return log_string
+    
+
+def inter_agent(recagent, logger):
+    all_agents = [v for k, v in recagent.agents.items()]
+    agents_name = [agent.name for agent in all_agents]
+    log_string = ""
+    # Interact with an agent
+    interact = input('Do you want to interact with agent? [y/n]: ')
+    while interact in 'y':
+        while True:
+            interact_name = input('Please type agent name, select from: ' + str(sorted([agent.name for agent in all_agents], reverse=False)) + ' : ')
+            if interact_name not in agents_name:
+                    logger.info('Please type the correct agent name.')
+            else:
+                log_string += "interact with " + interact_name + "\n"
+                break
+        target = [agent for agent in all_agents if agent.name == interact_name][0]
+        observation, response = target.interact_agent()
+        logger.info(response)
+        log_string += "Observation: " + observation + "\n"
+        log_string += "Response:"  + response + "\n"
+        cont = input('Do you want to keep interacting with agent? [y/n]')
+        if cont in 'y':
+            continue
+        else:
+            break
+    if interact in 'n':
+        log_string += 'Do not interact with agent.'
+
+    recagent.round_msg.append(Message("system","System",log_string))
+    return log_string
+
+
+       
+def system_status(recagent, logger):
+    # Reset the system
+    log = reset_system(recagent, logger)
+    logger.info(log)
+    # Modify the agent attribute
+    log = modify_attr(recagent, logger)
+    logger.info(log)
+    # Interact with agent
+    log = inter_agent(recagent, logger)
+    logger.info(log)
+
+
 def main():
     args = parse_args()
     logger = utils.set_logger(args.log_file, args.log_name)
@@ -503,6 +591,7 @@ def main():
 
     messages=[]
     for i in range(recagent.round_cnt + 1, config['epoch'] + 1):
+        system_status(recagent, logger)
         recagent.round_cnt=recagent.round_cnt+1
         recagent.logger.info(f"Round {recagent.round_cnt}")
         message=recagent.all_step()
