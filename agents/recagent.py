@@ -20,7 +20,10 @@ class RecAgent(GenerativeAgent):
     
     id: int
     """The agent's unique identifier"""
-
+    
+    gender: str
+    """The agent's gender"""
+    
     watched_history: List[str] = []
     """The agent's history of watched movies"""
 
@@ -38,6 +41,87 @@ class RecAgent(GenerativeAgent):
 
     current_state: Optional[str] = None
     """Agent current state ['watch', 'social', None]"""
+
+    def interact_agent(self):
+
+        """
+        type the sentences you want to interact with the agent.
+        """
+
+        interact_sentence = input('Please type the sentence you want to interact with {}: '.format(self.name))
+
+        result = self.interact_reaction(interact_sentence)[1]
+        self.memory.save_context(
+            {},
+            {
+                self.memory.add_memory_key: f"{self.name} observe "
+                                            f"{interact_sentence} and say {result}",
+                self.memory.now_key: datetime.now(),
+            }, )
+        return result
+
+    def modify_agent(self):
+
+        """
+        modify the attribute of agent, including age, traits, status
+        """
+        age = input('If you want to modify the age, please enter the information. Otherwise, enter \'n\' to skip it: ')
+        gender = input('If you want to modify the gender, please enter the information. Otherwise, enter \'n\' to skip it: ')
+        traits = input('If you want to modify the traits, please enter the information. Otherwise, enter \'n\' to skip it: ')
+        status = input('If you want to modify the status, please enter the information. Otherwise, enter \'n\' to skip it: ')
+
+        self.age = age if age not in 'n' else self.age
+        self.gender = gender if gender not in 'n' else self.gender
+        self.traits = traits if traits not in 'n' else self.traits
+        self.status = status if status not in 'n' else self.status
+
+    def reset_agent(self):
+        """
+        Reset the agent attributes, including memory, watched_history and heared_history.
+        """
+        # Remove watched_history and heared_history
+        self.watched_history = []
+        self.heared_history = []
+        
+    def interact_reaction(
+        self, observation: str, now: Optional[datetime] = None
+    ) -> Tuple[bool, str]:
+        """React to a given observation."""
+        call_to_action_template = (
+            "{agent_name} 应该对观察有反应, ,"
+            + " 合适的反应应该是什么样的？请在一行内回答."
+            + ' 如果反应是应该参与一段对话, 写:\nSAY: "说的内容"'
+            + "\n否则，写:\nREACT: {agent_name}的反应是（如果有的话）."
+            + "\n要么反应，要么说些什么，但不能同时做两个.\n\n"
+        )
+        call_to_action_template = (
+            "{agent_name} should respond to the observation. "
+            + "What would be an appropriate response? Please answer in one line."
+            + 'If the response should initiate a dialogue, write:\nSAY: "The content to say"'
+            + "\nOtherwise, write:\nREACT: {agent_name}'s reaction (if any)."
+            + "\nEither react or say something, but not both at the same time.\n\n"
+        )
+        full_result = self._generate_reaction_ch(
+            observation, call_to_action_template, now=now
+        )
+        result = full_result.strip().split("\n")[0].replace("：", ":")
+        # AAA
+        self.memory.save_context(
+            {},
+            {
+                self.memory.add_memory_key: f"{self.name} observed "
+                f"{observation} and reacted by {result}",
+                self.memory.now_key: now,
+            },
+        )
+        if "REACT:" in result:
+            reaction = self._clean_response(result.split("REACT:")[-1])
+            return False, f"{self.name} {reaction}"
+        if "SAY:" in result:
+            said_value = self._clean_response(result.split("SAY:")[-1])
+            return True, f"{self.name} said {said_value}"
+        else:
+            return False, result
 
     def _generate_reaction(
         self, observation: str, suffix: str, now: Optional[datetime] = None
