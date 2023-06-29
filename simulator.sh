@@ -1,0 +1,1 @@
+python simulator.py --config_file config/myconfig.yaml --output_file messages.json --log_file simulation.log

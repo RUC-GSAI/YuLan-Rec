@@ -8,6 +8,10 @@ relationship_path: data/relationship.csv
 interaction_path: data/interaction.csv
 # directory name for faiss index
 index_name: data/faiss_index
+# simulator directory name for saving and restoring
+simulator_dir: data/simulator
+# simulator restoring name
+simulator_restore_file_name: 
 # recommender system model
 model: Random
 # number of epochs
@@ -23,6 +27,9 @@ max_token: 1500
 # execution mode, serial or parallel
 execution_mode: serial
 # list of api keys for LLM API
+interval: 5h
+# time interval for action of agents. The form is a number + a single letter, and the letter may be s, m, h, d, M, y
 api_keys:
   - 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
+
 

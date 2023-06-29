@@ -14,6 +14,8 @@ import time
 import concurrent.futures
 import json
 from langchain.chat_models import ChatOpenAI
+from llm.chatglm import ChatGLM
+from llm.yulan import YuLan
 from langchain.docstore import InMemoryDocstore
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
@@ -25,32 +27,60 @@ from langchain.experimental.generative_agents import (
 import math
 import faiss
 import re
+import pickle
+
+
 from recommender.recommender import Recommender
 from recommender.data.data import Data
 from agents.recagent import RecAgent
 from agents.roleagent import RoleAgent
 from utils import utils
 from utils.message import Message
-
+import utils.interval as interval
 
 class Simulator:
     """
     Simulator class for running the simulation.
     """
-    def __init__(self,config: CfgNode, logger: logging.Logger):
+    def __init__(self, config: CfgNode, logger: logging.Logger):
         self.config = config
         self.logger = logger
         self.round_cnt=0
+        self.file_name_path = []
+        self.now = datetime.now().replace(hour=8, minute=0, second=0)
+        self.interval=interval.parse_interval(config['interval'])
         
-    
+    def get_file_name_path(self):
+        return self.file_name_path
+
     def load_simulator(self):
         """Load and initiate the simulator."""
-        os.environ["OPENAI_API_KEY"] = self.config["api_keys"][0]
         self.data = Data(self.config)
         self.agents = self.agent_creation()
         self.recsys = Recommender(self.config, self.data)
         self.logger.info("Simulator loaded.")
 
+    def save(self, save_dir_name):
+        """Save the simulator status of current epoch """
+        utils.ensure_dir(save_dir_name)
+        ID = utils.generate_id(self.config['simulator_dir'])
+        file_name = f"{ID}-Round[{self.round_cnt}]-AgentNum[{self.config['num_agents']}]-{datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pickle"
+        self.file_name_path.append(file_name)
+        save_file_name = os.path.join(save_dir_name, file_name)
+        with open(save_file_name, "wb") as f:
+            pickle.dump(self.__dict__, f)
+        self.logger.info("Current simulator Save in: \n" + str(save_file_name) + "\n")
+        self.logger.info("Simulator File Path (root -> node): \n" + str(self.file_name_path) + "\n")
+
+
+    @classmethod
+    def restore(cls, restore_file_name, config, logger):
+        """Restore the simulator status from the specific file"""
+        with open(restore_file_name + ".pickle", "rb") as f:
+            obj = cls.__new__(cls)
+            obj.__dict__ = pickle.load(f)
+            obj.config, obj.logger = config, logger
+            return obj
 
     def relevance_score_fn(self,score: float) -> float:
         """Return a similarity score on a scale [0, 1]."""
@@ -87,14 +117,25 @@ class Simulator:
         agent = self.agents[agent_id]
         name = agent.name
         message=[]
-        choice, observation = agent.take_action()
+        # if agent's previous task is completed, current_state is None
+        if agent.available_time <= self.now:
+            agent.current_state = None
+
+        if agent.current_state == "watch":
+            return None
+
+        choice, observation = agent.take_action(self.now)
+        if agent.current_state == "social" and "SOCIAL" not in choice:
+            # if the agent state is social, he can only continue social or do nothing
+            return None
+        
         if "RECOMMENDER" in choice:
+            agent.current_state = "watch"
             self.logger.info(f"{name} enters the recommender system.")
             message.append(Message(agent_id,"RECOMMENDER",f"{name} enters the recommender system."))
             leave = False
             rec_items = self.recsys.get_full_sort_items(agent_id)
             page = 0
-            cnt=0
             searched_name=None
             while not leave:            
                 self.logger.info(
@@ -106,7 +147,8 @@ class Simulator:
                     observation=observation+f" {name} has searched for {searched_name} in recommender system and recommender system returns item list:{rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]} as search results."
                 else:
                     observation=observation+f"{name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}."
-                choice,action=agent.take_recommender_action(observation)
+                choice,action=agent.take_recommender_action(observation,self.now)
+                # 如果是buy的话输出时间  
                 self.recsys.update_history(agent_id, rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size])
                 if "BUY" in choice:
                     item_names=utils.extract_item_names(action)
@@ -116,7 +158,7 @@ class Simulator:
 
                     self.logger.info(f"{name} watches {item_names}")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} watches {item_names}."))
-                    agent.update_watched_history(item_names)
+                    agent.update_watched_history(item_names,self.now)
                     self.recsys.update_positive(agent_id, item_names)
                     item_descriptions=self.data.get_item_descriptions(item_names)
                     if len(item_descriptions)==0:
@@ -124,11 +166,13 @@ class Simulator:
                         message.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
                         leave=True
                         continue
-                    observation=f"{name} has just finished watching"
+                    #observation=f"{name} has just finished watching"
+                    
                     for i in range(len(item_names)):
-                        observation=observation+f" {item_names[i]}:{item_descriptions[i]};"
-                    feelings=agent.generate_feelings(observation)
-                    self.logger.info(f"{name} feels:{feelings}")
+                        observation=f"{name} has just finished watching {item_names[i]}:{item_descriptions[i]}."
+                        feelings=agent.generate_feeling(observation,self.now+ timedelta(hours=2*(i+1)))
+                        self.logger.info(f"{name} feels:{feelings}")
+                    agent.available_time = self.now + timedelta(hours=2 * len(item_names))  # TODO 改时间 
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} feels:{feelings}"))
                     searched_name=None
                     leave=True
@@ -146,7 +190,7 @@ class Simulator:
                 elif "SEARCH" in choice:
 
                     observation = f"{name} is searching in recommender system."
-                    item_name=agent.search_item(observation)
+                    item_name=agent.search_item(observation,self.now)
                     self.logger.info(f"{name} searches {item_name}.")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} searches {item_name}."))
                     item_names=utils.extract_item_names(item_name)
@@ -172,21 +216,29 @@ class Simulator:
                     self.logger.info(f"{name} leaves the recommender system.")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
                     leave = True
-        elif "SOCIAL" in observation:
-
+        elif "SOCIAL" in choice:
+            agent.current_state = "social"
             contacts=self.data.get_all_contacts(agent_id)
             self.logger.info(f"{name} is going to social media.")
             message.append(Message(agent_id,"SOCIAL",f"{name} is going to social media."))
             social=f"{name} is going to social media. {name} and {contacts} are acquaintances. {name} can chat with acquaintances, or post to all acquaintances. What will {name} do?"
-            choice, action=agent.take_social_action(social)
+            choice, action=agent.take_social_action(social,self.now)
+            # TODO 这里可以选择时间 维护一个agent chat time 多个聊天取最大的time
             if "CHAT" in choice:
-                
                 agent_name2=action.strip(" \t\n'\"")
                 agent_id2=self.data.get_user_ids([agent_name2])[0]
                 agent2=self.agents[agent_id2]
+                if agent2.current_state == "watch":
+                    agreement = agent2.agree_to_respond(agent, self.now)
+                    if not agreement:
+                        agent.current_state = None
+                        self.logger.info(f"{name} does nothing.")
+                        message.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
+                        return message  # TODO 这里也可以替换成one_step 让该agent重新做选择
+                agent2.current_state = "social"
+                # TODO 更新agent2的时间
                 self.logger.info(f"{name} is chatting with {agent_name2}.")
                 message.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
-
                 # If the system has a role, and it is her term now.
                 if self.config['play_role'] and self.data.role_id == agent_id:
                     conversation = ''
@@ -231,6 +283,7 @@ class Simulator:
                         # Otherwise, two agents(LLM) will generate dialogues.
                         conversation=agent.generate_dialogue(agent2,observation)
                     self.logger.info(conversation)
+
                 msgs=[]
                 matches = re.findall(r'\[([^]]+)\]:\s*(.*)', conversation)
                 for match in matches:
@@ -246,7 +299,7 @@ class Simulator:
             else:
                 self.logger.info(f"{name} is posting.")
                 observation=f"{name} want to post for all acquaintances."
-                observation = agent.publish_posting(observation)
+                observation = agent.publish_posting(observation,self.now)
                 item_names=utils.extract_item_names(observation,"SOCIAL")
                 self.logger.info(agent.name+" posted: "+observation)
                 message.append(Message(agent_id,"POST",agent.name+" posts: "+observation))
@@ -260,7 +313,6 @@ class Simulator:
         else:
             self.logger.info(f"{name} does nothing.")
             message.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
-            leave=True
         return message
 
     def all_step(self):
@@ -282,11 +334,14 @@ class Simulator:
 
             for future in concurrent.futures.as_completed(futures):
                 msgs = future.result()
-                messages.extend(msgs)
+                if msgs is not None:
+                    messages.extend(msgs)
         else:
             for i in tqdm(range(self.config['num_agents'])):
                 msgs = self.one_step(i)
-                messages.extend(msgs)
+                if msgs is not None:
+                    messages.extend(msgs)
+        self.now=interval.add_interval(self.now,self.interval)
         return messages
     
     def create_agent(self,i, api_key):
@@ -294,6 +349,7 @@ class Simulator:
         Create an agent with the given id.
         """
         LLM = ChatOpenAI(max_tokens=self.config['max_token'], temperature=self.config['temperature'], openai_api_key=api_key)
+        #LLM=YuLan(max_token=2048,logger=self.logger)
         agent_memory = GenerativeAgentMemory(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
@@ -309,6 +365,7 @@ class Simulator:
             memory_retriever=self.create_new_memory_retriever(),
             llm=LLM,
             memory=agent_memory,
+            available_time=self.now
         )
         observations = self.data.users[i]["observations"].strip(".").split(".")
         for observation in observations:
@@ -394,7 +451,6 @@ class Simulator:
         return agents
 
 
-
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -432,12 +488,21 @@ def main():
     config = utils.add_variable_to_config(config, "play_role", args.play_role)
     config.merge_from_file(args.config_file)
     logger.info(f"\n{config}")
-    
+
+    os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
+
     # run
-    recagent=Simulator(config,logger)
-    recagent.load_simulator()
+    if config['simulator_restore_file_name']:
+        restore_path = os.path.join(config['simulator_dir'], config['simulator_restore_file_name'])
+        recagent = Simulator.restore(restore_path, config, logger)
+        logger.info(f"Successfully Restore simulator from the file <{restore_path}>\n")
+        logger.info(f"Start from the epoch {recagent.round_cnt + 1}\n")
+    else:
+        recagent=Simulator(config,logger)
+        recagent.load_simulator()
+
     messages=[]
-    for i in range(config['epoch']):
+    for i in range(recagent.round_cnt + 1, config['epoch'] + 1):
         recagent.round_cnt=recagent.round_cnt+1
         recagent.logger.info(f"Round {recagent.round_cnt}")
         message=recagent.all_step()
@@ -446,7 +511,7 @@ def main():
         with open(output_file, "w") as file:
             json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
         recagent.recsys.save_interaction()
-
+        recagent.save(os.path.join(config['simulator_dir']))
 
 if __name__ == "__main__":
     main()
