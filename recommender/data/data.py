@@ -79,6 +79,7 @@ class Data:
     def load_role(self, id, name, age, traits, status, observations, relations):
         """
         @ Zeyu Zhang
+        Load the role user into this `Data` object. Then other agents can interact with the role.
         """
         self.role_id = id
         self.users[id] = {

@@ -187,13 +187,16 @@ class Simulator:
                 self.logger.info(f"{name} is chatting with {agent_name2}.")
                 message.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
 
+                # If the system has a role, and it is her term now.
                 if self.config['play_role'] and self.data.role_id == agent_id:
                     conversation = ''
                     observation = f"{name} is going to chat with {agent2.name}."
-                    contin,result, role_dia = agent.generate_role_dialogue(agent2,observation,conversation)
+                    # Obtain the response from the role.
+                    contin,result, role_dia = agent.generate_role_dialogue(agent2,observation)
                     conversation += role_dia + result
                     self.logger.info(role_dia)
                     self.logger.info(result)
+                    # If both of them do not stop, an extra round will be held.
                     while contin:
                         contin, result, role_dia = agent.generate_role_dialogue(agent2, observation, conversation)
                         conversation += role_dia + result
@@ -201,16 +204,20 @@ class Simulator:
                         self.logger.info(result)
                 else:
                     observation = f"{name} is going to chat with {agent2.name}."
-                    if agent_id2 == self.data.role_id:
+                    # If an agent wants to chat with the role.
+                    if self.config['play_role'] and agent_id2 == self.data.role_id:
                         conversation = ''
                         observation = f"{name} is going to chat with {agent2.name}."
+                        # Obtain the response from the agent(LLM).
                         contin, result = agent.generate_dialogue_response(observation)
                         agent_dia = "%s %s" % (agent.name, result)
                         self.logger.info(agent_dia)
+                        # Obtain the response from the role.
                         role_contin, role_dia = agent2.generate_dialogue_response(observation)
                         self.logger.info(role_dia)
                         contin = contin and role_contin
                         conversation += agent_dia + role_dia
+                        # If both of them do not stop, an extra round will be held.
                         while contin:
                             observation = f"{name} is going to chat with {agent2.name}."
                             contin, result = agent.generate_dialogue_response(observation)
@@ -221,6 +228,7 @@ class Simulator:
                             contin = contin and role_contin
                             conversation += agent_dia + role_dia
                     else:
+                        # Otherwise, two agents(LLM) will generate dialogues.
                         conversation=agent.generate_dialogue(agent2,observation)
                     self.logger.info(conversation)
                 msgs=[]
@@ -311,6 +319,9 @@ class Simulator:
         """
         @ Zeyu Zhang
         Create a user controllable agent.
+        :param i: the id of role.
+        :param api_key: the API key of the role.
+        :return: an object of `RoleAgent`.
         """
         # The real version.
         # name = input("Please input the name of role: \n")
