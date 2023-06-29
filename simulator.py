@@ -187,7 +187,7 @@ class Simulator:
                 self.logger.info(f"{name} is chatting with {agent_name2}.")
                 message.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
 
-                if self.config['play_role']:
+                if self.config['play_role'] and self.data.role_id == agent_id:
                     conversation = ''
                     observation = f"{name} is going to chat with {agent2.name}."
                     contin,result, role_dia = agent.generate_role_dialogue(agent2,observation,conversation)
@@ -201,7 +201,27 @@ class Simulator:
                         self.logger.info(result)
                 else:
                     observation = f"{name} is going to chat with {agent2.name}."
-                    conversation=agent.generate_dialogue(agent2,observation)
+                    if agent_id2 == self.data.role_id:
+                        conversation = ''
+                        observation = f"{name} is going to chat with {agent2.name}."
+                        contin, result = agent.generate_dialogue_response(observation)
+                        agent_dia = "%s %s" % (agent.name, result)
+                        self.logger.info(agent_dia)
+                        role_contin, role_dia = agent2.generate_dialogue_response(observation)
+                        self.logger.info(role_dia)
+                        contin = contin and role_contin
+                        conversation += agent_dia + role_dia
+                        while contin:
+                            observation = f"{name} is going to chat with {agent2.name}."
+                            contin, result = agent.generate_dialogue_response(observation)
+                            agent_dia = "%s %s" % (agent.name, result)
+                            self.logger.info(agent_dia)
+                            role_contin, role_dia = agent2.generate_dialogue_response(observation)
+                            self.logger.info(role_dia)
+                            contin = contin and role_contin
+                            conversation += agent_dia + role_dia
+                    else:
+                        conversation=agent.generate_dialogue(agent2,observation)
                     self.logger.info(conversation)
                 msgs=[]
                 matches = re.findall(r'\[([^]]+)\]:\s*(.*)', conversation)

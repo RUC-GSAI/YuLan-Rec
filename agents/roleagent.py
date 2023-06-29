@@ -219,3 +219,16 @@ class RoleAgent(RecAgent):
             },
         )
         return result
+
+    def generate_dialogue_response(
+        self, observation: str, now: Optional[datetime] = None
+    ) -> Tuple[bool, str]:
+
+        contin = True
+        role_text = input("Please input your chatting text (Input \"goodbye\" if you want to quit): \n")
+        role_dia = '%s said %s' % (self.name,role_text)
+
+        if role_text == 'goodbye':
+            contin = False
+
+        return contin, role_dia
