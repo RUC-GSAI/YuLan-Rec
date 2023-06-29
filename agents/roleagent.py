@@ -164,6 +164,10 @@ class RoleAgent(RecAgent):
         order = input("Please choose one action below: \n"
                       "(1) Chat with one acquaintance, input 1. \n"
                       "(2) Publish posting to all acquaintances, input 2. \n")
+        while order not in ['1', '2']:
+            order = input("Please choose one action below: \n"
+                      "(1) Chat with one acquaintance, input 1. \n"
+                      "(2) Publish posting to all acquaintances, input 2. \n")
 
         choice = {'1': '[CHAT]', '2': '[POST]'}[order]
 
