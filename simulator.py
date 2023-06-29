@@ -360,6 +360,7 @@ class Simulator:
             id=i,
             name=self.data.users[i]["name"],
             age=self.data.users[i]["age"],
+            gender=self.data.users[i]["gender"],
             traits=self.data.users[i]["traits"],
             status=self.data.users[i]["status"],
             memory_retriever=self.create_new_memory_retriever(),
