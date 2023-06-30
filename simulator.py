@@ -32,6 +32,7 @@ from recommender.data.data import Data
 from agents.recagent import RecAgent
 from utils import utils
 from utils.message import Message
+from utils.event import Event, update_event, reset_event
 import utils.interval as interval
 
 class Simulator:
@@ -90,27 +91,27 @@ class Simulator:
         agent = self.agents[agent_id]
         name = agent.name
         message=[]
-        # if agent's previous task is completed, current_state is None
-        if agent.available_time <= self.now:
-            agent.current_state = None
-
-        if agent.current_state == "watch":
+        # If agent's previous action is completed, reset the event
+        if agent.event.end_time <= self.now:
+            agent.event = reset_event(self.now)
+        
+        # If the movie does not end, the agent continues watching the movie.
+        if agent.event.action_type == "watch":
             return None
 
         choice, observation = agent.take_action(self.now)
-        if agent.current_state == "social" and "SOCIAL" not in choice:
-            # if the agent state is social, he can only continue social or do nothing
+        # if the agent state is caht, he can only continue to chat/post or do nothing
+        if agent.event.action_type == "chat" and choice != "[SOCIAL]":
             return None
         
         if "RECOMMENDER" in choice:
-            agent.current_state = "watch"
             self.logger.info(f"{name} enters the recommender system.")
             message.append(Message(agent_id,"RECOMMENDER",f"{name} enters the recommender system."))
             leave = False
             rec_items = self.recsys.get_full_sort_items(agent_id)
             page = 0
             searched_name=None
-            while not leave:            
+            while not leave:
                 self.logger.info(
                     f"{name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}."
                 )
@@ -119,12 +120,17 @@ class Simulator:
                 if searched_name is not None:
                     observation=observation+f" {name} has searched for {searched_name} in recommender system and recommender system returns item list:{rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]} as search results."
                 else:
-                    observation=observation+f"{name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}."
-                choice,action=agent.take_recommender_action(observation,self.now)
-                # 如果是buy的话输出时间  
+                    observation=observation+f" {name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}."
+                choice, action, duration = agent.take_recommender_action(observation,self.now)  
                 self.recsys.update_history(agent_id, rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size])
-                if "BUY" in choice:
-                    
+                if "WATCH" in choice and agent.event.action_type == 'none':
+                    agent.event = update_event(
+                        original_event=agent.event,
+                        start_time=self.now,
+                        duration=duration,
+                        target_agent=None,
+                        action_type='watch'
+                    )
                     item_names=utils.extract_item_names(action)
                     if len(item_names)==0:
                         item_names=action.split(";")
@@ -132,7 +138,7 @@ class Simulator:
 
                     self.logger.info(f"{name} watches {item_names}")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} watches {item_names}."))
-                    agent.update_watched_history(item_names,self.now)
+                    agent.update_watched_history(item_names)
                     self.recsys.update_positive(agent_id, item_names)
                     item_descriptions=self.data.get_item_descriptions(item_names)
                     if len(item_descriptions)==0:
@@ -144,10 +150,10 @@ class Simulator:
                     
                     for i in range(len(item_names)):
                         observation=f"{name} has just finished watching {item_names[i]}:{item_descriptions[i]}."
-                        feelings=agent.generate_feeling(observation,self.now+ timedelta(hours=2*(i+1)))
-                        self.logger.info(f"{name} feels:{feelings}")
-                    agent.available_time = self.now + timedelta(hours=2 * len(item_names))  # TODO 改时间 
-                    message.append(Message(agent_id,"RECOMMENDER",f"{name} feels:{feelings}"))
+                        feelings=agent.generate_feeling(observation, self.now + timedelta(hours=duration))  # TODO one movie each round
+                        self.logger.info(f"{name} feels: {feelings}")
+
+                    message.append(Message(agent_id,"RECOMMENDER",f"{name} feels: {feelings}"))
                     searched_name=None
                     leave=True
 
@@ -191,26 +197,31 @@ class Simulator:
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
                     leave = True
         elif "SOCIAL" in choice:
-            agent.current_state = "social"
             contacts=self.data.get_all_contacts(agent_id)
             self.logger.info(f"{name} is going to social media.")
             message.append(Message(agent_id,"SOCIAL",f"{name} is going to social media."))
             social=f"{name} is going to social media. {name} and {contacts} are acquaintances. {name} can chat with acquaintances, or post to all acquaintances. What will {name} do?"
-            choice, action=agent.take_social_action(social,self.now)
-            # TODO 这里可以选择时间 维护一个agent chat time 多个聊天取最大的time
+            choice, action, duration = agent.take_social_action(social, self.now)
             if "CHAT" in choice:
-                agent_name2=action.strip(" \t\n'\"")
-                agent_id2=self.data.get_user_ids(agent_name2)[0]
+                agent_name2 = action.strip('.')
+                agent_id2=self.data.get_user_ids([agent_name2])[0]
                 agent2=self.agents[agent_id2]
-                if agent2.current_state == "watch":
-                    agreement = agent2.agree_to_respond(agent, self.now)
-                    if not agreement:
-                        agent.current_state = None
-                        self.logger.info(f"{name} does nothing.")
-                        message.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
-                        return message  # TODO 这里也可以替换成one_step 让该agent重新做选择
-                agent2.current_state = "social"
-                # TODO 更新agent2的时间
+                # If agent2 is watching moives, he cannot be interupted.
+                if agent2.event.action_type == "watch":
+                    self.logger.info(f"{name} does nothing.")
+                    message.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
+                    return message
+                
+                agent.event = update_event(original_event=agent.event,
+                                           start_time=self.now,
+                                           duration=duration,
+                                           target_agent=agent_name2,
+                                           action_type='chat')
+                agent2.event = update_event(original_event=agent2.event,
+                                           start_time=self.now,
+                                           duration=duration,
+                                           target_agent=name,
+                                           action_type='chat')
                 self.logger.info(f"{name} is chatting with {agent_name2}.")
                 message.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
                 observation=f"{name} is going to chat with {agent2.name}."
@@ -292,7 +303,7 @@ class Simulator:
             memory_retriever=self.create_new_memory_retriever(),
             llm=LLM,
             memory=agent_memory,
-            available_time=self.now
+            event=reset_event(self.now)
         )
         observations = self.data.users[i]["observations"].strip(".").split(".")
         for observation in observations:
