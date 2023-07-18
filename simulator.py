@@ -207,6 +207,9 @@ class Simulator:
                         id=agent_id
                     else:
                         id=agent_id2
+                    item_names=utils.extract_item_names(content,"SOCIAL")
+                    if item_names!=[]:
+                        self.agents[i].update_heared_history(item_names)
                     msgs.append(Message(id,"CHAT",f"{speaker} says:{content}"))
                 message.extend(msgs)
 
@@ -230,7 +233,7 @@ class Simulator:
             leave=True
         return message
 
-    def all_step(self):
+    def round(self):
         """
         Run one step for all agents.
         """
@@ -240,15 +243,15 @@ class Simulator:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 for i in tqdm(range(self.config['num_agents'])):
                     futures.append(executor.submit(self.one_step, i))
-                    time.sleep(10)
+                    #time.sleep(10)
 
             for future in concurrent.futures.as_completed(futures):
                 msgs = future.result()
-                messages.extend(msgs)
+                messages.append(msgs)
         else:
             for i in tqdm(range(self.config['num_agents'])):
                 msgs = self.one_step(i)
-                messages.extend(msgs)
+                messages.append(msgs)
         self.now=interval.add_interval(self.now,self.interval)
         return messages
     
@@ -268,6 +271,7 @@ class Simulator:
             id=i,
             name=self.data.users[i]["name"],
             age=self.data.users[i]["age"],
+            gender=self.data.users[i]["gender"],
             traits=self.data.users[i]["traits"],
             status=self.data.users[i]["status"],
             memory_retriever=self.create_new_memory_retriever(),
@@ -289,6 +293,7 @@ class Simulator:
         num_agents = int(self.config['num_agents'])
         if self.config['execution_mode']=='parallel':
             futures=[]
+            start_time=time.time()
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 for i in range(num_agents):
                     api_key = api_keys[i % len(api_keys)]
@@ -296,6 +301,8 @@ class Simulator:
                 for future in tqdm(concurrent.futures.as_completed(futures)):
                     agent = future.result()
                     agents[agent.id]=agent
+            end_time=time.time()
+            self.logger.info(f"Time for creating {num_agents} agents: {end_time-start_time}")
         else:
             for i in tqdm(range(num_agents)):
                 api_key = api_keys[i % len(api_keys)]
@@ -340,20 +347,29 @@ def main():
     config.merge_from_file(args.config_file)
     logger.info(f"\n{config}")
     
+    output_file =  os.path.join("output/message",args.output_file)
     # run
-    recagent=Simulator(config,logger)
-    recagent.load_simulator()
-    messages=[]
-    for i in range(config['epoch']):
-        recagent.round_cnt=recagent.round_cnt+1
-        recagent.logger.info(f"Round {recagent.round_cnt}")
-        message=recagent.all_step()
-        messages.append(message)
-        output_file =  os.path.join("output/message",args.output_file)
+    for trial in range(1):
+        recagent=Simulator(config,logger)
+        recagent.load_simulator()
+        trials=[]
+        print("epoch:",config['epoch'],type(config['epoch']))
+        for i in range(config['epoch']):
+            recagent.round_cnt=recagent.round_cnt+1
+            recagent.logger.info(f"Round {recagent.round_cnt}")
+            start_time=time.time()
+            message=recagent.round()
+            end_time=time.time()
+            recagent.logger.info(f"Time for round {i}: {end_time-start_time}")
+            trials.append(message)
+            
+        records=[]
+        if os.path.exists(output_file):
+            with open(output_file, "r") as file:
+                records = json.load(file)
+        records.append(trials)
         with open(output_file, "w") as file:
-            json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
+            json.dump(trials, file, default=lambda o: o.__dict__, indent=4)
         recagent.recsys.save_interaction()
-
-
 if __name__ == "__main__":
     main()

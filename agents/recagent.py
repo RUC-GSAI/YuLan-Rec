@@ -52,7 +52,7 @@ class RecAgent(GenerativeAgent):
             + "\nAll occurrences of movie names should be enclosed with <>"
             + "\n\n"
             + suffix
-            + "\n Please act as {agent_name} well.'"
+            + "\nPlease act as {agent_name} well.'"
         )
         now = datetime.now() if now is None else now
         agent_summary_description = self.get_summary(now=now)
@@ -196,7 +196,7 @@ class RecAgent(GenerativeAgent):
             + "\nIf {agent_name} want to enter the Social Media, write:\n [SOCIAL]:: {agent_name} enter the Social Media"
             + "\nIf {agent_name} want to do nothing, write:\n [NOTHING]:: {agent_name} does nothing"
         )
-        observation = f"{self.name} must take only ONE of the actions below:(1) Enter the Recommender System. If so, {self.name} will be recommended some movies, from which {self.name} can watch some movies, or search for movies by himself.\n(2) Enter the Social Media. {self.name} can chat with friends or publish a post to all friends of {self.name}.\n(3) Do Nothing."
+        observation = f"{self.name} must take only ONE of the actions below:(1) Enter the Recommender System. If so, {self.name} will be recommended some movies, from which {self.name} can watch some movies, or search for movies by himself.\n(2) Enter the Social Media. {self.name} can chat with friends or publish a post to all friends of {self.name}. If {self.name} recently watched some movies they might want to share with others.\n(3) Do Nothing."
         full_result = self._generate_reaction(observation, call_to_action_template,now)
         result = full_result.strip().split("\n")[0]
         choice = result.split("::")[0]
@@ -219,10 +219,10 @@ class RecAgent(GenerativeAgent):
         (4) Leave the recommender system.
         """
         call_to_action_template = (
-            "{agent_name} must take one of the four actions below:(1) Watch some movies in the item list returned by recommender system. Each movie is two hours long.\n(2) See the next page. \n(3) Search items.\n(4) Leave the recommender system."
+            "{agent_name} must take one of the four actions below:(1) Buy some movies in the item list returned by recommender system. Each movie is two hours long. {agent_name} can only watch one to three movies, the number is random. \n(2) See the next page. \n(3) Search items.\n(4) Leave the recommender system."
             + "\nIf {agent_name} has recently heard about a particular movie on a social media, {agent_name} might want to search for that movie on the recommender system."
             + "\nWhat action would {agent_name} like to take? Respond in one line."
-            + "\nIf {agent_name} want to watch movies in returned list, write:\n [BUY]:: movie names in the list returned by the recommender system, only movie names, separated by semicolons."
+            + "\nIf {agent_name} want to buy movies in returned list, write:\n [BUY]:: movie names in the list returned by the recommender system, only movie names, separated by semicolons."
             + "\nIf {agent_name} want to see the next page, write:\n [NEXT]:: {agent_name} looks the next page"
             + "\nIf {agent_name} want to search specific item, write:\n [SEARCH]:: single, specific item name want to search"
             + "\nIf {agent_name} want to leave the recommender system, write:\n [LEAVE]:: {agent_name} leaves the recommender system"
@@ -280,7 +280,7 @@ class RecAgent(GenerativeAgent):
         """Feel about each item bought."""
         call_to_action_template = (
             "{agent_name} has not seen this movie before. "
-            + "If you were {agent_name}, how will you feel about this movie just watched? Respond all in one line."
+            + "If you were {agent_name}, how will you feel about this movie just watched? Respond in first person and all in one line."
             + "\n\n"
         )
        
@@ -439,13 +439,13 @@ class RecAgent(GenerativeAgent):
         )
         return result
 
-    def update_watched_history(self, items,now):
+    def update_watched_history(self, items,now=None):
         """Update history by the items bought. If the number of items in the history achieves the BUFFERSIZE, delete the oldest item."""
         self.watched_history.extend(items)
         if len(self.watched_history) > self.BUFFERSIZE:
             self.watched_history = self.watched_history[-self.BUFFERSIZE :]
 
-    def update_heared_history(self, items,now):
+    def update_heared_history(self, items,now=None):
         """Update history by the items heard. If the number of items in the history achieves the BUFFERSIZE, delete the oldest item."""
         self.heared_history.extend(items)
         if len(self.heared_history) > self.BUFFERSIZE:
