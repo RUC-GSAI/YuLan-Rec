@@ -40,6 +40,6 @@ if __name__ == '__main__':
     config.merge_from_file(args.config_file)
     config['execution_mode']='serial'
     logger.info(f"\n{config}")
-
+    os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
     demo = Demo(config, logger)
     demo.launch_demo()

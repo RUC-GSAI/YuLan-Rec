@@ -135,6 +135,7 @@ class Simulator:
         if "RECOMMENDER" in choice:
             self.logger.info(f"{name} enters the recommender system.")
             message.append(Message(agent_id,"RECOMMENDER",f"{name} enters the recommender system."))
+            self.round_msg.append(Message(agent_id,"RECOMMENDER",f"{name} enters the recommender system."))
             leave = False
             rec_items = self.recsys.get_full_sort_items(agent_id)
             page = 0
@@ -144,6 +145,7 @@ class Simulator:
                     f"{name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}."
                 )
                 message.append(Message(agent_id,"RECOMMENDER",f"{name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}."))
+                self.round_msg.append(Message(agent_id,"RECOMMENDER",f"{name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}."))
                 observation= f"{name} is browsing the recommender system."
                 if searched_name is not None:
                     observation=observation+f" {name} has searched for {searched_name} in recommender system and recommender system returns item list:{rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]} as search results."
@@ -167,12 +169,14 @@ class Simulator:
 
                     self.logger.info(f"{name} watches {item_names}")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} watches {item_names}."))
+                    self.round_msg.append(Message(agent_id,"RECOMMENDER",f"{name} watches {item_names}."))
                     agent.update_watched_history(item_names)
                     self.recsys.update_positive(agent_id, item_names)
                     item_descriptions=self.data.get_item_descriptions(item_names)
                     if len(item_descriptions)==0:
                         self.logger.info(f"{name} leaves the recommender system.")
                         message.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
+                        self.round_msg.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
                         leave=True
                         continue
                     #observation=f"{name} has just finished watching"
@@ -183,18 +187,21 @@ class Simulator:
                         self.logger.info(f"{name} feels: {feelings}")
 
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} feels: {feelings}"))
+                    self.round_msg.append(Message(agent_id,"RECOMMENDER",f"{name} feels: {feelings}"))
                     searched_name=None
                     leave=True
 
                 elif "NEXT" in choice:
                     self.logger.info(f"{name} looks next page.")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} looks next page."))
+                    self.round_msg.append(Message(agent_id,"RECOMMENDER",f"{name} looks next page."))
                     if (page + 1) * self.recsys.page_size < len(rec_items):
                         page = page + 1
                     else:
                         self.logger.info("No more items.")
                         self.logger.info(f"{name} leaves the recommender system.")
                         message.append(Message(agent_id,"RECOMMENDER",f"No more items. {name} leaves the recommender system."))
+                        self.round_msg.append(Message(agent_id,"RECOMMENDER",f"No more items. {name} leaves the recommender system."))
                         leave = True
                 elif "SEARCH" in choice:
 
@@ -202,17 +209,20 @@ class Simulator:
                     item_name=agent.search_item(observation,self.now)
                     self.logger.info(f"{name} searches {item_name}.")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} searches {item_name}."))
+                    self.round_msg.append(Message(agent_id,"RECOMMENDER",f"{name} searches {item_name}."))
                     item_names=utils.extract_item_names(item_name)
                     if item_names==[]:
                         agent.memory.add_memory(f"There are no items related in the system.",now=datetime.now())
                         self.logger.info("There are no related items in the system.")
                         message.append(Message(agent_id,"RECOMMENDER",f"There are no related products in the system."))
+                        self.round_msg.append(Message(agent_id,"RECOMMENDER",f"There are no related products in the system."))
                         leave=True
                         continue
                     item_name=item_names[0]
                     search_items = self.recsys.get_search_items(item_name)
                     self.logger.info(f"Recommender returned {search_items}.")
                     message.append(Message(agent_id,"RECOMMENDER",f"Recommender returned {search_items}."))
+                    self.round_msg.append(Message(agent_id,"RECOMMENDER",f"Recommender returned {search_items}."))
                     if len(search_items)!=0:
                         rec_items = search_items
                         page=0
@@ -221,14 +231,23 @@ class Simulator:
                         agent.memory.add_memory(f"There are no items related to {item_name} in the system.",now=datetime.now())
                         self.logger.info("There are no related items in the system.")
                         message.append(Message(agent_id,"RECOMMENDER",f"There are no related products in the system."))
+                        self.round_msg.append(Message(agent_id,"RECOMMENDER",f"There are no related products in the system."))
                 else:
                     self.logger.info(f"{name} leaves the recommender system.")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
+                    self.round_msg.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
                     leave = True
         elif "SOCIAL" in choice:
             contacts=self.data.get_all_contacts(agent_id)
+            if len(contacts)==0:
+                self.logger.info(f"{name} has no acquaintance.")
+                message.append(Message(agent_id,"SOCIAL",f"{name} has no acquaintance."))
+                self.round_msg.append(Message(agent_id,"SOCIAL",f"{name} has no acquaintance."))
+                return Message(agent_id,"SOCIAL",f"{name} has no acquaintance.")
+            
             self.logger.info(f"{name} is going to social media.")
             message.append(Message(agent_id,"SOCIAL",f"{name} is going to social media."))
+            self.round_msg.append(Message(agent_id,"SOCIAL",f"{name} is going to social media."))
             social=f"{name} is going to social media. {name} and {contacts} are acquaintances. {name} can chat with acquaintances, or post to all acquaintances. What will {name} do?"
             choice, action, duration = agent.take_social_action(social, self.now)
             if "CHAT" in choice:
@@ -242,6 +261,7 @@ class Simulator:
                 if agent2.event.action_type == "watch":
                     self.logger.info(f"{name} does nothing.")
                     message.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
+                    self.round_msg.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
                     return message
                 
                 agent.event = update_event(original_event=agent.event,
@@ -256,6 +276,7 @@ class Simulator:
                                            action_type='chat')
                 self.logger.info(f"{name} is chatting with {agent_name2}.")
                 message.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
+                self.round_msg.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
                 # If the system has a role, and it is her term now.
                 if self.config['play_role'] and self.data.role_id == agent_id:
                     conversation = ''
@@ -314,6 +335,7 @@ class Simulator:
                     if item_names!=[]:
                         self.agents[i].update_heared_history(item_names)
                     msgs.append(Message(id,"CHAT",f"{speaker} says:{content}"))
+                    self.round_msg.append(Message(id,"CHAT",f"{speaker} says:{content}"))
                 message.extend(msgs)
 
             else:
@@ -323,16 +345,19 @@ class Simulator:
                 item_names=utils.extract_item_names(observation,"SOCIAL")
                 self.logger.info(agent.name+" posted: "+observation)
                 message.append(Message(agent_id,"POST",agent.name+" posts: "+observation))
+                self.round_msg.append(Message(agent_id,"POST",agent.name+" posts: "+observation))
                 for i in self.agents.keys():
                     if self.agents[i].name in contacts:
                         self.agents[i].memory.add_memory(agent.name+" posts: "+observation,now=datetime.now())
                         self.agents[i].update_heared_history(item_names)
                         message.append(Message(self.agents[i].id,"POST",self.agents[i].name+" observes that"+agent.name+" posts: "+observation))
+                        self.round_msg.append(Message(self.agents[i].id,"POST",self.agents[i].name+" observes that"+agent.name+" posts: "+observation))
                 
                 self.logger.info(f"{contacts} get this post.")
         else:
             self.logger.info(f"{name} does nothing.")
             message.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
+            self.round_msg.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
         return message
 
     def round(self):
@@ -446,7 +471,7 @@ class Simulator:
         num_agents = int(self.config['num_agents'])
         # Add ONE user controllable user into the simulator if the flag is true.
         # We block the main thread when the user is creating the role.
-        if self.config['play_role']:
+        if 'play_role' in self.config and self.config['play_role']:
             role_id = self.data.get_user_num()
             api_key = api_keys[role_id % len(api_keys)]
             agent = self.create_user_role(role_id, api_key)
@@ -488,7 +513,7 @@ def parse_args():
         "-n", "--log_name", type=str, default=str(os.getpid()), help="Name of logger"
     )
     parser.add_argument(
-        "-p", "--play_role", action="store_true", help="Add a user controllable role"
+        "-p", "--play_role" ,action="store_true", help="Add a user controllable role"
     )
     parser.add_argument(
         "opts",

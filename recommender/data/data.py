@@ -44,11 +44,11 @@ class Data:
                 user_2=int(user_2)
                 #user_ids = self.get_user_ids([user_1, user_2])
                 if "contact" not in self.users[user_1]:
-                    self.users[user_1]["contact"] = []
-                self.users[user_1]["contact"].append(user_2)
+                    self.users[user_1]["contact"] =set()
+                self.users[user_1]["contact"].add(user_2)
                 if "contact" not in self.users[user_2]:
-                    self.users[user_2]["contact"] = []
-                self.users[user_2]["contact"].append(user_1)
+                    self.users[user_2]["contact"] = set()
+                self.users[user_2]["contact"].add(user_1)
 
     def load_items(self, file_path):
         """
@@ -155,7 +155,11 @@ class Data:
         if "contact" not in self.users[user_id]:
             print(f"{user_id} has no contact.")
             return []
-        return self.get_user_names(self.users[user_id]["contact"])
+        ids=[]
+        for id in self.users[user_id]["contact"]:
+            if id<self.get_user_num():
+                ids.append(id)
+        return self.get_user_names(ids)
     
     def get_item_descriptions(self,item_names):
         """
