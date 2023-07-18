@@ -47,6 +47,7 @@ class Simulator:
         self.config = config
         self.logger = logger
         self.round_cnt=0
+        self.round_msg=[]
         self.file_name_path = []
         self.now = datetime.now().replace(hour=8, minute=0, second=0)
         self.interval=interval.parse_interval(config['interval'])
@@ -233,6 +234,8 @@ class Simulator:
             if "CHAT" in choice:
 
                 agent_name2=action.strip(" \t\n'\"")
+                print(agent_name2)
+                print(contacts)
                 agent_id2=self.data.get_user_ids([agent_name2])[0]
                 agent2=self.agents[agent_id2]
                 # If agent2 is watching moives, he cannot be interupted.
@@ -307,6 +310,9 @@ class Simulator:
                         id=agent_id
                     else:
                         id=agent_id2
+                    item_names=utils.extract_item_names(content,"SOCIAL")
+                    if item_names!=[]:
+                        self.agents[i].update_heared_history(item_names)
                     msgs.append(Message(id,"CHAT",f"{speaker} says:{content}"))
                 message.extend(msgs)
 
@@ -329,7 +335,7 @@ class Simulator:
             message.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
         return message
 
-    def all_step(self):
+    def round(self):
         """
         Run one step for all agents.
         """
@@ -344,17 +350,15 @@ class Simulator:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 for i in tqdm(range(self.config['num_agents'])):
                     futures.append(executor.submit(self.one_step, i))
-                    time.sleep(10)
+                    #time.sleep(10)
 
             for future in concurrent.futures.as_completed(futures):
                 msgs = future.result()
-                if msgs is not None:
-                    messages.extend(msgs)
+                messages.append(msgs)
         else:
             for i in tqdm(range(self.config['num_agents'])):
                 msgs = self.one_step(i)
-                if msgs is not None:
-                    messages.extend(msgs)
+                messages.append(msgs)
         self.now=interval.add_interval(self.now,self.interval)
         return messages
     
@@ -450,6 +454,7 @@ class Simulator:
 
         if self.config['execution_mode']=='parallel':
             futures=[]
+            start_time=time.time()
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 for i in range(num_agents):
                     api_key = api_keys[i % len(api_keys)]
@@ -457,6 +462,8 @@ class Simulator:
                 for future in tqdm(concurrent.futures.as_completed(futures)):
                     agent = future.result()
                     agents[agent.id]=agent
+            end_time=time.time()
+            self.logger.info(f"Time for creating {num_agents} agents: {end_time-start_time}")
         else:
             for i in tqdm(range(num_agents)):
                 api_key = api_keys[i % len(api_keys)]
@@ -590,29 +597,31 @@ def main():
     config = utils.add_variable_to_config(config, "play_role", args.play_role)
     config.merge_from_file(args.config_file)
     logger.info(f"\n{config}")
-
     os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
-
+    output_file =  os.path.join("output/message",args.output_file)
     # run
-    if config['simulator_restore_file_name']:
-        restore_path = os.path.join(config['simulator_dir'], config['simulator_restore_file_name'])
-        recagent = Simulator.restore(restore_path, config, logger)
-        logger.info(f"Successfully Restore simulator from the file <{restore_path}>\n")
-        logger.info(f"Start from the epoch {recagent.round_cnt + 1}\n")
-    else:
+    for trial in range(1):
         recagent=Simulator(config,logger)
         recagent.load_simulator()
-
-    messages=[]
-    for i in range(recagent.round_cnt + 1, config['epoch'] + 1):
-        system_status(recagent, logger)
-        recagent.round_cnt=recagent.round_cnt+1
-        recagent.logger.info(f"Round {recagent.round_cnt}")
-        message=recagent.all_step()
-        messages.append(message)
-        output_file =  os.path.join("output/message",args.output_file)
+        trials=[]
+        print("epoch:",config['epoch'],type(config['epoch']))
+        for i in range(config['epoch']):
+            system_status(recagent, logger)
+            recagent.round_cnt=recagent.round_cnt+1
+            recagent.logger.info(f"Round {recagent.round_cnt}")
+            start_time=time.time()
+            message=recagent.round()
+            end_time=time.time()
+            recagent.logger.info(f"Time for round {i}: {end_time-start_time}")
+            trials.append(message)
+            
+        records=[]
+        if os.path.exists(output_file):
+            with open(output_file, "r") as file:
+                records = json.load(file)
+        records.append(trials)
         with open(output_file, "w") as file:
-            json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
+            json.dump(trials, file, default=lambda o: o.__dict__, indent=4)
         recagent.recsys.save_interaction()
         recagent.save(os.path.join(config['simulator_dir']))
 

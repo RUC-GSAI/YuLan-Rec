@@ -40,13 +40,15 @@ class Data:
             next(reader)
             for row in reader:
                 user_1, user_2, relationship = row
-                user_ids = self.get_user_ids([user_1, user_2])
-                if "contact" not in self.users[user_ids[0]]:
-                    self.users[user_ids[0]]["contact"] = []
-                self.users[user_ids[0]]["contact"].append(user_2)
-                if "contact" not in self.users[user_ids[1]]:
-                    self.users[user_ids[1]]["contact"] = []
-                self.users[user_ids[1]]["contact"].append(user_1)
+                user_1=int(user_1)
+                user_2=int(user_2)
+                #user_ids = self.get_user_ids([user_1, user_2])
+                if "contact" not in self.users[user_1]:
+                    self.users[user_1]["contact"] = []
+                self.users[user_1]["contact"].append(user_2)
+                if "contact" not in self.users[user_2]:
+                    self.users[user_2]["contact"] = []
+                self.users[user_2]["contact"].append(user_1)
 
     def load_items(self, file_path):
         """
@@ -67,9 +69,10 @@ class Data:
             reader = csv.reader(file)
             next(reader)  # Skip the header line
             for row in reader:
-                user_id, name, age, traits, status, observations = row
+                user_id, name,gender, age, traits, status, observations = row
                 self.users[int(user_id)] = {
                     "name": name,
+                    "gender":gender,
                     "age": int(age),
                     "traits": traits,
                     "status": status,
@@ -152,7 +155,7 @@ class Data:
         if "contact" not in self.users[user_id]:
             print(f"{user_id} has no contact.")
             return []
-        return self.users[user_id]["contact"]
+        return self.get_user_names(self.users[user_id]["contact"])
     
     def get_item_descriptions(self,item_names):
         """
@@ -160,8 +163,12 @@ class Data:
         """
         item_descriptions = []
         for item in item_names:
+            found=False
             for item_id, item_info in self.items.items():
-                if item_info["name"] in item:
+                if (item_info["name"] in item)or(item in item_info["name"] ):
                     item_descriptions.append(item_info["description"])
+                    found=True
                     break
+            if not found:
+                item_descriptions.append("")
         return item_descriptions

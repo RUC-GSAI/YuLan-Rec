@@ -59,7 +59,7 @@ class RecAgent(GenerativeAgent):
                                             f"{interact_sentence} and say {result}",
                 self.memory.now_key: datetime.now(),
             }, )
-        return result
+        return interact_sentence,result
 
     def modify_agent(self):
 
@@ -89,20 +89,13 @@ class RecAgent(GenerativeAgent):
     ) -> Tuple[bool, str]:
         """React to a given observation."""
         call_to_action_template = (
-            "{agent_name} 应该对观察有反应, ,"
-            + " 合适的反应应该是什么样的？请在一行内回答."
-            + ' 如果反应是应该参与一段对话, 写:\nSAY: "说的内容"'
-            + "\n否则，写:\nREACT: {agent_name}的反应是（如果有的话）."
-            + "\n要么反应，要么说些什么，但不能同时做两个.\n\n"
-        )
-        call_to_action_template = (
             "{agent_name} should respond to the observation. "
             + "What would be an appropriate response? Please answer in one line."
             + 'If the response should initiate a dialogue, write:\nSAY: "The content to say"'
             + "\nOtherwise, write:\nREACT: {agent_name}'s reaction (if any)."
             + "\nEither react or say something, but not both at the same time.\n\n"
         )
-        full_result = self._generate_reaction_ch(
+        full_result = self._generate_reaction(
             observation, call_to_action_template, now=now
         )
         result = full_result.strip().split("\n")[0].replace("：", ":")
@@ -140,7 +133,7 @@ class RecAgent(GenerativeAgent):
             + "\nAll occurrences of movie names should be enclosed with <>"
             + "\n\n"
             + suffix
-            + "\n Please act as {agent_name} well.'"
+            + "\nPlease act as {agent_name} well.'"
         )
         now = datetime.now() if now is None else now
         agent_summary_description = self.get_summary(now=now)
@@ -284,7 +277,7 @@ class RecAgent(GenerativeAgent):
             + "\nIf {agent_name} wants to enter the Social Media, write:\n [SOCIAL]:: {agent_name} enters the Social Media"
             + "\nIf {agent_name} wants to do nothing, write:\n [NOTHING]:: {agent_name} does nothing"
         )
-        observation = f"{self.name} must take only ONE of the actions below:\n(1) Enter the Recommender System. If so, {self.name} will be recommended some movies, from which {self.name} can watch some movies, or search for movies by himself.\n(2) Enter the Social Media. {self.name} can chat with friends or publish a post to all friends of {self.name}.\n(3) Do Nothing."
+        observation = f"{self.name} must take only ONE of the actions below:(1) Enter the Recommender System. If so, {self.name} will be recommended some movies, from which {self.name} can watch some movies, or search for movies by himself.\n(2) Enter the Social Media. {self.name} can chat with friends or publish a post to all friends of {self.name}. If {self.name} recently watched some movies they might want to share with others.\n(3) Do Nothing."
         full_result = self._generate_reaction(observation, call_to_action_template,now)
         result = full_result.strip().split("\n")[0]
         choice = result.split("::")[0]
@@ -317,7 +310,7 @@ class RecAgent(GenerativeAgent):
             + "\n\n"
         )
         full_result = self._generate_reaction(observation, call_to_action_template,now)
-
+    
         result, time = full_result.split("\n")
         if result.find("::") != -1:
             choice, action = result.split("::")
@@ -332,11 +325,11 @@ class RecAgent(GenerativeAgent):
                 self.memory.now_key: now,
             },
         )
-        if choice == "[BUY]":
-            time = time[9:]
-            time = int(time) if time.isdigit() else 6
-        else:
-            time = None
+        # if choice == "[BUY]":
+        #     time = time[9:]
+        #     time = int(time) if time.isdigit() else 6
+        # else:
+        #     time = None
             
         return choice, action, time
 
@@ -375,7 +368,7 @@ class RecAgent(GenerativeAgent):
         """Feel about each item bought."""
         call_to_action_template = (
             "{agent_name} has not seen this movie before. "
-            + "If you were {agent_name}, how will you feel about this movie just watched? Respond all in one line."
+            + "If you were {agent_name}, how will you feel about this movie just watched? Respond in first person and all in one line."
             + "\n\n"
         )
        
@@ -541,13 +534,13 @@ class RecAgent(GenerativeAgent):
         )
         return result
 
-    def update_watched_history(self, items):
+    def update_watched_history(self, items,now=None):
         """Update history by the items bought. If the number of items in the history achieves the BUFFERSIZE, delete the oldest item."""
         self.watched_history.extend(items)
         if len(self.watched_history) > self.BUFFERSIZE:
             self.watched_history = self.watched_history[-self.BUFFERSIZE :]
 
-    def update_heared_history(self, items):
+    def update_heared_history(self, items,now=None):
         """Update history by the items heard. If the number of items in the history achieves the BUFFERSIZE, delete the oldest item."""
         self.heared_history.extend(items)
         if len(self.heared_history) > self.BUFFERSIZE:
