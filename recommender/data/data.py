@@ -42,6 +42,9 @@ class Data:
                 user_1, user_2, relationship = row
                 user_1=int(user_1)
                 user_2=int(user_2)
+                if user_1 not in self.users or user_2 not in self.users:
+                    continue
+
                 #user_ids = self.get_user_ids([user_1, user_2])
                 if "contact" not in self.users[user_1]:
                     self.users[user_1]["contact"] =set()
@@ -78,6 +81,8 @@ class Data:
                     "status": status,
                     "observations": observations,
                 }
+                if self.get_user_num() == self.config["num_agents"]:
+                    break
 
     def load_role(self, id, name, age, traits, status, observations, relations):
         """
@@ -95,11 +100,11 @@ class Data:
         for rel_name, rel_value in relations:
             user_ids = self.get_user_ids([name, rel_name])
             if "contact" not in self.users[user_ids[0]]:
-                self.users[user_ids[0]]["contact"] = []
-            self.users[user_ids[0]]["contact"].append(rel_name)
+                self.users[user_ids[0]]["contact"] = set()
+            self.users[user_ids[0]]["contact"].add(rel_name)
             if "contact" not in self.users[user_ids[1]]:
-                self.users[user_ids[1]]["contact"] = []
-            self.users[user_ids[1]]["contact"].append(name)
+                self.users[user_ids[1]]["contact"] = set()
+            self.users[user_ids[1]]["contact"].add(name)
 
     def get_full_items(self):
         return list(self.items.keys())

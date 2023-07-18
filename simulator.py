@@ -125,12 +125,12 @@ class Simulator:
         
         # If the movie does not end, the agent continues watching the movie.
         if agent.event.action_type == "watch":
-            return None
+            return [Message(agent_id,"RECOMMENDER",f"{name} is watching movie.")]
 
         choice, observation = agent.take_action(self.now)
         # if the agent state is caht, he can only continue to chat/post or do nothing
         if agent.event.action_type == "chat" and choice != "[SOCIAL]":
-            return None
+            return [Message(agent_id,"SOCIAL",f"{name} is chatting.")]
         
         if "RECOMMENDER" in choice:
             self.logger.info(f"{name} enters the recommender system.")
@@ -151,10 +151,13 @@ class Simulator:
                     observation=observation+f" {name} has searched for {searched_name} in recommender system and recommender system returns item list:{rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]} as search results."
                 else:
                     observation=observation+f" {name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}."
-                choice, action, duration = agent.take_recommender_action(observation,self.now)  
+                choice, action = agent.take_recommender_action(observation,self.now)  
                 self.recsys.update_history(agent_id, rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size])
 
                 if "BUY" in choice and agent.event.action_type == 'none':
+
+                    item_names=utils.extract_item_names(action)
+                    duration=2*len(item_names)
                     agent.event = update_event(
                         original_event=agent.event,
                         start_time=self.now,
@@ -162,7 +165,6 @@ class Simulator:
                         target_agent=None,
                         action_type='watch'
                     )
-                    item_names=utils.extract_item_names(action)
                     if len(item_names)==0:
                         item_names=action.split(";")
                         item_names=[s.strip(' "\'\t\n')for s in item_names]
@@ -243,117 +245,116 @@ class Simulator:
                 self.logger.info(f"{name} has no acquaintance.")
                 message.append(Message(agent_id,"SOCIAL",f"{name} has no acquaintance."))
                 self.round_msg.append(Message(agent_id,"SOCIAL",f"{name} has no acquaintance."))
-                return Message(agent_id,"SOCIAL",f"{name} has no acquaintance.")
-            
-            self.logger.info(f"{name} is going to social media.")
-            message.append(Message(agent_id,"SOCIAL",f"{name} is going to social media."))
-            self.round_msg.append(Message(agent_id,"SOCIAL",f"{name} is going to social media."))
-            social=f"{name} is going to social media. {name} and {contacts} are acquaintances. {name} can chat with acquaintances, or post to all acquaintances. What will {name} do?"
-            choice, action, duration = agent.take_social_action(social, self.now)
-            if "CHAT" in choice:
+            else:
+                self.logger.info(f"{name} is going to social media.")
+                message.append(Message(agent_id,"SOCIAL",f"{name} is going to social media."))
+                self.round_msg.append(Message(agent_id,"SOCIAL",f"{name} is going to social media."))
+                social=f"{name} is going to social media. {name} and {contacts} are acquaintances. {name} can chat with acquaintances, or post to all acquaintances. What will {name} do?"
+                choice, action, duration = agent.take_social_action(social, self.now)
+                if "CHAT" in choice:
 
-                agent_name2=action.strip(" \t\n'\"")
-                print(agent_name2)
-                print(contacts)
-                agent_id2=self.data.get_user_ids([agent_name2])[0]
-                agent2=self.agents[agent_id2]
-                # If agent2 is watching moives, he cannot be interupted.
-                if agent2.event.action_type == "watch":
-                    self.logger.info(f"{name} does nothing.")
-                    message.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
-                    self.round_msg.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
-                    return message
-                
-                agent.event = update_event(original_event=agent.event,
-                                           start_time=self.now,
-                                           duration=duration,
-                                           target_agent=agent_name2,
-                                           action_type='chat')
-                agent2.event = update_event(original_event=agent2.event,
-                                           start_time=self.now,
-                                           duration=duration,
-                                           target_agent=name,
-                                           action_type='chat')
-                self.logger.info(f"{name} is chatting with {agent_name2}.")
-                message.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
-                self.round_msg.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
-                # If the system has a role, and it is her term now.
-                if self.config['play_role'] and self.data.role_id == agent_id:
-                    conversation = ''
-                    observation = f"{name} is going to chat with {agent2.name}."
-                    # Obtain the response from the role.
-                    contin,result, role_dia = agent.generate_role_dialogue(agent2,observation)
-                    conversation += role_dia + result
-                    self.logger.info(role_dia)
-                    self.logger.info(result)
-                    # If both of them do not stop, an extra round will be held.
-                    while contin:
-                        contin, result, role_dia = agent.generate_role_dialogue(agent2, observation, conversation)
+                    agent_name2=action.strip(" \t\n'\"")
+                    print(agent_name2)
+                    print(contacts)
+                    agent_id2=self.data.get_user_ids([agent_name2])[0]
+                    agent2=self.agents[agent_id2]
+                    # If agent2 is watching moives, he cannot be interupted.
+                    if agent2.event.action_type == "watch":
+                        self.logger.info(f"{name} does nothing.")
+                        message.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
+                        self.round_msg.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
+                        return message
+                    
+                    agent.event = update_event(original_event=agent.event,
+                                            start_time=self.now,
+                                            duration=duration,
+                                            target_agent=agent_name2,
+                                            action_type='chat')
+                    agent2.event = update_event(original_event=agent2.event,
+                                            start_time=self.now,
+                                            duration=duration,
+                                            target_agent=name,
+                                            action_type='chat')
+                    self.logger.info(f"{name} is chatting with {agent_name2}.")
+                    message.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
+                    self.round_msg.append(Message(agent_id,"CHAT",f"{name} is chatting with {agent_name2}."))
+                    # If the system has a role, and it is her term now.
+                    if self.config['play_role'] and self.data.role_id == agent_id:
+                        conversation = ''
+                        observation = f"{name} is going to chat with {agent2.name}."
+                        # Obtain the response from the role.
+                        contin,result, role_dia = agent.generate_role_dialogue(agent2,observation)
                         conversation += role_dia + result
                         self.logger.info(role_dia)
                         self.logger.info(result)
-                else:
-                    observation = f"{name} is going to chat with {agent2.name}."
-                    # If an agent wants to chat with the role.
-                    if self.config['play_role'] and agent_id2 == self.data.role_id:
-                        conversation = ''
-                        observation = f"{name} is going to chat with {agent2.name}."
-                        # Obtain the response from the agent(LLM).
-                        contin, result = agent.generate_dialogue_response(observation)
-                        agent_dia = "%s %s" % (agent.name, result)
-                        self.logger.info(agent_dia)
-                        # Obtain the response from the role.
-                        role_contin, role_dia = agent2.generate_dialogue_response(observation)
-                        self.logger.info(role_dia)
-                        contin = contin and role_contin
-                        conversation += agent_dia + role_dia
                         # If both of them do not stop, an extra round will be held.
                         while contin:
+                            contin, result, role_dia = agent.generate_role_dialogue(agent2, observation, conversation)
+                            conversation += role_dia + result
+                            self.logger.info(role_dia)
+                            self.logger.info(result)
+                    else:
+                        observation = f"{name} is going to chat with {agent2.name}."
+                        # If an agent wants to chat with the role.
+                        if self.config['play_role'] and agent_id2 == self.data.role_id:
+                            conversation = ''
                             observation = f"{name} is going to chat with {agent2.name}."
+                            # Obtain the response from the agent(LLM).
                             contin, result = agent.generate_dialogue_response(observation)
                             agent_dia = "%s %s" % (agent.name, result)
                             self.logger.info(agent_dia)
+                            # Obtain the response from the role.
                             role_contin, role_dia = agent2.generate_dialogue_response(observation)
                             self.logger.info(role_dia)
                             contin = contin and role_contin
                             conversation += agent_dia + role_dia
-                    else:
-                        # Otherwise, two agents(LLM) will generate dialogues.
-                        conversation=agent.generate_dialogue(agent2,observation)
-                    self.logger.info(conversation)
+                            # If both of them do not stop, an extra round will be held.
+                            while contin:
+                                observation = f"{name} is going to chat with {agent2.name}."
+                                contin, result = agent.generate_dialogue_response(observation)
+                                agent_dia = "%s %s" % (agent.name, result)
+                                self.logger.info(agent_dia)
+                                role_contin, role_dia = agent2.generate_dialogue_response(observation)
+                                self.logger.info(role_dia)
+                                contin = contin and role_contin
+                                conversation += agent_dia + role_dia
+                        else:
+                            # Otherwise, two agents(LLM) will generate dialogues.
+                            conversation=agent.generate_dialogue(agent2,observation)
+                        self.logger.info(conversation)
 
-                msgs=[]
-                matches = re.findall(r'\[([^]]+)\]:\s*(.*)', conversation)
-                for match in matches:
-                    speaker = match[0]
-                    content = match[1]
-                    if speaker==agent.name:
-                        id=agent_id
-                    else:
-                        id=agent_id2
-                    item_names=utils.extract_item_names(content,"SOCIAL")
-                    if item_names!=[]:
-                        self.agents[i].update_heared_history(item_names)
-                    msgs.append(Message(id,"CHAT",f"{speaker} says:{content}"))
-                    self.round_msg.append(Message(id,"CHAT",f"{speaker} says:{content}"))
-                message.extend(msgs)
+                    msgs=[]
+                    matches = re.findall(r'\[([^]]+)\]:\s*(.*)', conversation)
+                    for match in matches:
+                        speaker = match[0]
+                        content = match[1]
+                        if speaker==agent.name:
+                            id=agent_id
+                        else:
+                            id=agent_id2
+                        item_names=utils.extract_item_names(content,"SOCIAL")
+                        if item_names!=[]:
+                            self.agents[i].update_heared_history(item_names)
+                        msgs.append(Message(id,"CHAT",f"{speaker} says:{content}"))
+                        self.round_msg.append(Message(id,"CHAT",f"{speaker} says:{content}"))
+                    message.extend(msgs)
 
-            else:
-                self.logger.info(f"{name} is posting.")
-                observation=f"{name} want to post for all acquaintances."
-                observation = agent.publish_posting(observation,self.now)
-                item_names=utils.extract_item_names(observation,"SOCIAL")
-                self.logger.info(agent.name+" posted: "+observation)
-                message.append(Message(agent_id,"POST",agent.name+" posts: "+observation))
-                self.round_msg.append(Message(agent_id,"POST",agent.name+" posts: "+observation))
-                for i in self.agents.keys():
-                    if self.agents[i].name in contacts:
-                        self.agents[i].memory.add_memory(agent.name+" posts: "+observation,now=datetime.now())
-                        self.agents[i].update_heared_history(item_names)
-                        message.append(Message(self.agents[i].id,"POST",self.agents[i].name+" observes that"+agent.name+" posts: "+observation))
-                        self.round_msg.append(Message(self.agents[i].id,"POST",self.agents[i].name+" observes that"+agent.name+" posts: "+observation))
-                
-                self.logger.info(f"{contacts} get this post.")
+                else:
+                    self.logger.info(f"{name} is posting.")
+                    observation=f"{name} want to post for all acquaintances."
+                    observation = agent.publish_posting(observation,self.now)
+                    item_names=utils.extract_item_names(observation,"SOCIAL")
+                    self.logger.info(agent.name+" posted: "+observation)
+                    message.append(Message(agent_id,"POST",agent.name+" posts: "+observation))
+                    self.round_msg.append(Message(agent_id,"POST",agent.name+" posts: "+observation))
+                    for i in self.agents.keys():
+                        if self.agents[i].name in contacts:
+                            self.agents[i].memory.add_memory(agent.name+" posts: "+observation,now=datetime.now())
+                            self.agents[i].update_heared_history(item_names)
+                            message.append(Message(self.agents[i].id,"POST",self.agents[i].name+" observes that"+agent.name+" posts: "+observation))
+                            self.round_msg.append(Message(self.agents[i].id,"POST",self.agents[i].name+" observes that"+agent.name+" posts: "+observation))
+                    
+                    self.logger.info(f"{contacts} get this post.")
         else:
             self.logger.info(f"{name} does nothing.")
             message.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
@@ -471,7 +472,7 @@ class Simulator:
         num_agents = int(self.config['num_agents'])
         # Add ONE user controllable user into the simulator if the flag is true.
         # We block the main thread when the user is creating the role.
-        if 'play_role' in self.config and self.config['play_role']:
+        if self.config['play_role']:
             role_id = self.data.get_user_num()
             api_key = api_keys[role_id % len(api_keys)]
             agent = self.create_user_role(role_id, api_key)
@@ -513,7 +514,7 @@ def parse_args():
         "-n", "--log_name", type=str, default=str(os.getpid()), help="Name of logger"
     )
     parser.add_argument(
-        "-p", "--play_role" ,action="store_true", help="Add a user controllable role"
+        "-p", "--play_role" ,type=bool,default=False, help="Add a user controllable role"
     )
     parser.add_argument(
         "opts",
