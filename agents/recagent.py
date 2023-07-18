@@ -310,7 +310,7 @@ class RecAgent(GenerativeAgent):
             "{agent_name} must take one of the four actions below:\n(1) Watch some movies in the item list returned by recommender system.\n(2) See the next page.\n(3) Search items.\n(4) Leave the recommender system."
             + "\nIf {agent_name} has recently heard about a particular movie on a social media, {agent_name} might want to search for that movie on the recommender system."
             + "\nWhat action would {agent_name} like to take and how much time does the action cost?"
-            + "\nIf {agent_name} want to watch movies in returned list, write:\n[WATCH]:: movie names in the list returned by the recommender system, only movie names, separated by semicolons\n[TIME]:: hours for watching moives. Select a number from 6, 8 and 10"
+            + "\nIf {agent_name} want to watch movies in returned list, write:\n[BUY]:: movie names in the list returned by the recommender system, only movie names, separated by semicolons\n[TIME]:: hours for watching moives. Select a number from 6, 8 and 10"
             + "\nIf {agent_name} want to see the next page, write:\n[NEXT]:: {agent_name} looks the next page\n[TIME]:: 1"
             + "\nIf {agent_name} want to search specific item, write:\n[SEARCH]:: single, specific item name want to search\n[TIME]:: 2"
             + "\nIf {agent_name} want to leave the recommender system, write:\n[LEAVE]:: {agent_name} leaves the recommender system\n[TIME]:: 3"
@@ -332,7 +332,7 @@ class RecAgent(GenerativeAgent):
                 self.memory.now_key: now,
             },
         )
-        if choice == "[WATCH]":
+        if choice == "[BUY]":
             time = time[9:]
             time = int(time) if time.isdigit() else 6
         else:
