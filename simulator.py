@@ -74,7 +74,6 @@ class Simulator:
         self.logger.info("Current simulator Save in: \n" + str(save_file_name) + "\n")
         self.logger.info("Simulator File Path (root -> node): \n" + str(self.file_name_path) + "\n")
 
-
     @classmethod
     def restore(cls, restore_file_name, config, logger):
         """Restore the simulator status from the specific file"""
@@ -626,28 +625,23 @@ def main():
     os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
     output_file =  os.path.join("output/message",args.output_file)
     # run
-    for trial in range(1):
+    if config['simulator_restore_file_name']:
+        restore_path = os.path.join(config['simulator_dir'], config['simulator_restore_file_name'])
+        recagent = Simulator.restore(restore_path, config, logger)
+        logger.info(f"Successfully Restore simulator from the file <{restore_path}>\n")
+        logger.info(f"Start from the epoch {recagent.round_cnt + 1}\n")
+    else:
         recagent=Simulator(config,logger)
         recagent.load_simulator()
-        trials=[]
-        print("epoch:",config['epoch'],type(config['epoch']))
-        for i in range(config['epoch']):
-            system_status(recagent, logger)
-            recagent.round_cnt=recagent.round_cnt+1
-            recagent.logger.info(f"Round {recagent.round_cnt}")
-            start_time=time.time()
-            message=recagent.round()
-            end_time=time.time()
-            recagent.logger.info(f"Time for round {i}: {end_time-start_time}")
-            trials.append(message)
-            
-        records=[]
-        if os.path.exists(output_file):
-            with open(output_file, "r") as file:
-                records = json.load(file)
-        records.append(trials)
+    messages=[]
+    for i in range(recagent.round_cnt + 1, config['epoch'] + 1):
+        recagent.round_cnt=recagent.round_cnt+1
+        recagent.logger.info(f"Round {recagent.round_cnt}")
+        message=recagent.round()
+        messages.append(message)
+        output_file =  os.path.join("output/message",args.output_file)
         with open(output_file, "w") as file:
-            json.dump(trials, file, default=lambda o: o.__dict__, indent=4)
+            json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
         recagent.recsys.save_interaction()
         recagent.save(os.path.join(config['simulator_dir']))
 
