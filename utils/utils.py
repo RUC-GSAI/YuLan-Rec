@@ -6,10 +6,10 @@ from typing import Any, Dict, Optional,List,Tuple
 import re
 import itertools
 import random
-
+from llm import *
 from yacs.config import CfgNode
 import os
-
+from langchain.chat_models import ChatOpenAI
 # logger
 def set_logger(log_file, name="default"):
     """
@@ -233,3 +233,17 @@ def generate_id(dir_name):
     while id in existed_id:
         id = random.randint(1, 999999999)
     return id
+
+
+def get_llm(config,logger,api_key):
+    if config['llm']=='gpt-4':
+        LLM = ChatOpenAI(max_tokens=config['max_token'], temperature=config['temperature'], openai_api_key=api_key,model="gpt-4")
+    elif config['llm']=='gpt-3.5-16k':
+        LLM = ChatOpenAI(max_tokens=config['max_token'], temperature=config['temperature'], openai_api_key=api_key, model="gpt-3.5-turbo-16k")
+    elif config['llm']=='gpt-3.5':
+        LLM = ChatOpenAI(max_tokens=config['max_token'], temperature=config['temperature'], openai_api_key=api_key, model="gpt-3.5-turbo")
+    elif config['llm']=='yulan':
+        LLM=YuLan(max_token=2048,logger=logger,URL=api_key)
+    elif config['llm']=='chatglm':
+        LLM=ChatGLM(max_token=2048,logger=logger,URL=api_key)
+    return LLM

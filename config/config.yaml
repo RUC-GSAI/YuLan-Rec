@@ -30,6 +30,6 @@ execution_mode: serial
 interval: 5h
 # time interval for action of agents. The form is a number + a single letter, and the letter may be s, m, h, d, M, y
 api_keys:
-  - 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
+  - xxxxx
 
 

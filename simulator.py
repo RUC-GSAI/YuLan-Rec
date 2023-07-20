@@ -13,9 +13,6 @@ import os
 import time
 import concurrent.futures
 import json
-from langchain.chat_models import ChatOpenAI
-from llm.chatglm import ChatGLM
-from llm.yulan import YuLan
 from langchain.docstore import InMemoryDocstore
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
@@ -393,8 +390,7 @@ class Simulator:
         """
         Create an agent with the given id.
         """
-        LLM = ChatOpenAI(max_tokens=self.config['max_token'], temperature=self.config['temperature'], openai_api_key=api_key)
-        #LLM=YuLan(max_token=2048,logger=self.logger)
+        LLM=utils.get_llm(config=self.config,logger=self.logger,api_key=api_key)
         agent_memory = GenerativeAgentMemory(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
@@ -439,8 +435,7 @@ class Simulator:
         relations = "Jake 1,Olivia 1".strip(",").split(",")
         relations = [r.split(' ') for r in relations]
 
-        LLM = ChatOpenAI(max_tokens=self.config['max_token'], temperature=self.config['temperature'],
-                         openai_api_key=api_key)
+        LLM=utils.get_llm(config=self.config,logger=self.logger,api_key=api_key)
         agent_memory = GenerativeAgentMemory(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
