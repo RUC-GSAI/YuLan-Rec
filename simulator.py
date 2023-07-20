@@ -329,11 +329,13 @@ class Simulator:
                         content = match[1]
                         if speaker==agent.name:
                             id=agent_id
+                            id2 = agent_id2
                         else:
                             id=agent_id2
+                            id2 = agent_id
                         item_names=utils.extract_item_names(content,"SOCIAL")
                         if item_names!=[]:
-                            self.agents[i].update_heared_history(item_names)
+                            self.agents[id2].update_heared_history(item_names)
                         msgs.append(Message(id,"CHAT",f"{speaker} says:{content}"))
                         self.round_msg.append(Message(id,"CHAT",f"{speaker} says:{content}"))
                     message.extend(msgs)
