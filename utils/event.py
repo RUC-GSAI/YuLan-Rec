@@ -30,10 +30,15 @@ def update_event(original_event, start_time, duration, target_agent, action_type
             end_time = start_time + timedelta(hours=duration) # current chat end time
             original_end_time = original_event.end_time
             if end_time > original_end_time:
-                result = Event(start_time, duration, original_event.target_agent.append(target_agent), action_type)
+                if target_agent in original_event.target_agent:
+                    new_target_agent = original_event.target_agent
+                else:
+                    new_target_agent = original_event.target_agent + [target_agent]
+                result = Event(start_time, duration, new_target_agent, action_type)
             else:
                 result = original_event
-                result.target_agent.append(target_agent)
+                if target_agent not in result.target_agent:
+                    result.target_agent.append(target_agent)
     return result
 
 def reset_event(start_time):
