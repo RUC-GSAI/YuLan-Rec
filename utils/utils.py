@@ -133,7 +133,7 @@ def extract_item_names(observation:str, action: str="RECOMMENDER")->List[str]:
         for match in matches:
             item_names.append(match)
     elif action=="SOCIAL":
-        matches = re.findall(r"'([^']+)'", observation)
+        matches = re.findall(r'[<"]([^<>"]+)[">]', observation)
         for match in matches:
             item_names.append(match)
     return item_names

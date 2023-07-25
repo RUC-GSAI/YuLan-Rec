@@ -117,6 +117,42 @@ class RecAgent(GenerativeAgent):
         else:
             return False, result
 
+    def _compute_agent_summary(self,observation) -> str:
+        """"""
+        prompt = PromptTemplate.from_template(
+            "How would you summarize {name}'s core characteristics about topic: {observation} given the"
+            + " following statements:\n"
+            + "{relevant_memories}"
+            + "Do not embellish."
+            + "\n\nSummary: "
+        )
+        # The agent seeks to think about their core characteristics.
+        return (
+            self.chain(prompt)
+            .run(name=self.name, queries=[f"{self.name}'s core characteristics"],observation=observation)
+            .strip()
+        )
+
+    def get_summary(
+        self, force_refresh: bool = False, now: Optional[datetime] = None,observation: str = None
+    ) -> str:
+        """Return a descriptive summary of the agent."""
+        current_time = datetime.now() if now is None else now
+        since_refresh = (current_time - self.last_refreshed).seconds
+        if (
+            not self.summary
+            or since_refresh >= self.summary_refresh_seconds
+            or force_refresh
+        ):
+            self.summary = self._compute_agent_summary(observation)
+            self.last_refreshed = current_time
+        age = self.age if self.age is not None else "N/A"
+        return (
+            f"Name: {self.name} (age: {age})"
+            + f"\nInnate traits: {self.traits}"
+            + f"\n{self.summary}"
+        )
+
     def _generate_reaction(
         self, observation: str, suffix: str, now: Optional[datetime] = None
     ) -> str:
@@ -136,7 +172,7 @@ class RecAgent(GenerativeAgent):
             + "\nPlease act as {agent_name} well.'"
         )
         now = datetime.now() if now is None else now
-        agent_summary_description = self.get_summary(now=now)
+        agent_summary_description = self.get_summary(now=now,observation=observation)
         current_time_str = (
             datetime.now().strftime("%B %d, %Y, %I:%M %p")
             if now is None
@@ -174,8 +210,10 @@ class RecAgent(GenerativeAgent):
             + "\n {agent_name2}'s status: {agent_status2}"
             + "\n{agent_name} recently heared {heared_history} on social media."
             + "\n{agent_name} recently watched {watched_history} on recommender system."
+            + "\nOther than that {agent_name} doesn't know any movies."
             + "\n{agent_name2} recently heared {heared_history2} on social media."
             + "\n{agent_name2} recently watched {watched_history2} on recommender system."
+            + "\nOther than that {agent_name2} doesn't know any movies."
             + "\nMost recent observations of {agent_name}: {most_recent_memories}"
             + "\nMost recent observations of {agent_name2}: {most_recent_memories2}"
             + "\nObservation: {observation}"
@@ -302,7 +340,8 @@ class RecAgent(GenerativeAgent):
         call_to_action_template = (
             "{agent_name} must take one of the four actions below:\n(1) Watch some movies in the item list returned by recommender system.\n(2) See the next page.\n(3) Search items.\n(4) Leave the recommender system."
             + "\nIf {agent_name} has recently heard about a particular movie on a social media, {agent_name} might want to search for that movie on the recommender system."
-            + "\nWhat action would {agent_name} like to take and how much time does the action cost?"
+            +"If {agent_name} chooses to watch a movie, they usually avoid watching too many in one go due to the two-hour time commitment for each movie."
+            + "\nWhat action would {agent_name} like to take?"
             + "\nIf {agent_name} want to watch movies in returned list, write:\n[BUY]:: movie names in the list returned by the recommender system, only movie names, separated by semicolons\n"
             + "\nIf {agent_name} want to see the next page, write:\n[NEXT]:: {agent_name} looks the next page\n"
             + "\nIf {agent_name} want to search specific item, write:\n[SEARCH]:: single, specific item name want to search\n"

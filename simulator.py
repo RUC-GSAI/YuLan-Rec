@@ -250,8 +250,6 @@ class Simulator:
                 if "CHAT" in choice:
 
                     agent_name2=action.strip(" \t\n'\"")
-                    print(agent_name2)
-                    print(contacts)
                     agent_id2=self.data.get_user_ids([agent_name2])[0]
                     agent2=self.agents[agent_id2]
                     # If agent2 is watching moives, he cannot be interupted.
@@ -411,7 +409,7 @@ class Simulator:
         )
         observations = self.data.users[i]["observations"].strip(".").split(".")
         for observation in observations:
-            agent.memory.add_memory(observation, now=datetime.now())
+            agent.memory.add_memory(observation, now=self.now)
         return agent
 
     def create_user_role(self,i,api_key):
@@ -453,7 +451,7 @@ class Simulator:
             memory=agent_memory,
         )
         for observation in observations:
-            agent.memory.add_memory(observation, now=datetime.now())
+            agent.memory.add_memory(observation, now=self.now)
 
         self.data.load_role(i,name,age,traits,status,observations,relations)
 
