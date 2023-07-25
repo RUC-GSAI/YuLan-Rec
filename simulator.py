@@ -135,6 +135,7 @@ class Simulator:
             leave = False
             rec_items = self.recsys.get_full_sort_items(agent_id)
             page = 0
+            cnt=0
             searched_name=None
             while not leave:
                 self.logger.info(
@@ -231,6 +232,12 @@ class Simulator:
                         message.append(Message(agent_id,"RECOMMENDER",f"There are no related products in the system."))
                         self.round_msg.append(Message(agent_id,"RECOMMENDER",f"There are no related products in the system."))
                 else:
+                    self.logger.info(f"{name} leaves the recommender system.")
+                    message.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
+                    self.round_msg.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
+                    leave = True
+                cnt+=1
+                if cnt==5:
                     self.logger.info(f"{name} leaves the recommender system.")
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
                     self.round_msg.append(Message(agent_id,"RECOMMENDER",f"{name} leaves the recommender system."))
