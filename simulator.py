@@ -210,7 +210,7 @@ class Simulator:
                     self.round_msg.append(Message(agent_id,"RECOMMENDER",f"{name} searches {item_name}."))
                     item_names=utils.extract_item_names(item_name)
                     if item_names==[]:
-                        agent.memory.add_memory(f"There are no items related in the system.",now=datetime.now())
+                        agent.memory.add_memory(f"There are no items related in the system.",now=self.now)
                         self.logger.info("There are no related items in the system.")
                         message.append(Message(agent_id,"RECOMMENDER",f"There are no related products in the system."))
                         self.round_msg.append(Message(agent_id,"RECOMMENDER",f"There are no related products in the system."))
@@ -226,7 +226,7 @@ class Simulator:
                         page=0
                         searched_name=item_name
                     else:
-                        agent.memory.add_memory(f"There are no items related to {item_name} in the system.",now=datetime.now())
+                        agent.memory.add_memory(f"There are no items related to {item_name} in the system.",now=self.now)
                         self.logger.info("There are no related items in the system.")
                         message.append(Message(agent_id,"RECOMMENDER",f"There are no related products in the system."))
                         self.round_msg.append(Message(agent_id,"RECOMMENDER",f"There are no related products in the system."))
@@ -345,7 +345,7 @@ class Simulator:
                     self.round_msg.append(Message(agent_id,"POST",agent.name+" posts: "+observation))
                     for i in self.agents.keys():
                         if self.agents[i].name in contacts:
-                            self.agents[i].memory.add_memory(agent.name+" posts: "+observation,now=datetime.now())
+                            self.agents[i].memory.add_memory(agent.name+" posts: "+observation,now=self.now)
                             self.agents[i].update_heared_history(item_names)
                             message.append(Message(self.agents[i].id,"POST",self.agents[i].name+" observes that"+agent.name+" posts: "+observation))
                             self.round_msg.append(Message(self.agents[i].id,"POST",self.agents[i].name+" observes that"+agent.name+" posts: "+observation))
