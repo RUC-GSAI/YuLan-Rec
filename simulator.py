@@ -24,7 +24,7 @@ from langchain.experimental.generative_agents import (
 import math
 import faiss
 import re
-import pickle
+import dill
 
 
 from recommender.recommender import Recommender
@@ -63,20 +63,20 @@ class Simulator:
         """Save the simulator status of current epoch """
         utils.ensure_dir(save_dir_name)
         ID = utils.generate_id(self.config['simulator_dir'])
-        file_name = f"{ID}-Round[{self.round_cnt}]-AgentNum[{self.config['num_agents']}]-{datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pickle"
+        file_name = f"{ID}-Round[{self.round_cnt}]-AgentNum[{self.config['num_agents']}]-{datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pkl"
         self.file_name_path.append(file_name)
         save_file_name = os.path.join(save_dir_name, file_name)
         with open(save_file_name, "wb") as f:
-            pickle.dump(self.__dict__, f)
+            dill.dump(self.__dict__, f)
         self.logger.info("Current simulator Save in: \n" + str(save_file_name) + "\n")
         self.logger.info("Simulator File Path (root -> node): \n" + str(self.file_name_path) + "\n")
 
     @classmethod
     def restore(cls, restore_file_name, config, logger):
         """Restore the simulator status from the specific file"""
-        with open(restore_file_name + ".pickle", "rb") as f:
+        with open(restore_file_name + ".pkl", "rb") as f:
             obj = cls.__new__(cls)
-            obj.__dict__ = pickle.load(f)
+            obj.__dict__ = dill.load(f)
             obj.config, obj.logger = config, logger
             return obj
 
@@ -400,7 +400,7 @@ class Simulator:
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
             verbose=False,
-            reflection_threshold=8
+            reflection_threshold=0.5
         )
         agent = RecAgent(
             id=i,
