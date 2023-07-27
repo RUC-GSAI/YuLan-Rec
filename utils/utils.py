@@ -247,3 +247,9 @@ def get_llm(config,logger,api_key):
     elif config['llm']=='chatglm':
         LLM=ChatGLM(max_token=2048,logger=logger,URL=api_key)
     return LLM
+
+def is_chatting(agent, agent2):
+    """Determine if agent1 and agent2 is chatting"""
+    name = agent.name
+    agent_name2 = agent2.name
+    return (agent2.event.target_agent) and (agent.event.target_agent) and (name in agent2.event.target_agent) and (agent_name2 in agent.event.target_agent)

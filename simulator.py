@@ -124,7 +124,7 @@ class Simulator:
             return [Message(agent_id,"RECOMMENDER",f"{name} is watching movie.")]
 
         choice, observation = agent.take_action(self.now)
-        # if the agent state is caht, he can only continue to chat/post or do nothing
+        # if the agent state is chatting, he can only continue to chat/post or do nothing
         if agent.event.action_type == "chat" and choice != "[SOCIAL]":
             return [Message(agent_id,"SOCIAL",f"{name} is chatting.")]
         
@@ -182,7 +182,7 @@ class Simulator:
                     
                     for i in range(len(item_names)):
                         observation=f"{name} has just finished watching {item_names[i]}:{item_descriptions[i]}."
-                        feelings=agent.generate_feeling(observation, self.now + timedelta(hours=duration))  # TODO one movie each round
+                        feelings=agent.generate_feeling(observation, self.now + timedelta(hours=duration))
                         self.logger.info(f"{name} feels: {feelings}")
 
                     message.append(Message(agent_id,"RECOMMENDER",f"{name} feels: {feelings}"))
@@ -261,11 +261,18 @@ class Simulator:
                     agent2=self.agents[agent_id2]
                     # If agent2 is watching moives, he cannot be interupted.
                     if agent2.event.action_type == "watch":
-                        self.logger.info(f"{name} does nothing.")
-                        message.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
-                        self.round_msg.append(Message(agent_id,"LEAVE",f"{name} does nothing."))
+                        agent.memory.add_memory(f"{agent.name} wants to chat with {agent_name2}, but {agent_name2} is watching. So {agent.name} does nothing.", now=self.now)
+                        self.logger.info(f"{name} wants to chat with {agent_name2}, but {agent_name2} is watching. So {name} does nothing.")
+                        message.append(Message(agent_id,"LEAVE",f"{name} wants to chat with {agent_name2}, but {agent_name2} is watching. So {name} does nothing."))
+                        self.round_msg.append(Message(agent_id,"LEAVE",f"{name} wants to chat with {agent_name2}, but {agent_name2} is watching. So {name} does nothing."))
                         return message
                     
+                    #  If agent2 is chatting with agent1, skipping this round
+                    if utils.is_chatting(agent, agent2):
+                        self.logger.info(f"{name} is chatting with {agent_name2}")
+                        message.append(Message(agent_id, "CHAT", f"{name} is chatting with {agent_name2}"))
+                        self.round_msg.append(Message(agent_id, "CHAT", f"{name} is chatting with {agent_name2}."))
+                        return message
                     agent.event = update_event(original_event=agent.event,
                                             start_time=self.now,
                                             duration=duration,
