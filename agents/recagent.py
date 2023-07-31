@@ -43,6 +43,11 @@ class RecAgent(GenerativeAgent):
     event: Event
     """The agent action"""
 
+    def update_from_dict(self, data_dict: dict):
+        for key, value in data_dict.items():
+            setattr(self, key, value)
+
+
     def interact_agent(self):
 
         """

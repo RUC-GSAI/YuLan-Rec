@@ -29,8 +29,8 @@ import pickle
 
 from recommender.recommender import Recommender
 from recommender.data.data import Data
-from agents.recagent import RecAgent
-from agents.roleagent import RoleAgent
+from agents import RecAgent
+from agents import RoleAgent
 from utils import utils
 from utils.message import Message
 from utils.event import Event, update_event, reset_event
@@ -498,7 +498,28 @@ class Simulator:
                 agents[agent.id]=agent
 
         return agents
-
+    def reset(self):
+        # Reset the system
+        all_agents = [v for k, v in self.agents.items()]
+        log_string = ""
+        for agent in all_agents:
+            agent.reset_agent()
+        log_string = "The system is reset, and the historic records are removed."
+        self.round_msg.append(Message("system","System",log_string))
+        return log_string
+        
+    def play(self):
+        messages=[]
+        for i in range(self.round_cnt + 1, self.config['epoch'] + 1):
+            self.round_cnt=self.round_cnt+1
+            self.logger.info(f"Round {self.round_cnt}")
+            self.round_msg=self.round()
+            messages.append(self.round_msg)
+            output_file =  os.path.join("output/message",self.config['output_file'])
+            with open(output_file, "w") as file:
+                json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
+            self.recsys.save_interaction()
+            self.save(os.path.join(self.config['simulator_dir']))
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -620,6 +641,8 @@ def main():
     logger.info(f"os.getpid()={os.getpid()}")
     # create config
     config = CfgNode(new_allowed=True)
+    config = utils.add_variable_to_config(config, "output_file", args.output_file)
+    config = utils.add_variable_to_config(config, "log_file", args.log_file)
     config = utils.add_variable_to_config(config, "log_name", args.log_name)
     config = utils.add_variable_to_config(config, "play_role", args.play_role)
     config.merge_from_file(args.config_file)

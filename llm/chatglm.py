@@ -24,7 +24,7 @@ class ChatGLM(LLM):
         run_manager: Optional[CallbackManagerForLLMRun] = None,
     ) -> str:
         self.payload['prompt']=prompt
-        response = requests.post(self.URL, headers=self.headers, data=json.dumps(self.payload))
+        response = requests.post("http://183.174.229.156:8080", headers=self.headers, data=json.dumps(self.payload))
       
         if response.status_code == 200:
             result = response.json()
