@@ -1,3 +1,4 @@
+# name of LLM model
 llm: gpt-3.5-16k
 # path for item data
 item_path: data/item.csv
@@ -27,9 +28,19 @@ temperature: 0
 max_token: 1500
 # execution mode, serial or parallel
 execution_mode: serial
-# list of api keys for LLM API
-interval: 5h
 # time interval for action of agents. The form is a number + a single letter, and the letter may be s, m, h, d, M, y
+interval: 5h
+# number of max retries for LLM API
+max_retries: 100
+# verbose mode
+verbose: True
+# threshold for agent num
+active_agent_threshold: 100
+# method for choose agent to be active, random, sample, or marginal
+active_method: random
+# propability for agent to be active
+active_prob: 1
+# list of api keys for LLM API
 api_keys:
   - xxx
 
