@@ -1,30 +1,25 @@
 from datetime import datetime, timedelta
 from typing import Optional, List
+from pydantic import BaseModel
+class Event(BaseModel):
 
+    start_time: datetime
+    # action start time
+    duration: int
+    # action duration. The default unit is hour.
+    target_agent: Optional[List[str]]
+    # target agent for chatting.
+    action_type: str
+    # ('watch' 'chat' or 'none').
+    end_time: Optional[datetime]=None
+    # action end time
 
-class Event:
     """Event for each agent"""
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.end_time = self.start_time + timedelta(hours=self.duration)
 
-    def __init__(
-        self,
-        start_time: datetime,
-        duration: int,
-        target_agent: Optional[List[str]],
-        action_type: str,
-    ):
-        """
-        start_time: action start time.
-        duration: action duration. The default unit is hour.
-        target_agent: target agent for chatting.
-        action_type: ('watch' 'chat' or 'none').
-        """
-        self.start_time = start_time
-        self.duration = duration
-        self.target_agent = target_agent
-        self.action_type = action_type
-        self.end_time = start_time + timedelta(hours=duration)
-
-
+        
 def update_event(original_event, start_time, duration, target_agent, action_type):
     if action_type == "watch":
         result = Event(start_time, duration, None, action_type)
@@ -52,4 +47,4 @@ def update_event(original_event, start_time, duration, target_agent, action_type
 
 
 def reset_event(start_time):
-    return Event(start_time, duration=0, target_agent=None, action_type="none")
+    return Event(start_time=start_time, duration=0, target_agent=None, action_type='none')

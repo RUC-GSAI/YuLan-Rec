@@ -29,12 +29,13 @@ import numpy as np
 
 from recommender.recommender import Recommender
 from recommender.data.data import Data
-from agents.recagent import RecAgent
-from agents.roleagent import RoleAgent
+from agents import RecAgent
+from agents import RoleAgent
 from utils import utils
 from utils.message import Message
 from utils.event import Event, update_event, reset_event
 import utils.interval as interval
+import threading
 
 
 class Simulator:
@@ -51,6 +52,7 @@ class Simulator:
         self.active_agent_threshold = config["active_agent_threshold"]
         self.active_method = config["active_method"]
         self.file_name_path = []
+        self.play_event = threading.Event() 
         self.now = datetime.now().replace(hour=8, minute=0, second=0)
         self.interval = interval.parse_interval(config["interval"])
 
@@ -139,8 +141,15 @@ class Simulator:
             return False
         return True
 
+    def pause(self):
+        self.play_event.clear() 
+
+    def resume(self):
+        self.play_event.set() 
+
     def one_step(self, agent_id):
         """Run one step of an agent."""
+        self.play_event.wait() 
         if not self.check_active(agent_id):
             return [Message(agent_id=agent_id, action="NO_ACTION", content="No action.")]
         agent = self.agents[agent_id]
@@ -777,7 +786,30 @@ class Simulator:
                 agents[agent.id] = agent
 
         return agents
-
+    def reset(self):
+        # Reset the system
+        self.pause()
+        all_agents = [v for k, v in self.agents.items()]
+        log_string = ""
+        for agent in all_agents:
+            agent.reset_agent()
+        log_string = "The system is reset, and the historic records are removed."
+        self.round_msg.append(Message("system","System",log_string))
+        return log_string
+        
+    def play(self):
+        self.resume()
+        messages=[]
+        for i in range(self.round_cnt + 1, self.config['epoch'] + 1):
+            self.round_cnt=self.round_cnt+1
+            self.logger.info(f"Round {self.round_cnt}")
+            self.round_msg=self.round()
+            messages.append(self.round_msg)
+            output_file =  os.path.join("output/message",self.config['output_file'])
+            with open(output_file, "w") as file:
+                json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
+            self.recsys.save_interaction()
+            self.save(os.path.join(self.config['simulator_dir']))
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -904,6 +936,7 @@ def inter_agent(recagent, logger):
     return log_string
 
 
+
 def system_status(recagent, logger):
     # Reset the system
     log = reset_system(recagent, logger)
@@ -922,6 +955,8 @@ def main():
     logger.info(f"os.getpid()={os.getpid()}")
     # create config
     config = CfgNode(new_allowed=True)
+    config = utils.add_variable_to_config(config, "output_file", args.output_file)
+    config = utils.add_variable_to_config(config, "log_file", args.log_file)
     config = utils.add_variable_to_config(config, "log_name", args.log_name)
     config = utils.add_variable_to_config(config, "play_role", args.play_role)
     config.merge_from_file(args.config_file)

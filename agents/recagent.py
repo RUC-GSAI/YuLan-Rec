@@ -53,6 +53,10 @@ class RecAgent(GenerativeAgent):
         else:
             return self.active_prob
 
+    def update_from_dict(self, data_dict: dict):
+        for key, value in data_dict.items():
+            setattr(self, key, value)
+            
     def interact_agent(self):
         """
         type the sentences you want to interact with the agent.
