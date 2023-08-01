@@ -10,7 +10,8 @@ import uvicorn
 import csv
 from simulator import *
 from agents import *
-
+import threading
+lock = threading.Lock()
 
 class Agent(BaseModel):
     id: int
@@ -126,28 +127,28 @@ with open(config["relationship_path"], "r", newline="") as file:
 app = FastAPI()
 
 
-@app.get("/")
+@app.get("/agents",response_model=dict[int, Agent])
 def get_agents():
     return agents
 
 
-@app.get("/get_user/{user_id}")
+@app.get("/user/{user_id}",response_model=Agent)
 def get_user(user_id: int):
     return agents[user_id]
 
 
-@app.post("/update_user/{user_id}")
+@app.put("/user/{user_id}")
 def update_user(user_id: int, agent: Agent):
     update_rec_agent(recagent.agents[user_id], agent)
     agents[user_id] = agent
 
 
-@app.get("/get_relations")
+@app.get("/relations")
 def get_relations():
     return links
 
 
-@app.get("/update_relation")
+@app.patch("/relation")
 def update_relation(source: int, target: int, label: str):
     if source not in agents or target not in agents:
         raise HTTPException(status_code=404, detail="No such user!")
@@ -159,7 +160,7 @@ def update_relation(source: int, target: int, label: str):
     if flag == -1:
         links.append(Link(source=source, target=target, label=label))
         flag = len(links) - 1
-    return {"index": flag, "link": links[flag]}
+    
 
 
 @app.get("/search/")
@@ -178,21 +179,27 @@ async def search(query: str) -> List[dict]:
 
     return result
 
+@app.get("/messages",response_model=List[Message])
+def get_messages():
+    with lock:
+        msgs=recagent.round_msg.copy()
+        recagent.round_msg=recagent.round_msg[len(msgs):]
+    return msgs
 
-@app.get("/play")
-async def play():
+@app.get("/start")
+async def start():
     recagent.play()
 
 
 @app.get("/pause")
 def pause():
-    play = False
+    recagent.pause()
 
 
 @app.get("/reset")
 def reset():
-    play = False
-    log = recagent.reset_system()
+
+    log = recagent.reset()
     return log
 
 

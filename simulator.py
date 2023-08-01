@@ -35,6 +35,7 @@ from utils import utils
 from utils.message import Message
 from utils.event import Event, update_event, reset_event
 import utils.interval as interval
+import threading
 
 class Simulator:
     """
@@ -46,6 +47,7 @@ class Simulator:
         self.round_cnt=0
         self.round_msg=[]
         self.file_name_path = []
+        self.play_event = threading.Event() 
         self.now = datetime.now().replace(hour=8, minute=0, second=0)
         self.interval=interval.parse_interval(config['interval'])
         
@@ -110,8 +112,15 @@ class Simulator:
         )
 
 
+    def pause(self):
+        self.play_event.clear() 
+
+    def resume(self):
+        self.play_event.set() 
+
     def one_step(self,agent_id):
         """Run one step of an agent."""
+        self.play_event.wait() 
         agent = self.agents[agent_id]
         name = agent.name
         message=[]
@@ -500,6 +509,7 @@ class Simulator:
         return agents
     def reset(self):
         # Reset the system
+        self.pause()
         all_agents = [v for k, v in self.agents.items()]
         log_string = ""
         for agent in all_agents:
@@ -509,6 +519,7 @@ class Simulator:
         return log_string
         
     def play(self):
+        self.resume()
         messages=[]
         for i in range(self.round_cnt + 1, self.config['epoch'] + 1):
             self.round_cnt=self.round_cnt+1
