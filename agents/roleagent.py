@@ -24,11 +24,13 @@ from utils import utils
 
 from agents.recagent import RecAgent
 
+
 class RoleAgent(RecAgent):
     """
     RoleAgent is an extension class for `RecAgent`, which mainly overwrites some methods, where we replace LLM with
     human inputs in them.
     """
+
     def __init__(self, id, name, age, traits, status, memory_retriever, llm, memory):
         super(RoleAgent, self).__init__(
             id=id,
@@ -38,7 +40,8 @@ class RoleAgent(RecAgent):
             status=status,
             memory_retriever=memory_retriever,
             llm=llm,
-            memory=memory)
+            memory=memory,
+        )
 
     def take_action(self) -> Tuple[str, str]:
         """
@@ -52,24 +55,32 @@ class RoleAgent(RecAgent):
         result(str): integrate the choice and the reason into one sentence.
         """
 
-        order = input("Please choose one action below: \n"
-                       "(1) Enter the Recommender, please input 1. \n"
-                       "(2) Enter the Social Media, please input 2. \n"
-                       "(3) Do Nothing, please input 3. \n")
+        order = input(
+            "Please choose one action below: \n"
+            "(1) Enter the Recommender, please input 1. \n"
+            "(2) Enter the Social Media, please input 2. \n"
+            "(3) Do Nothing, please input 3. \n"
+        )
         # If the input is not conforming to the prescribed form, we let the user input again.
-        while order not in ['1', '2', '3']:
-            order = input("Your input is wrong, please choose one action below: \n"
-                           "(1) Enter the Recommender, please input 1. \n"
-                           "(2) Enter the Social Media, please input 2. \n"
-                           "(3) Do Nothing, please input 3. \n")
+        while order not in ["1", "2", "3"]:
+            order = input(
+                "Your input is wrong, please choose one action below: \n"
+                "(1) Enter the Recommender, please input 1. \n"
+                "(2) Enter the Social Media, please input 2. \n"
+                "(3) Do Nothing, please input 3. \n"
+            )
         action = input("You can input some text to explain your choice. \n")
 
         # Change the input number to the choice token.
-        choice = {'1': '[RECOMMENDER]', '2': '[SOCIAL]', '3': '[NOTHING]'}[order]
+        choice = {"1": "[RECOMMENDER]", "2": "[SOCIAL]", "3": "[NOTHING]"}[order]
         # Obtain the phase according to user's input.
-        phase = {'1': 'enter the Recommender System', '2': 'enter the Social Media', '3': 'do nothing'}[order]
+        phase = {
+            "1": "enter the Recommender System",
+            "2": "enter the Social Media",
+            "3": "do nothing",
+        }[order]
         # Construct the sentence.
-        result = choice + ':: %s want to %s because %s' % (self.name, phase, action)
+        result = choice + ":: %s want to %s because %s" % (self.name, phase, action)
 
         self.memory.save_context(
             {},
@@ -91,40 +102,46 @@ class RoleAgent(RecAgent):
                      '[SEARCH]', and '[NOTHING]'.
         action(str): integrate the choice and the reason into one sentence.
         """
-        order = input("Please choose one action below: \n"
-                      "(1) Buy movies among the recommended items, please input 1. \n"
-                      "(2) Next page, please input 2. \n"
-                      "(3) Search items, please input 3. \n"
-                      "(4) Leave the recommender system, input 4. \n")
+        order = input(
+            "Please choose one action below: \n"
+            "(1) Buy movies among the recommended items, please input 1. \n"
+            "(2) Next page, please input 2. \n"
+            "(3) Search items, please input 3. \n"
+            "(4) Leave the recommender system, input 4. \n"
+        )
         # If the input is not conforming to the prescribed form, we let the user input again.
-        while order not in ['1', '2', '3', '4']:
-            order = input("Your input is wrong, please choose one action below: \n"
-                          "(1) Buy movies among the recommended items, please input 1. \n"
-                          "(2) Next page, please input 2. \n"
-                          "(3) Search items, please input 3. \n"
-                          "(4) Leave the recommender system, input 4. \n")
+        while order not in ["1", "2", "3", "4"]:
+            order = input(
+                "Your input is wrong, please choose one action below: \n"
+                "(1) Buy movies among the recommended items, please input 1. \n"
+                "(2) Next page, please input 2. \n"
+                "(3) Search items, please input 3. \n"
+                "(4) Leave the recommender system, input 4. \n"
+            )
 
         # Change the input number to the choice token.
-        choice = {'1': '[BUY]', '2': '[NEXT]', '3': '[SEARCH]', '4': '[LEAVE]'}[order]
+        choice = {"1": "[BUY]", "2": "[NEXT]", "3": "[SEARCH]", "4": "[LEAVE]"}[order]
 
-        if order == '1':
-            films = input("Please input movie names in the list returned by the recommender system, only movie names, separated by semicolons. \n")
+        if order == "1":
+            films = input(
+                "Please input movie names in the list returned by the recommender system, only movie names, separated by semicolons. \n"
+            )
             # Construct the list of films with '<*>' format.
-            film_list = [ '<%s>' % film for film in films.split(',')]
+            film_list = ["<%s>" % film for film in films.split(",")]
             action = str(film_list)
-        elif order == '2':
+        elif order == "2":
             action = self.name + "looks the next page"
-        elif order == '3':
+        elif order == "3":
             items = input("Please search single, specific item name want to search. \n")
             # Construct the list of films with '<*>' format.
-            item_list = ['<%s>' % item for item in items.split(',')]
+            item_list = ["<%s>" % item for item in items.split(",")]
             action = str(item_list)
-        elif order == '4':
+        elif order == "4":
             action = self.name + "leaves the recommender system"
         else:
             raise "Never occur."
 
-        result = choice + ':: %s.' % action
+        result = choice + ":: %s." % action
 
         self.memory.save_context(
             {},
@@ -139,7 +156,9 @@ class RoleAgent(RecAgent):
         Feel about each item bought.
         """
 
-        feeling = input("Please input your feelings, which should be split by semicolon: \n")
+        feeling = input(
+            "Please input your feelings, which should be split by semicolon: \n"
+        )
 
         results = feeling.split(",")
         feelings = ""
@@ -148,8 +167,7 @@ class RoleAgent(RecAgent):
         self.memory.save_context(
             {},
             {
-                self.memory.add_memory_key: f"{self.name} felt: "
-                                            f"{feelings}",
+                self.memory.add_memory_key: f"{self.name} felt: " f"{feelings}",
             },
         )
         return feelings
@@ -180,28 +198,32 @@ class RoleAgent(RecAgent):
         action(str): integrate the choice and the reason into one sentence.
         """
 
-        order = input("Please choose one action below: \n"
-                      "(1) Chat with one acquaintance, input 1. \n"
-                      "(2) Publish posting to all acquaintances, input 2. \n")
+        order = input(
+            "Please choose one action below: \n"
+            "(1) Chat with one acquaintance, input 1. \n"
+            "(2) Publish posting to all acquaintances, input 2. \n"
+        )
         # If the input is not conforming to the prescribed form, we let the user input again.
-        while order not in ['1', '2']:
-            order = input("Please choose one action below: \n"
-                      "(1) Chat with one acquaintance, input 1. \n"
-                      "(2) Publish posting to all acquaintances, input 2. \n")
+        while order not in ["1", "2"]:
+            order = input(
+                "Please choose one action below: \n"
+                "(1) Chat with one acquaintance, input 1. \n"
+                "(2) Publish posting to all acquaintances, input 2. \n"
+            )
 
         # Change the input number to the choice token.
-        choice = {'1': '[CHAT]', '2': '[POST]'}[order]
+        choice = {"1": "[CHAT]", "2": "[POST]"}[order]
 
-        if order == '1':
+        if order == "1":
             action = input("Please input one acquaintance to chat: \n")
-        elif order == '2':
+        elif order == "2":
             # Do not input here.
             # action = input("Please input the text that you want to post: \n")
-            action = ' '
+            action = " "
         else:
             raise "Never occur."
 
-        result = "%s:: %s" % (choice,action)
+        result = "%s:: %s" % (choice, action)
 
         self.memory.save_context(
             {},
@@ -224,13 +246,15 @@ class RoleAgent(RecAgent):
         role_dia(str): the action description, including the name and the dialogue text.
         """
 
-        role_text = input("Please input your chatting text (Input \"goodbye\" if you want to quit): \n")
-        role_dia = '%s said %s' % (self.name,role_text)
+        role_text = input(
+            'Please input your chatting text (Input "goodbye" if you want to quit): \n'
+        )
+        role_dia = "%s said %s" % (self.name, role_text)
 
         # Obtain the response by agent(LLM).
         contin, result = agent2.generate_dialogue_response(observation + role_dia)
-        result += ''
-        if role_text == 'goodbye':
+        result += ""
+        if role_text == "goodbye":
             contin = False
 
         return contin, result, role_dia
@@ -241,7 +265,9 @@ class RoleAgent(RecAgent):
         Publish posting to all acquaintances.
         """
 
-        result = input("Please input the text that you want to post to your acquaintances: \n")
+        result = input(
+            "Please input the text that you want to post to your acquaintances: \n"
+        )
 
         self.memory.save_context(
             {},
@@ -263,10 +289,12 @@ class RoleAgent(RecAgent):
         """
 
         contin = True
-        role_text = input("Please input your chatting text (Input \"goodbye\" if you want to quit): \n")
-        role_dia = '%s said %s' % (self.name,role_text)
+        role_text = input(
+            'Please input your chatting text (Input "goodbye" if you want to quit): \n'
+        )
+        role_dia = "%s said %s" % (self.name, role_text)
 
-        if role_text == 'goodbye':
+        if role_text == "goodbye":
             contin = False
 
         return contin, role_dia

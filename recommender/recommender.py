@@ -10,6 +10,7 @@ class Recommender:
     """
     Recommender System class
     """
+
     def __init__(self, config, data):
         self.data = data
         self.config = config

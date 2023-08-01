@@ -17,14 +17,12 @@ from utils.event import Event
 
 
 class RecAgent(GenerativeAgent):
-
-    
     id: int
     """The agent's unique identifier"""
-    
+
     gender: str
     """The agent's gender"""
-    
+
     watched_history: List[str] = []
     """The agent's history of watched movies"""
 
@@ -43,38 +41,59 @@ class RecAgent(GenerativeAgent):
     event: Event
     """The agent action"""
 
-    def interact_agent(self):
+    active_prob: float = 0.5
+    """The probability of the agent being active"""
 
+    no_action_round: int = 0
+    """The number of rounds that the agent has not taken action"""
+
+    def get_active_prob(self, method) -> float:
+        if method == "marginal":
+            return self.active_prob * (self.no_action_round + 1)
+        else:
+            return self.active_prob
+
+    def interact_agent(self):
         """
         type the sentences you want to interact with the agent.
         """
 
-        interact_sentence = input('Please type the sentence you want to interact with {}: '.format(self.name))
+        interact_sentence = input(
+            "Please type the sentence you want to interact with {}: ".format(self.name)
+        )
 
         result = self.interact_reaction(interact_sentence)[1]
         self.memory.save_context(
             {},
             {
                 self.memory.add_memory_key: f"{self.name} observe "
-                                            f"{interact_sentence} and say {result}",
+                f"{interact_sentence} and say {result}",
                 self.memory.now_key: datetime.now(),
-            }, )
-        return interact_sentence,result
+            },
+        )
+        return interact_sentence, result
 
     def modify_agent(self):
-
         """
         modify the attribute of agent, including age, traits, status
         """
-        age = input('If you want to modify the age, please enter the information. Otherwise, enter \'n\' to skip it: ')
-        gender = input('If you want to modify the gender, please enter the information. Otherwise, enter \'n\' to skip it: ')
-        traits = input('If you want to modify the traits, please enter the information. Otherwise, enter \'n\' to skip it: ')
-        status = input('If you want to modify the status, please enter the information. Otherwise, enter \'n\' to skip it: ')
+        age = input(
+            "If you want to modify the age, please enter the information. Otherwise, enter 'n' to skip it: "
+        )
+        gender = input(
+            "If you want to modify the gender, please enter the information. Otherwise, enter 'n' to skip it: "
+        )
+        traits = input(
+            "If you want to modify the traits, please enter the information. Otherwise, enter 'n' to skip it: "
+        )
+        status = input(
+            "If you want to modify the status, please enter the information. Otherwise, enter 'n' to skip it: "
+        )
 
-        self.age = age if age not in 'n' else self.age
-        self.gender = gender if gender not in 'n' else self.gender
-        self.traits = traits if traits not in 'n' else self.traits
-        self.status = status if status not in 'n' else self.status
+        self.age = age if age not in "n" else self.age
+        self.gender = gender if gender not in "n" else self.gender
+        self.traits = traits if traits not in "n" else self.traits
+        self.status = status if status not in "n" else self.status
 
     def reset_agent(self):
         """
@@ -83,7 +102,7 @@ class RecAgent(GenerativeAgent):
         # Remove watched_history and heared_history
         self.watched_history = []
         self.heared_history = []
-        
+
     def interact_reaction(
         self, observation: str, now: Optional[datetime] = None
     ) -> Tuple[bool, str]:
@@ -117,7 +136,7 @@ class RecAgent(GenerativeAgent):
         else:
             return False, result
 
-    def _compute_agent_summary(self,observation) -> str:
+    def _compute_agent_summary(self, observation) -> str:
         """"""
         prompt = PromptTemplate.from_template(
             "How would you summarize {name}'s core characteristics about topic: {observation} given the"
@@ -129,12 +148,19 @@ class RecAgent(GenerativeAgent):
         # The agent seeks to think about their core characteristics.
         return (
             self.chain(prompt)
-            .run(name=self.name, queries=[f"{self.name}'s core characteristics"],observation=observation)
+            .run(
+                name=self.name,
+                queries=[f"{self.name}'s core characteristics"],
+                observation=observation,
+            )
             .strip()
         )
 
     def get_summary(
-        self, force_refresh: bool = False, now: Optional[datetime] = None,observation: str = None
+        self,
+        force_refresh: bool = False,
+        now: Optional[datetime] = None,
+        observation: str = None,
     ) -> str:
         """Return a descriptive summary of the agent."""
         current_time = datetime.now() if now is None else now
@@ -172,7 +198,7 @@ class RecAgent(GenerativeAgent):
             + "\nPlease act as {agent_name} well.'"
         )
         now = datetime.now() if now is None else now
-        agent_summary_description = self.get_summary(now=now,observation=observation)
+        agent_summary_description = self.get_summary(now=now, observation=observation)
         current_time_str = (
             datetime.now().strftime("%B %d, %Y, %I:%M %p")
             if now is None
@@ -253,9 +279,9 @@ class RecAgent(GenerativeAgent):
         )
 
         consumed_tokens = self.llm.get_num_tokens(
-            prompt.format(most_recent_memories="",most_recent_memories2="", **kwargs)
+            prompt.format(most_recent_memories="", most_recent_memories2="", **kwargs)
         )
-        most_recent_memories2=agent2.get_memories_until_limit(consumed_tokens)
+        most_recent_memories2 = agent2.get_memories_until_limit(consumed_tokens)
         kwargs["most_recent_memories2"] = most_recent_memories2
         consumed_tokens = self.llm.get_num_tokens(
             prompt.format(most_recent_memories="", **kwargs)
@@ -263,7 +289,7 @@ class RecAgent(GenerativeAgent):
         kwargs[self.memory.most_recent_memories_token_key] = consumed_tokens
         result = self.chain(prompt=prompt).run(**kwargs).strip()
         return result
-    
+
     def get_memories_until_limit(self, consumed_tokens: int) -> str:
         """Reduce the number of tokens in the documents."""
         result = []
@@ -273,24 +299,20 @@ class RecAgent(GenerativeAgent):
             consumed_tokens += self.llm.get_num_tokens(doc.page_content)
             if consumed_tokens < self.max_dialogue_token_limit:
                 result.append(doc)
-        result=self.memory.format_memories_simple(result)
+        result = self.memory.format_memories_simple(result)
         return result
-        
 
     def generate_plan(
         self, observation: str, now: Optional[datetime] = None
     ) -> Tuple[bool, str]:
         call_to_action_template = (
             "What is {agent_name}'s plan for today? Write it down in an hourly basis, starting at 9:00, a time point, 24-hour format. "
+            + "Here is {agent_name}'s plan today: "
+            + "\n\n"
+        )
+        result = self._generate_reaction(observation, call_to_action_template, now=now)
 
-            +"Here is {agent_name}'s plan today: "
-            +"\n\n"
-        )
-        result = self._generate_reaction(
-            observation,call_to_action_template , now=now
-        )
-   
-        #result = full_result.strip().split("\n")[0]
+        # result = full_result.strip().split("\n")[0]
         # AAA
         self.memory.save_context(
             {},
@@ -302,8 +324,8 @@ class RecAgent(GenerativeAgent):
         )
 
         return False, result
-    
-    def take_action(self,now) -> Tuple[str, str]:
+
+    def take_action(self, now) -> Tuple[str, str]:
         """Take one of the actions below.
         (1) Enter the Recommender.
         (2) Enter the Social Media.
@@ -316,10 +338,10 @@ class RecAgent(GenerativeAgent):
             + "\nIf {agent_name} wants to do nothing, write:\n [NOTHING]:: {agent_name} does nothing"
         )
         observation = f"{self.name} must take only ONE of the actions below:(1) Enter the Recommender System. If so, {self.name} will be recommended some movies, from which {self.name} can watch some movies, or search for movies by himself.\n(2) Enter the Social Media. {self.name} can chat with friends or publish a post to all friends of {self.name}. If {self.name} recently watched some movies they might want to share with others.\n(3) Do Nothing."
-        full_result = self._generate_reaction(observation, call_to_action_template,now)
+        full_result = self._generate_reaction(observation, call_to_action_template, now)
         result = full_result.strip().split("\n")[0]
         choice = result.split("::")[0]
-        #action = result.split("::")[1]
+        # action = result.split("::")[1]
 
         self.memory.save_context(
             {},
@@ -330,7 +352,7 @@ class RecAgent(GenerativeAgent):
         )
         return choice, result
 
-    def take_recommender_action(self, observation,now) -> Tuple[str, str]:
+    def take_recommender_action(self, observation, now) -> Tuple[str, str]:
         """Take one of the four actions below.
         (1) Watch movies among the recommended items.
         (2) Next page.
@@ -340,7 +362,7 @@ class RecAgent(GenerativeAgent):
         call_to_action_template = (
             "{agent_name} must take one of the four actions below:\n(1) Watch some movies in the item list returned by recommender system.\n(2) See the next page.\n(3) Search items.\n(4) Leave the recommender system."
             + "\nIf {agent_name} has recently heard about a particular movie on a social media, {agent_name} might want to search for that movie on the recommender system."
-            +"If {agent_name} chooses to watch a movie, they usually avoid watching too many in one go due to the two-hour time commitment for each movie."
+            + "If {agent_name} chooses to watch a movie, they usually avoid watching too many in one go due to the two-hour time commitment for each movie."
             + "\nWhat action would {agent_name} like to take?"
             + "\nIf {agent_name} want to watch movies in returned list, write:\n[BUY]:: movie names in the list returned by the recommender system, only movie names, separated by semicolons\n"
             + "\nIf {agent_name} want to see the next page, write:\n[NEXT]:: {agent_name} looks the next page\n"
@@ -348,8 +370,8 @@ class RecAgent(GenerativeAgent):
             + "\nIf {agent_name} want to leave the recommender system, write:\n[LEAVE]:: {agent_name} leaves the recommender system\n"
             + "\n\n"
         )
-        full_result = self._generate_reaction(observation, call_to_action_template,now)
-    
+        full_result = self._generate_reaction(observation, call_to_action_template, now)
+
         result = full_result.strip()
         if result.find("::") != -1:
             choice, action = result.split("::")
@@ -369,7 +391,7 @@ class RecAgent(GenerativeAgent):
         #     time = int(time) if time.isdigit() else 6
         # else:
         #     time = None
-            
+
         return choice, action
 
     # def generate_feelings(self, observation: str,now) -> str:
@@ -380,7 +402,7 @@ class RecAgent(GenerativeAgent):
     #         + "Feelings is slpit by semicolon."
     #         + "\n\n"
     #     )
-       
+
     #     full_result = self._generate_reaction(observation, call_to_action_template,now)
     #     results = full_result.split(".")
     #     feelings = ""
@@ -403,15 +425,15 @@ class RecAgent(GenerativeAgent):
     #         },
     #     )
     #     return feelings
-    def generate_feeling(self, observation: str,now) -> str:
+    def generate_feeling(self, observation: str, now) -> str:
         """Feel about each item bought."""
         call_to_action_template = (
             "{agent_name} has not seen this movie before. "
             + "If you were {agent_name}, how will you feel about this movie just watched? Respond in first person and all in one line."
             + "\n\n"
         )
-       
-        full_result = self._generate_reaction(observation, call_to_action_template,now)
+
+        full_result = self._generate_reaction(observation, call_to_action_template, now)
         results = full_result.split(".")
         feelings = ""
         for result in results:
@@ -427,14 +449,13 @@ class RecAgent(GenerativeAgent):
         self.memory.save_context(
             {},
             {
-                self.memory.add_memory_key: f"{self.name} felt: "
-                f"{feelings}",
+                self.memory.add_memory_key: f"{self.name} felt: " f"{feelings}",
                 self.memory.now_key: now,
             },
         )
         return feelings
 
-    def search_item(self, observation,now) -> str:
+    def search_item(self, observation, now) -> str:
         """Search item by the item name."""
 
         call_to_action_template = (
@@ -442,7 +463,7 @@ class RecAgent(GenerativeAgent):
             + "\n\n"
         )
 
-        full_result = self._generate_reaction(observation, call_to_action_template,now)
+        full_result = self._generate_reaction(observation, call_to_action_template, now)
         result = full_result.strip().split("\n")[0]
         self.memory.save_context(
             {},
@@ -453,7 +474,7 @@ class RecAgent(GenerativeAgent):
         )
         return result
 
-    def take_social_action(self, observation,now) -> Tuple[str, str]:
+    def take_social_action(self, observation, now) -> Tuple[str, str]:
         """Take one of the four actions below.
         (1) Chat with one acquaintance. [CHAT]:: TO [acquaintance]: what to say.
         (2) Publish posting to all acquaintances. [POST]:: what to say.
@@ -465,7 +486,7 @@ class RecAgent(GenerativeAgent):
             + "\nIf {agent_name} want to publish posting to all acquaintances, write:\n[POST]:: what to post\n[TIME]:: 1"
             + "\n\n"
         )
-        full_result = self._generate_reaction(observation, call_to_action_template,now)
+        full_result = self._generate_reaction(observation, call_to_action_template, now)
         result, duration = full_result.split("\n")
         choice = result.split("::")[0]
         action = result.split("::")[1].strip()
@@ -478,7 +499,7 @@ class RecAgent(GenerativeAgent):
         )
 
         if choice == "[CHAT]":
-            duration = duration[9:].strip('.')
+            duration = duration[9:].strip(".")
             duration = int(duration) if duration.isdigit() else 1
         else:
             duration = None
@@ -554,7 +575,7 @@ class RecAgent(GenerativeAgent):
         )
         return full_result
 
-    def publish_posting(self, observation,now) -> str:
+    def publish_posting(self, observation, now) -> str:
         """Publish posting to all acquaintances."""
         call_to_action_template = (
             "Posts should be related to recent watched movies on recommender systems."
@@ -563,7 +584,7 @@ class RecAgent(GenerativeAgent):
             + "\n\n"
         )
 
-        result = self._generate_reaction(observation, call_to_action_template,now)
+        result = self._generate_reaction(observation, call_to_action_template, now)
         self.memory.save_context(
             {},
             {
@@ -573,13 +594,13 @@ class RecAgent(GenerativeAgent):
         )
         return result
 
-    def update_watched_history(self, items,now=None):
+    def update_watched_history(self, items, now=None):
         """Update history by the items bought. If the number of items in the history achieves the BUFFERSIZE, delete the oldest item."""
         self.watched_history.extend(items)
         if len(self.watched_history) > self.BUFFERSIZE:
             self.watched_history = self.watched_history[-self.BUFFERSIZE :]
 
-    def update_heared_history(self, items,now=None):
+    def update_heared_history(self, items, now=None):
         """Update history by the items heard. If the number of items in the history achieves the BUFFERSIZE, delete the oldest item."""
         self.heared_history.extend(items)
         if len(self.heared_history) > self.BUFFERSIZE:

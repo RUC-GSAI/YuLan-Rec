@@ -21,7 +21,11 @@ def parse_args():
         "-n", "--log_name", type=str, default=str(os.getpid()), help="Name of logger"
     )
     parser.add_argument(
-        "-p", "--play_role" ,type=bool,default=False, help="Add a user controllable role"
+        "-p",
+        "--play_role",
+        type=bool,
+        default=False,
+        help="Add a user controllable role",
     )
     parser.add_argument(
         "opts",
@@ -32,7 +36,8 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     args = parse_args()
     logger = utils.set_logger(args.log_file, args.log_name)
     logger.info(f"os.getpid()={os.getpid()}")
@@ -42,7 +47,7 @@ if __name__ == '__main__':
     config = utils.add_variable_to_config(config, "log_name", args.log_name)
     config = utils.add_variable_to_config(config, "play_role", args.play_role)
     config.merge_from_file(args.config_file)
-    config['execution_mode']='serial'
+    config["execution_mode"] = "serial"
     logger.info(f"\n{config}")
     os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
     demo = Demo(config, logger)

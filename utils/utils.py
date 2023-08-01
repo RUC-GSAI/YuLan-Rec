@@ -2,7 +2,7 @@ import cv2
 import base64
 import json
 import logging
-from typing import Any, Dict, Optional,List,Tuple
+from typing import Any, Dict, Optional, List, Tuple
 import re
 import itertools
 import random
@@ -10,6 +10,8 @@ from llm import *
 from yacs.config import CfgNode
 import os
 from langchain.chat_models import ChatOpenAI
+
+
 # logger
 def set_logger(log_file, name="default"):
     """
@@ -26,20 +28,20 @@ def set_logger(log_file, name="default"):
         "%(asctime)s - %(levelname)s - %(module)s - %(funcName)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    output_folder = 'output'
+    output_folder = "output"
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
     # Create the 'log' folder if it doesn't exist
-    log_folder = os.path.join(output_folder, 'log')
+    log_folder = os.path.join(output_folder, "log")
     if not os.path.exists(log_folder):
         os.makedirs(log_folder)
 
     # Create the 'message' folder if it doesn't exist
-    message_folder = os.path.join(output_folder, 'message')
+    message_folder = os.path.join(output_folder, "message")
     if not os.path.exists(message_folder):
         os.makedirs(message_folder)
-    log_file=os.path.join(log_folder, log_file)
+    log_file = os.path.join(log_folder, log_file)
     handler = logging.FileHandler(log_file, mode="w")
     handler.setLevel(logging.INFO)
     handler.setFormatter(formatter)
@@ -47,31 +49,36 @@ def set_logger(log_file, name="default"):
     logger.addHandler(handler)
     return logger
 
+
 # json
-def load_json(json_file: str, encoding: str="utf-8") -> Dict:
+def load_json(json_file: str, encoding: str = "utf-8") -> Dict:
     with open(json_file, "r", encoding=encoding) as fi:
         data = json.load(fi)
     return data
 
+
 def save_json(
-    json_file: str, 
-    obj: Any, 
-    encoding: str="utf-8", 
-    ensure_ascii: bool=False,
-    indent: Optional[int]=None,
-    **kwargs
+    json_file: str,
+    obj: Any,
+    encoding: str = "utf-8",
+    ensure_ascii: bool = False,
+    indent: Optional[int] = None,
+    **kwargs,
 ) -> None:
     with open(json_file, "w", encoding=encoding) as fo:
         json.dump(obj, fo, ensure_ascii=ensure_ascii, indent=indent, **kwargs)
 
+
 def bytes_to_json(data: bytes) -> Dict:
     return json.loads(data)
+
 
 def dict_to_json(data: Dict) -> str:
     return json.dumps(data)
 
+
 # cfg
-def load_cfg(cfg_file: str, new_allowed: bool=True) -> CfgNode:
+def load_cfg(cfg_file: str, new_allowed: bool = True) -> CfgNode:
     """
     Load config from file.
     Args:
@@ -82,6 +89,7 @@ def load_cfg(cfg_file: str, new_allowed: bool=True) -> CfgNode:
         cfg = CfgNode.load_cfg(fi)
     cfg.set_new_allowed(new_allowed)
     return cfg
+
 
 def add_variable_to_config(cfg: CfgNode, name: str, value: Any) -> CfgNode:
     """
@@ -96,12 +104,13 @@ def add_variable_to_config(cfg: CfgNode, name: str, value: Any) -> CfgNode:
     cfg.freeze()
     return cfg
 
+
 def merge_cfg_from_list(cfg: CfgNode, cfg_list: list) -> CfgNode:
     """
     Merge config from list.
     Args:
         cfg (CfgNode): config
-        cfg_list (list): a list of config, it should be a list like 
+        cfg_list (list): a list of config, it should be a list like
         `["key1", "value1", "key2", "value2"]`
     """
     cfg.defrost()
@@ -110,29 +119,27 @@ def merge_cfg_from_list(cfg: CfgNode, cfg_list: list) -> CfgNode:
     return cfg
 
 
-
-
-def extract_item_names(observation:str, action: str="RECOMMENDER")->List[str]:
+def extract_item_names(observation: str, action: str = "RECOMMENDER") -> List[str]:
     """
     Extract item names from observation
     Args:
         observation: observation from the environment
         action: action type, RECOMMENDER or SOCIAL
     """
-    item_names=[]
-    if observation.find("<")!=-1: 
+    item_names = []
+    if observation.find("<") != -1:
         matches = re.findall(r"<(.*?)>", observation)
-        item_names=[]
+        item_names = []
         for match in matches:
             item_names.append(match)
-    elif observation.find(";")!=-1:
-        item_names=observation.split(";")
-        item_names=[item.strip(" \'\"") for item in item_names]
-    elif action=="RECOMMENDER":
+    elif observation.find(";") != -1:
+        item_names = observation.split(";")
+        item_names = [item.strip(" '\"") for item in item_names]
+    elif action == "RECOMMENDER":
         matches = re.findall(r'"([^"]+)"', observation)
         for match in matches:
             item_names.append(match)
-    elif action=="SOCIAL":
+    elif action == "SOCIAL":
         matches = re.findall(r'[<"]([^<>"]+)[">]', observation)
         for match in matches:
             item_names.append(match)
@@ -171,85 +178,138 @@ def get_avatar2(idx):
 
 
 def html_format(orig_content: str):
-    new_content = orig_content.replace('<', '')
-    new_content = new_content.replace('>', '')
-    for name in ['Eve', 'Tommie', 'Jake', 'Lily', 'Alice', 'Sophia', 'Rachel', 'Lei', 'Max', 'Emma', 'Ella', 'Sen',
-                 'James', 'Ben', 'Isabella', 'Mia', 'Henry', 'Charlotte', 'Olivia', 'Michael']:
+    new_content = orig_content.replace("<", "")
+    new_content = new_content.replace(">", "")
+    for name in [
+        "Eve",
+        "Tommie",
+        "Jake",
+        "Lily",
+        "Alice",
+        "Sophia",
+        "Rachel",
+        "Lei",
+        "Max",
+        "Emma",
+        "Ella",
+        "Sen",
+        "James",
+        "Ben",
+        "Isabella",
+        "Mia",
+        "Henry",
+        "Charlotte",
+        "Olivia",
+        "Michael",
+    ]:
         html_span = "<span style='color: red;'>" + name + "</span>"
         new_content = new_content.replace(name, html_span)
-    new_content = new_content.replace("['", "<span style=\"color: #06A279;\">['")
+    new_content = new_content.replace("['", '<span style="color: #06A279;">[\'')
     new_content = new_content.replace("']", "']</span>")
     return new_content
+
 
 # border: 0;
 def chat_format(msg: Dict):
     html_text = "<br>"
-    avatar = get_avatar2(msg['agent_id'])
-    html_text += f'<div style="display: flex; align-items: center; margin-bottom: 10px;">'
+    avatar = get_avatar2(msg["agent_id"])
+    html_text += (
+        f'<div style="display: flex; align-items: center; margin-bottom: 10px;">'
+    )
     html_text += f'<img src="{avatar}" style="width: 10%; height: 10%; border: solid white; background-color: white; border-radius: 25px; margin-right: 10px;">'
     html_text += f'<div style="background-color: #FAE1D1; color: black; padding: 10px; border-radius: 10px; max-width: 80%;">'
     html_text += f'{msg["content"]}'
-    html_text += f'</div></div>'
+    html_text += f"</div></div>"
     return html_text
+
 
 def rec_format(msg: Dict):
     html_text = "<br>"
-    avatar = get_avatar2(msg['agent_id'])
-    html_text += f'<div style="display: flex; align-items: center; margin-bottom: 10px;">'
+    avatar = get_avatar2(msg["agent_id"])
+    html_text += (
+        f'<div style="display: flex; align-items: center; margin-bottom: 10px;">'
+    )
     html_text += f'<img src="{avatar}" style="width: 10%; height: 10%; border: solid white; background-color: white; border-radius: 25px; margin-right: 10px;">'
     html_text += f'<div style="background-color: #D9E8F5; color: black; padding: 10px; border-radius: 10px; max-width: 80%;">'
     html_text += f'{msg["content"]}'
-    html_text += f'</div></div>'
+    html_text += f"</div></div>"
     return html_text
+
 
 def social_format(msg: Dict):
     html_text = "<br>"
-    avatar = get_avatar2(msg['agent_id'])
-    html_text += f'<div style="display: flex; align-items: center; margin-bottom: 10px;">'
+    avatar = get_avatar2(msg["agent_id"])
+    html_text += (
+        f'<div style="display: flex; align-items: center; margin-bottom: 10px;">'
+    )
     html_text += f'<img src="{avatar}" style="width: 10%; height: 10%; border: solid white; background-color: white; border-radius: 25px; margin-right: 10px;">'
     html_text += f'<div style="background-color: #DFEED5; color: black; padding: 10px; border-radius: 10px; max-width: 80%;">'
     html_text += f'{msg["content"]}'
-    html_text += f'</div></div>'
+    html_text += f"</div></div>"
     return html_text
 
+
 def round_format(round: int, agent_name: str):
-    round_info = ''
+    round_info = ""
     round_info += f'<div style="display: flex; font-family: 微软雅黑, sans-serif; font-size: 20px; color: #000000; font-weight: bold;">'
-    round_info += f'&nbsp;&nbsp; Round: {round}  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Actor: {agent_name}  &nbsp;&nbsp;'
-    round_info += f'</div>'
+    round_info += f"&nbsp;&nbsp; Round: {round}  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Actor: {agent_name}  &nbsp;&nbsp;"
+    round_info += f"</div>"
     return round_info
 
+
 def ensure_dir(dir_path):
-    """Make sure the directory exists, if it does not exist, create it """
+    """Make sure the directory exists, if it does not exist, create it"""
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
+
 
 def generate_id(dir_name):
     ensure_dir(dir_name)
     existed_id = set()
     for f in os.listdir(dir_name):
-        existed_id.add(f.split('-')[0])
+        existed_id.add(f.split("-")[0])
     id = random.randint(1, 999999999)
     while id in existed_id:
         id = random.randint(1, 999999999)
     return id
 
 
-def get_llm(config,logger,api_key):
-    if config['llm']=='gpt-4':
-        LLM = ChatOpenAI(max_tokens=config['max_token'], temperature=config['temperature'], openai_api_key=api_key,model="gpt-4")
-    elif config['llm']=='gpt-3.5-16k':
-        LLM = ChatOpenAI(max_tokens=config['max_token'], temperature=config['temperature'], openai_api_key=api_key, model="gpt-3.5-turbo-16k")
-    elif config['llm']=='gpt-3.5':
-        LLM = ChatOpenAI(max_tokens=config['max_token'], temperature=config['temperature'], openai_api_key=api_key, model="gpt-3.5-turbo")
-    elif config['llm']=='yulan':
-        LLM=YuLan(max_token=2048,logger=logger,URL=api_key)
-    elif config['llm']=='chatglm':
-        LLM=ChatGLM(max_token=2048,logger=logger,URL=api_key)
+def get_llm(config, logger, api_key):
+    if config["llm"] == "gpt-4":
+        LLM = ChatOpenAI(
+            max_tokens=config["max_token"],
+            temperature=config["temperature"],
+            openai_api_key=api_key,
+            model="gpt-4",
+        )
+    elif config["llm"] == "gpt-3.5-16k":
+        LLM = ChatOpenAI(
+            max_tokens=config["max_token"],
+            temperature=config["temperature"],
+            openai_api_key=api_key,
+            model="gpt-3.5-turbo-16k",
+        )
+    elif config["llm"] == "gpt-3.5":
+        LLM = ChatOpenAI(
+            max_tokens=config["max_token"],
+            temperature=config["temperature"],
+            openai_api_key=api_key,
+            model="gpt-3.5-turbo",
+        )
+    elif config["llm"] == "yulan":
+        LLM = YuLan(max_token=2048, logger=logger, URL=api_key)
+    elif config["llm"] == "chatglm":
+        LLM = ChatGLM(max_token=2048, logger=logger, URL=api_key)
     return LLM
+
 
 def is_chatting(agent, agent2):
     """Determine if agent1 and agent2 is chatting"""
     name = agent.name
     agent_name2 = agent2.name
-    return (agent2.event.target_agent) and (agent.event.target_agent) and (name in agent2.event.target_agent) and (agent_name2 in agent.event.target_agent)
+    return (
+        (agent2.event.target_agent)
+        and (agent.event.target_agent)
+        and (name in agent2.event.target_agent)
+        and (agent_name2 in agent.event.target_agent)
+    )
