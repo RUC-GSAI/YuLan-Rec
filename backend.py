@@ -88,12 +88,14 @@ logger.info(f"os.getpid()={os.getpid()}")
 
 # create config
 config = CfgNode(new_allowed=True)
+output_file = os.path.join("output/message", args.output_file)
+config = utils.add_variable_to_config(config, "output_file", output_file)
+config = utils.add_variable_to_config(config, "log_file", args.log_file)
 config = utils.add_variable_to_config(config, "log_name", args.log_name)
 config = utils.add_variable_to_config(config, "play_role", args.play_role)
 config.merge_from_file(args.config_file)
 logger.info(f"\n{config}")
 os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
-output_file = os.path.join("output/message", args.output_file)
 # run
 if config["simulator_restore_file_name"]:
     restore_path = os.path.join(
@@ -143,7 +145,7 @@ def update_user(user_id: int, agent: Agent):
     agents[user_id] = agent
 
 
-@app.get("/relations")
+@app.get("/relations",response_model=list[Link])
 def get_relations():
     return links
 
@@ -163,8 +165,8 @@ def update_relation(source: int, target: int, label: str):
     
 
 
-@app.get("/search/")
-async def search(query: str) -> List[dict]:
+@app.get("/search/",response_model=List[Agent])
+async def search(query: str):
     # 定义一个函数用于模糊搜索
     def fuzzy_search(keyword, lst):
         return [
@@ -184,21 +186,26 @@ def get_messages():
     with lock:
         msgs=recagent.round_msg.copy()
         recagent.round_msg=recagent.round_msg[len(msgs):]
+        print(msgs)
     return msgs
 
 @app.get("/start")
 async def start():
-    recagent.play()
+    
+    play_thread = threading.Thread(target=recagent.play)
+    play_thread.start()
+    
 
 
 @app.get("/pause")
-def pause():
+async def pause():
+    print("is_set:\n")
+    print(recagent.play_event.is_set())
     recagent.pause()
-
+    print(recagent.play_event.is_set())
 
 @app.get("/reset")
-def reset():
-
+async def reset():
     log = recagent.reset()
     return log
 

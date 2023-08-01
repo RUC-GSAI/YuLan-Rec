@@ -22,12 +22,12 @@ class Event(BaseModel):
         
 def update_event(original_event, start_time, duration, target_agent, action_type):
     if action_type == "watch":
-        result = Event(start_time, duration, None, action_type)
+        result = Event(start_time=start_time, duration=duration, target_agent=None, action_type=action_type)
 
     if action_type == "chat":
         # If the agent is not chatting
         if original_event.action_type == "none":
-            result = Event(start_time, duration, [target_agent], action_type)
+            result = Event(start_time=start_time, duration=duration, target_agent=[target_agent], action_type=action_type)
         # If the agent is chatting
         else:
             # maintain maximum chat time
@@ -38,7 +38,7 @@ def update_event(original_event, start_time, duration, target_agent, action_type
                     new_target_agent = original_event.target_agent
                 else:
                     new_target_agent = original_event.target_agent + [target_agent]
-                result = Event(start_time, duration, new_target_agent, action_type)
+                result = Event(start_time=start_time, duration=duration, target_agent=new_target_agent, action_type=action_type)
             else:
                 result = original_event
                 if target_agent not in result.target_agent:

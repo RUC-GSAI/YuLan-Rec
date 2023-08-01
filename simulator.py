@@ -236,7 +236,7 @@ class Simulator:
                     )
                     self.round_msg.append(
                         Message(
-                            agnet_id=agent_id, action="RECOMMENDER", content=f"{name} watches {item_names}."
+                            agent_id=agent_id, action="RECOMMENDER", content=f"{name} watches {item_names}."
                         )
                     )
                     agent.update_watched_history(item_names)
@@ -794,7 +794,7 @@ class Simulator:
         for agent in all_agents:
             agent.reset_agent()
         log_string = "The system is reset, and the historic records are removed."
-        self.round_msg.append(Message("system","System",log_string))
+        self.round_msg.append(Message(agent_id="system",action="System",content=log_string))
         return log_string
         
     def play(self):
@@ -805,8 +805,7 @@ class Simulator:
             self.logger.info(f"Round {self.round_cnt}")
             self.round_msg=self.round()
             messages.append(self.round_msg)
-            output_file =  os.path.join("output/message",self.config['output_file'])
-            with open(output_file, "w") as file:
+            with open(self.config['output_file'], "w") as file:
                 json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
             self.recsys.save_interaction()
             self.save(os.path.join(self.config['simulator_dir']))
@@ -955,14 +954,15 @@ def main():
     logger.info(f"os.getpid()={os.getpid()}")
     # create config
     config = CfgNode(new_allowed=True)
-    config = utils.add_variable_to_config(config, "output_file", args.output_file)
+    output_file = os.path.join("output/message", args.output_file)
+    config = utils.add_variable_to_config(config, "output_file", output_file)
     config = utils.add_variable_to_config(config, "log_file", args.log_file)
     config = utils.add_variable_to_config(config, "log_name", args.log_name)
     config = utils.add_variable_to_config(config, "play_role", args.play_role)
     config.merge_from_file(args.config_file)
     logger.info(f"\n{config}")
     os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
-    output_file = os.path.join("output/message", args.output_file)
+    
     # run
     if config["simulator_restore_file_name"]:
         restore_path = os.path.join(
@@ -980,8 +980,7 @@ def main():
         recagent.logger.info(f"Round {recagent.round_cnt}")
         message = recagent.round()
         messages.append(message)
-        output_file = os.path.join("output/message", args.output_file)
-        with open(output_file, "w") as file:
+        with open(config['output_file'], "w") as file:
             json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
         recagent.recsys.save_interaction()
         recagent.save(os.path.join(config["simulator_dir"]))
