@@ -86,13 +86,13 @@ def generate_relationship():
 
 def generate_feature():
     # 读取CSV文件
-    df = pd.read_csv("data/user.csv")
+    df = pd.read_csv("user_1000.csv")
 
     # 定义用户特性及其概率
     feature_probs = {
         "Watcher": 0.5,
-        "Explorer": 0.2,
-        "Critic": 0.5,
+        "Explorer": 0.3,
+        "Critic": 0.3,
         "Chatter": 0.3,
         "Poster": 0.4,
     }
@@ -113,7 +113,7 @@ def generate_feature():
     df["feature"] = df.apply(add_features, axis=1)
 
     # 将结果写回CSV
-    df.to_csv("user.csv", index=False)
+    df.to_csv("user_1000_2.csv", index=False)
 
 
 def main():

@@ -40,19 +40,16 @@ class Data:
             reader = csv.reader(file)
             next(reader)
             for row in reader:
-                user_1, user_2, relationship = row
+                user_1, user_2, relationship,_ = row
                 user_1 = int(user_1)
                 user_2 = int(user_2)
+                
                 if user_1 not in self.users or user_2 not in self.users:
                     continue
-
-                # user_ids = self.get_user_ids([user_1, user_2])
                 if "contact" not in self.users[user_1]:
-                    self.users[user_1]["contact"] = set()
-                self.users[user_1]["contact"].add(user_2)
-                if "contact" not in self.users[user_2]:
-                    self.users[user_2]["contact"] = set()
-                self.users[user_2]["contact"].add(user_1)
+                    self.users[user_1]["contact"] = dict()
+               
+                self.users[user_1]["contact"][user_2]=relationship
 
     def load_items(self, file_path):
         """
@@ -77,19 +74,20 @@ class Data:
             reader = csv.reader(file)
             next(reader)  # Skip the header line
             for row in reader:
-                user_id, name, gender, age, traits, status, observations = row
+                user_id, name, gender, age, traits, status, interest,feature = row
                 self.users[int(user_id)] = {
                     "name": name,
                     "gender": gender,
                     "age": int(age),
                     "traits": traits,
                     "status": status,
-                    "observations": observations,
+                    "interest": interest,
+                    "feature": feature,
                 }
                 if self.get_user_num() == self.config["num_agents"]:
                     break
 
-    def load_role(self, id, name, age, traits, status, observations, relations):
+    def load_role(self, id, name, age, traits, status, interest,feature, relationships):
         """
         @ Zeyu Zhang
         Load the role user into this `Data` object. Then other agents can interact with the role.
@@ -100,16 +98,13 @@ class Data:
             "age": int(age),
             "traits": traits,
             "status": status,
-            "observations": observations,
+            "interest": interest,
+            "feature": feature,
         }
-        for rel_name, rel_value in relations:
-            user_ids = self.get_user_ids([name, rel_name])
-            if "contact" not in self.users[user_ids[0]]:
-                self.users[user_ids[0]]["contact"] = set()
-            self.users[user_ids[0]]["contact"].add(rel_name)
-            if "contact" not in self.users[user_ids[1]]:
-                self.users[user_ids[1]]["contact"] = set()
-            self.users[user_ids[1]]["contact"].add(name)
+        for id,id2,rel_value in relationships:
+            if "contact" not in self.users[id]:
+                self.users[id]["contact"] = dict()
+            self.users[id]["contact"][id2]=rel_value 
 
     def get_full_items(self):
         return list(self.items.keys())
@@ -170,6 +165,24 @@ class Data:
             if id < self.get_user_num():
                 ids.append(id)
         return self.get_user_names(ids)
+    
+    def get_relationships(self, user_id):
+        """
+        Get all relationships of a user.
+        """
+        if "contact" not in self.users[user_id]:
+            print(f"{user_id} has no contact.")
+            return dict()
+        return self.users[user_id]["contact"]
+    
+    def get_relationships_with_name(self, user_id):
+        if "contact" not in self.users[user_id]:
+            print(f"{user_id} has no contact.")
+            return dict()
+        relatiobnships = dict()
+        for id in self.users[user_id]["contact"]:
+            relatiobnships[self.users[id]["name"]] = self.users[user_id]["contact"][id]
+        return relatiobnships
 
     def get_item_descriptions(self, item_names):
         """

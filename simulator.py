@@ -52,7 +52,7 @@ class Simulator:
         self.active_agent_threshold = config["active_agent_threshold"]
         self.active_method = config["active_method"]
         self.file_name_path = []
-        self.play_event = threading.Event() 
+        self.play_event = threading.Event()
         self.now = datetime.now().replace(hour=8, minute=0, second=0)
         self.interval = interval.parse_interval(config["interval"])
 
@@ -139,20 +139,25 @@ class Simulator:
         if np.random.random() > active_prob:
             agent.no_action_round += 1
             return False
+        self.active_agents.append(index)
         return True
 
     def pause(self):
         self.play_event.clear() 
 
-    def resume(self):
+    def play(self):
         self.play_event.set() 
+
+    def global_message(self, message: str):
+        for i,agent in self.agents.items():
+            agent.memory.add_memory(message, now=self.now)
 
     def one_step(self, agent_id):
         """Run one step of an agent."""
         self.play_event.wait() 
         if not self.check_active(agent_id):
             return [Message(agent_id=agent_id, action="NO_ACTION", content="No action.")]
-        agent = self.agents[agent_id]
+        agent:RecAgent = self.agents[agent_id]
         name = agent.name
         message = []
 
@@ -683,17 +688,20 @@ class Simulator:
             gender=self.data.users[i]["gender"],
             traits=self.data.users[i]["traits"],
             status=self.data.users[i]["status"],
+            interest=self.data.users[i]["interest"],
+            relationships=self.data.get_relationships_with_name(i),
+            feature=utils.get_feature_description(self.data.users[i]["feature"]),
             memory_retriever=self.create_new_memory_retriever(),
             llm=LLM,
             memory=agent_memory,
             event=reset_event(self.now),
         )
-        observations = self.data.users[i]["observations"].strip(".").split(".")
-        for observation in observations:
-            agent.memory.add_memory(observation, now=self.now)
+        # observations = self.data.users[i]["observations"].strip(".").split(".")
+        # for observation in observations:
+        #     agent.memory.add_memory(observation, now=self.now)
         return agent
 
-    def create_user_role(self, i, api_key):
+    def create_user_role(self, id, api_key):
         """
         @ Zeyu Zhang
         Create a user controllable agent.
@@ -710,15 +718,16 @@ class Simulator:
         # relations = input("Please input the relations by names-relation, split by comma. \n").strip(",").split(",")
 
         # The debug version.
-        name, age, traits, status, observations = (
+        name, age, traits, status, interest,feature = (
             "Zeyu",
             23,
             "happy",
             "nice",
-            "He has a girl friend. He has watched many films.".strip(".").split("."),
+            "He has a girl friend. He has watched many films.",
+            "Watcher"
         )
-        relations = "Jake 1,Olivia 1".strip(",").split(",")
-        relations = [r.split(" ") for r in relations]
+        relationships = f"{id} 0 friend,0 {id} friend,{id} 1 friend,1 {id} friend".strip(",").split(",")
+        relationships = [r.split(" ") for r in relationships]
 
         LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
         agent_memory = GenerativeAgentMemory(
@@ -728,7 +737,7 @@ class Simulator:
             reflection_threshold=8,
         )
         agent = RoleAgent(
-            id=i,
+            id=id,
             name=name,
             age=age,
             traits=traits,
@@ -737,10 +746,10 @@ class Simulator:
             llm=LLM,
             memory=agent_memory,
         )
-        for observation in observations:
-            agent.memory.add_memory(observation, now=self.now)
+        # for observation in observations:
+        #     agent.memory.add_memory(observation, now=self.now)
 
-        self.data.load_role(i, name, age, traits, status, observations, relations)
+        self.data.load_role(id, name, age, traits, status, interest,feature, relationships)
 
         return agent
 
@@ -797,8 +806,8 @@ class Simulator:
         self.round_msg.append(Message(agent_id="system",action="System",content=log_string))
         return log_string
         
-    def play(self):
-        self.resume()
+    def start(self):
+        self.play()
         messages=[]
         for i in range(self.round_cnt + 1, self.config['epoch'] + 1):
             self.round_cnt=self.round_cnt+1
@@ -975,9 +984,11 @@ def main():
         recagent = Simulator(config, logger)
         recagent.load_simulator()
     messages = []
+    recagent.play()
     for i in range(recagent.round_cnt + 1, config["epoch"] + 1):
         recagent.round_cnt = recagent.round_cnt + 1
         recagent.logger.info(f"Round {recagent.round_cnt}")
+        recagent.active_agents.clear()
         message = recagent.round()
         messages.append(message)
         with open(config['output_file'], "w") as file:

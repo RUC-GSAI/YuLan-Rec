@@ -313,3 +313,19 @@ def is_chatting(agent, agent2):
         and (name in agent2.event.target_agent)
         and (agent_name2 in agent.event.target_agent)
     )
+
+def get_feature_description(feature):
+    descriptions = {
+        "Watcher": "Choose movies, enjoy watching, and provide feedback and ratings to the recommendation system.",
+        "Explorer": "Search for movies heard of before and expand movie experiences.",
+        "Critic": "Demanding high standards for movies and the recommendation system, may criticize both the recommendation system and the movies.",
+        "Chatter": "Engage in private conversations, trust friends' recommendations.",
+        "Poster": "Enjoy publicly posting on social media and sharing content and insights with more people."
+    }
+
+    # 提取特性
+    features = feature.split(";")
+
+    # 为每个特性生成描述
+    descriptions_list = [descriptions[feature] for feature in features if feature in descriptions]
+    return ".".join(descriptions_list)

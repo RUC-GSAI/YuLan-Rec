@@ -23,6 +23,18 @@ class RecAgent(GenerativeAgent):
     gender: str
     """The agent's gender"""
 
+    traits: str
+    """The agent's traits"""
+
+    interest: str
+    """The agent's movie interest"""
+
+    feature: str
+    """The agent's action feature"""
+
+    relationships: dict[str,str]={}
+    """The agent's relationship with other agents"""
+
     watched_history: List[str] = []
     """The agent's history of watched movies"""
 
@@ -162,25 +174,38 @@ class RecAgent(GenerativeAgent):
 
     def get_summary(
         self,
-        force_refresh: bool = False,
         now: Optional[datetime] = None,
         observation: str = None,
     ) -> str:
         """Return a descriptive summary of the agent."""
-        current_time = datetime.now() if now is None else now
-        since_refresh = (current_time - self.last_refreshed).seconds
-        if (
-            not self.summary
-            or since_refresh >= self.summary_refresh_seconds
-            or force_refresh
-        ):
-            self.summary = self._compute_agent_summary(observation)
-            self.last_refreshed = current_time
+        prompt = PromptTemplate.from_template(
+            "Given the following observation about {agent_name}: '{observation}', please summarize the relevant details from his profile. His profile information is as follows:\n"
+            +"Name: {agent_name}\n"
+            +"Age: {agent_age}\n"
+            +"Gender:{agent_gender}\n"
+            +"Traits: {agent_traits}\n"
+            +"Status: {agent_status}\n"
+            +"Movie Interest: {agent_interest}\n"
+            +"Feature: {agent_feature}\n"
+            # +"Interpersonal Relationships: {agent_relationships}\n"
+            +"Connect the observation with the appropriate details from his profile and provide a concise summary.\nSummary:"
+        )
+        kwargs: Dict[str, Any] = dict(
+            observation=observation,
+            agent_name=self.name,
+            agent_age=self.age,
+            agent_gender=self.gender,
+            agent_traits=self.traits,
+            agent_status=self.status,
+            agent_interest=self.interest,
+            agent_feature=self.feature,
+            # agent_relationships=self.relationships,
+        )
+        result = self.chain(prompt=prompt).run(**kwargs).strip()
         age = self.age if self.age is not None else "N/A"
         return (
             f"Name: {self.name} (age: {age})"
-            + f"\nInnate traits: {self.traits}"
-            + f"\n{self.summary}"
+            + f"\n{result}"
         )
 
     def _generate_reaction(
@@ -190,7 +215,6 @@ class RecAgent(GenerativeAgent):
         prompt = PromptTemplate.from_template(
             "{agent_summary_description}"
             + "\nIt is {current_time}."
-            + "\n{agent_name}'s status: {agent_status}"
             + "\n{agent_name} recently heared {heared_history} on social media."
             + "\n{agent_name} recently watched {watched_history} on recommender system."
             + "\nOther than that {agent_name} doesn't know any movies."
@@ -213,7 +237,6 @@ class RecAgent(GenerativeAgent):
             current_time=current_time_str,
             agent_name=self.name,
             observation=observation,
-            agent_status=self.status,
             watched_history=self.watched_history
             if len(self.watched_history) > 0
             else "nothing",
@@ -229,15 +252,13 @@ class RecAgent(GenerativeAgent):
         return result
 
     def _generate_reaction_bewteen_two(
-        self, agent2, observation: str, suffix: str, now: Optional[datetime] = None
+        self, agent2: 'RecAgent', observation: str, suffix: str, now: Optional[datetime] = None
     ) -> str:
         """React to a given observation or dialogue act."""
         prompt = PromptTemplate.from_template(
             "{agent_summary_description}"
             + "\n {agent_summary_description2}"
             + "\nIt is {current_time}."
-            + "\n{agent_name}'s status: {agent_status}"
-            + "\n {agent_name2}'s status: {agent_status2}"
             + "\n{agent_name} recently heared {heared_history} on social media."
             + "\n{agent_name} recently watched {watched_history} on recommender system."
             + "\nOther than that {agent_name} doesn't know any movies."
@@ -252,8 +273,8 @@ class RecAgent(GenerativeAgent):
             + suffix
         )
         now = datetime.now() if now is None else now
-        agent_summary_description = self.get_summary(now=now)
-        agent_summary_description2 = agent2.get_summary(now=now)
+        agent_summary_description = self.get_summary(now=now,observation=observation)
+        agent_summary_description2 = agent2.get_summary(now=now,observation=observation)
         current_time_str = (
             datetime.now().strftime("%B %d, %Y, %I:%M %p")
             if now is None
@@ -264,7 +285,6 @@ class RecAgent(GenerativeAgent):
             current_time=current_time_str,
             agent_name=self.name,
             observation=observation,
-            agent_status=self.status,
             watched_history=self.watched_history
             if len(self.watched_history) > 0
             else "nothing",
@@ -273,7 +293,6 @@ class RecAgent(GenerativeAgent):
             else "nothing",
             agent_summary_description2=agent_summary_description2,
             agent_name2=agent2.name,
-            agent_status2=agent2.status,
             watched_history2=agent2.watched_history
             if len(agent2.watched_history) > 0
             else "nothing",
@@ -433,7 +452,7 @@ class RecAgent(GenerativeAgent):
         """Feel about each item bought."""
         call_to_action_template = (
             "{agent_name} has not seen this movie before. "
-            + "If you were {agent_name}, how will you feel about this movie just watched? Respond in first person and all in one line."
+            + "Imagine you are {agent_name}, how will you feel about this movie just watched? Please share your personal feelings about the movie in one line."
             + "\n\n"
         )
 
