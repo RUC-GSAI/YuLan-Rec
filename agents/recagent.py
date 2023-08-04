@@ -187,7 +187,7 @@ class RecAgent(GenerativeAgent):
             +"Status: {agent_status}\n"
             +"Movie Interest: {agent_interest}\n"
             +"Feature: {agent_feature}\n"
-            # +"Interpersonal Relationships: {agent_relationships}\n"
+            +"Interpersonal Relationships: {agent_relationships}\n"
             +"Connect the observation with the appropriate details from his profile and provide a concise summary.\nSummary:"
         )
         kwargs: Dict[str, Any] = dict(

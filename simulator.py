@@ -768,9 +768,10 @@ class Simulator:
             agent = self.create_user_role(role_id, api_key)
             agents[role_id] = agent
         if self.active_method == "random":
-            active_prob_samples = [self.config["active_prob"]] * num_agents
+            active_probs = [self.config["active_prob"]] * num_agents
         else:
-            active_prob_samples = np.random.normal(self.config["active_prob"], 1, num_agents)
+            active_probs = np.random.power(self.config["active_prob"], num_agents)
+
 
         if self.config["execution_mode"] == "parallel":
             futures = []
@@ -781,7 +782,7 @@ class Simulator:
                     futures.append(executor.submit(self.create_agent, i, api_key))
                 for future in tqdm(concurrent.futures.as_completed(futures)):
                     agent = future.result()
-                    agent.active_prob = active_prob_samples[agent.id]
+                    agent.active_prob = active_probs[agent.id]
                     agents[agent.id] = agent
             end_time = time.time()
             self.logger.info(
@@ -791,7 +792,7 @@ class Simulator:
             for i in tqdm(range(num_agents)):
                 api_key = api_keys[i % len(api_keys)]
                 agent = self.create_agent(i, api_key)
-                agent.active_prob = active_prob_samples[agent.id]
+                agent.active_prob = active_probs[agent.id]
                 agents[agent.id] = agent
 
         return agents
