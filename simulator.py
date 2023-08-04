@@ -770,8 +770,8 @@ class Simulator:
         if self.active_method == "random":
             active_probs = [self.config["active_prob"]] * num_agents
         else:
-            active_probs = np.random.power(self.config["active_prob"], num_agents)
-
+            active_probs = np.random.pareto(self.config["active_prob"], num_agents)
+            active_probs=active_probs/active_probs.max()
 
         if self.config["execution_mode"] == "parallel":
             futures = []
