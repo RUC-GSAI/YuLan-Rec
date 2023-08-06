@@ -139,6 +139,10 @@ def update_user(user_id: int, agent: Agent):
     agents[user_id] = agent
 
 
+@app.get("/active_agents",response_model=list[Agent])
+def get_active_agents():
+    return recagent.working_agents
+
 @app.get("/relationships",response_model=list[Link])
 def get_relations():
     return links

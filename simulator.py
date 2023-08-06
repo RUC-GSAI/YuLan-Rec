@@ -26,6 +26,7 @@ import faiss
 import re
 import dill
 import numpy as np
+import queue
 
 from recommender.recommender import Recommender
 from recommender.data.data import Data
@@ -36,7 +37,8 @@ from utils.message import Message
 from utils.event import Event, update_event, reset_event
 import utils.interval as interval
 import threading
-
+import heapq
+lock=threading.Lock()
 
 class Simulator:
     """
@@ -53,6 +55,7 @@ class Simulator:
         self.active_method = config["active_method"]
         self.file_name_path = []
         self.play_event = threading.Event()
+        self.working_agents = []
         self.now = datetime.now().replace(hour=8, minute=0, second=0)
         self.interval = interval.parse_interval(config["interval"])
 
@@ -120,8 +123,7 @@ class Simulator:
     def check_active(self, index: int):
         # If agent's previous action is completed, reset the event
         agent = self.agents[index]
-        if agent.event.end_time <= self.now:
-            agent.event = reset_event(self.now)
+        
 
         if (
             self.active_agent_threshold
@@ -162,7 +164,8 @@ class Simulator:
         message = []
 
         choice, observation = agent.take_action(self.now)
-
+        with lock:
+            heapq.heappush(self.working_agents, agent)
         if "RECOMMENDER" in choice:
             self.logger.info(f"{name} enters the recommender system.")
             message.append(
@@ -643,6 +646,18 @@ class Simulator:
             self.round_msg.append(Message(agent_id=agent_id, action="LEAVE", content=f"{name} does nothing."))
         return message
 
+    def update_working_agents(self):
+        with lock:
+            agent:RecAgent=None
+            while len(self.working_agents)>0:
+                agent=heapq.heappop(self.working_agents)
+                if agent.event.end_time<=self.now:
+                    agent.event = reset_event(self.now)
+                else:
+                    break
+            if agent is not None and agent.event.end_time>self.now:
+                heapq.heappush(self.working_agents, agent)
+        
     def round(self):
         """
         Run one step for all agents.
@@ -668,6 +683,7 @@ class Simulator:
                 msgs = self.one_step(i)
                 messages.append(msgs)
         self.now = interval.add_interval(self.now, self.interval)
+        self.update_working_agents()
         return messages
 
     def create_agent(self, i, api_key)->RecAgent:
@@ -770,7 +786,7 @@ class Simulator:
         if self.active_method == "random":
             active_probs = [self.config["active_prob"]] * num_agents
         else:
-            active_probs = np.random.pareto(self.config["active_prob"], num_agents)
+            active_probs = np.random.pareto(self.config["active_prob"]*10, num_agents)
             active_probs=active_probs/active_probs.max()
 
         if self.config["execution_mode"] == "parallel":
@@ -804,7 +820,7 @@ class Simulator:
         for agent in all_agents:
             agent.reset_agent()
         log_string = "The system is reset, and the historic records are removed."
-        self.round_msg.append(Message(agent_id="system",action="System",content=log_string))
+        self.round_msg.append(Message(agent_id=-1,action="System",content=log_string))
         return log_string
         
     def start(self):
@@ -862,7 +878,7 @@ def reset_system(recagent, logger):
         log_string = "The system is reset, and the historic records are removed."
     else:
         log_string = "The system keeps unchanged."
-    recagent.round_msg.append(Message(agent_id="system", action="System", content=log_string))
+    recagent.round_msg.append(Message(agent_id=-1, action="System", content=log_string))
     return log_string
 
 
@@ -906,7 +922,7 @@ def modify_attr(recagent, logger):
     else:
         log_string = "The attributes of agent keep unchanged."
 
-    recagent.round_msg.append(Message(agent_id="system", action="System", content=log_string))
+    recagent.round_msg.append(Message(agent_id=-1, action="System", content=log_string))
     return log_string
 
 
@@ -941,7 +957,7 @@ def inter_agent(recagent, logger):
     if interact in "n":
         log_string += "Do not interact with agent."
 
-    recagent.round_msg.append(Message(agent_id="system", action="System", content=log_string))
+    recagent.round_msg.append(Message(agent_id=-1, action="System", content=log_string))
     return log_string
 
 

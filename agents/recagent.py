@@ -59,6 +59,10 @@ class RecAgent(GenerativeAgent):
     no_action_round: int = 0
     """The number of rounds that the agent has not taken action"""
 
+
+    def __lt__(self, other: "RecAgent"):
+        return self.event.end_time < other.event.end_time
+
     def get_active_prob(self, method) -> float:
         if method == "marginal":
             return self.active_prob * (self.no_action_round + 1)
@@ -199,7 +203,7 @@ class RecAgent(GenerativeAgent):
             agent_status=self.status,
             agent_interest=self.interest,
             agent_feature=self.feature,
-            # agent_relationships=self.relationships,
+            agent_relationships=self.relationships,
         )
         result = self.chain(prompt=prompt).run(**kwargs).strip()
         age = self.age if self.age is not None else "N/A"
