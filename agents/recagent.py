@@ -14,6 +14,7 @@ from langchain.experimental.generative_agents import (
 )
 from utils import utils
 from utils.event import Event
+from agents.recagent_memory import RecAgentMemory
 
 
 class RecAgent(GenerativeAgent):
@@ -58,6 +59,9 @@ class RecAgent(GenerativeAgent):
 
     no_action_round: int = 0
     """The number of rounds that the agent has not taken action"""
+
+    memory: RecAgentMemory
+    """The memory module in RecAgent."""
 
     def get_active_prob(self, method) -> float:
         if method == "marginal":
@@ -199,7 +203,7 @@ class RecAgent(GenerativeAgent):
             agent_status=self.status,
             agent_interest=self.interest,
             agent_feature=self.feature,
-            # agent_relationships=self.relationships,
+            agent_relationships=self.relationships,
         )
         result = self.chain(prompt=prompt).run(**kwargs).strip()
         age = self.age if self.age is not None else "N/A"
@@ -316,13 +320,13 @@ class RecAgent(GenerativeAgent):
     def get_memories_until_limit(self, consumed_tokens: int) -> str:
         """Reduce the number of tokens in the documents."""
         result = []
-        for doc in self.memory.memory_retriever.memory_stream[::-1]:
+        for doc in self.memory.longTermMemory.memory_retriever.memory_stream[::-1]:
             if consumed_tokens >= self.max_dialogue_token_limit:
                 break
             consumed_tokens += self.llm.get_num_tokens(doc.page_content)
             if consumed_tokens < self.max_dialogue_token_limit:
                 result.append(doc)
-        result = self.memory.format_memories_simple(result)
+        result = self.memory.longTermMemory.format_memories_simple(result)
         return result
 
     def generate_plan(

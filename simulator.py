@@ -37,6 +37,7 @@ from utils.event import Event, update_event, reset_event
 import utils.interval as interval
 import threading
 
+from agents.recagent_memory import RecAgentMemory,RecAgentRetriever
 
 class Simulator:
     """
@@ -113,7 +114,7 @@ class Simulator:
             {},
             relevance_score_fn=self.relevance_score_fn,
         )
-        return TimeWeightedVectorStoreRetriever(
+        return RecAgentRetriever(
             vectorstore=vectorstore, other_score_keys=["importance"], k=15
         )
 
@@ -675,7 +676,7 @@ class Simulator:
         Create an agent with the given id.
         """
         LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
-        agent_memory = GenerativeAgentMemory(
+        agent_memory = RecAgentMemory(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
             verbose=False,
@@ -730,7 +731,7 @@ class Simulator:
         relationships = [r.split(" ") for r in relationships]
 
         LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
-        agent_memory = GenerativeAgentMemory(
+        agent_memory = RecAgentMemory(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
             verbose=False,
