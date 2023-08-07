@@ -144,18 +144,18 @@ class Simulator:
         return True
 
     def pause(self):
-        self.play_event.clear() 
+        self.play_event.clear()
 
     def play(self):
-        self.play_event.set() 
+        self.play_event.set()
 
     def global_message(self, message: str):
         for i,agent in self.agents.items():
-            agent.memory.add_memory(message, now=self.now)
+            agent.memory.add_memory(message, self.now)
 
     def one_step(self, agent_id):
         """Run one step of an agent."""
-        self.play_event.wait() 
+        self.play_event.wait()
         if not self.check_active(agent_id):
             return [Message(agent_id=agent_id, action="NO_ACTION", content="No action.")]
         agent:RecAgent = self.agents[agent_id]
@@ -706,7 +706,7 @@ class Simulator:
         """
         @ Zeyu Zhang
         Create a user controllable agent.
-        :param i: the id of role.
+        :param id: the id of role.
         :param api_key: the API key of the role.
         :return: an object of `RoleAgent`.
         """
@@ -807,7 +807,7 @@ class Simulator:
         log_string = "The system is reset, and the historic records are removed."
         self.round_msg.append(Message(agent_id="system",action="System",content=log_string))
         return log_string
-        
+
     def start(self):
         self.play()
         messages=[]
@@ -973,7 +973,7 @@ def main():
     config.merge_from_file(args.config_file)
     logger.info(f"\n{config}")
     os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
-    
+
     # run
     if config["simulator_restore_file_name"]:
         restore_path = os.path.join(
