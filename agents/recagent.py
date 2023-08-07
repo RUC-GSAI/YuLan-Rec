@@ -59,6 +59,8 @@ class RecAgent(GenerativeAgent):
     no_action_round: int = 0
     """The number of rounds that the agent has not taken action"""
 
+    role: str = "agent"
+
 
     def __lt__(self, other: "RecAgent"):
         return self.event.end_time < other.event.end_time
@@ -83,14 +85,6 @@ class RecAgent(GenerativeAgent):
         )
 
         result = self.interact_reaction(interact_sentence)[1]
-        self.memory.save_context(
-            {},
-            {
-                self.memory.add_memory_key: f"{self.name} observe "
-                f"{interact_sentence} and say {result}",
-                self.memory.now_key: datetime.now(),
-            },
-        )
         return interact_sentence, result
 
     def modify_agent(self):
@@ -389,7 +383,7 @@ class RecAgent(GenerativeAgent):
         call_to_action_template = (
             "{agent_name} must take one of the four actions below:\n(1) Watch some movies in the item list returned by recommender system.\n(2) See the next page.\n(3) Search items.\n(4) Leave the recommender system."
             + "\nIf {agent_name} has recently heard about a particular movie on a social media, {agent_name} might want to search for that movie on the recommender system."
-            + "If {agent_name} chooses to watch a movie, they usually avoid watching too many in one go due to the two-hour time commitment for each movie."
+            + "If {agent_name} wants to watch movies, {agent_name} usually watches one to three recommended movies."
             + "\nWhat action would {agent_name} like to take?"
             + "\nIf {agent_name} want to watch movies in returned list, write:\n[BUY]:: movie names in the list returned by the recommender system, only movie names, separated by semicolons\n"
             + "\nIf {agent_name} want to see the next page, write:\n[NEXT]:: {agent_name} looks the next page\n"

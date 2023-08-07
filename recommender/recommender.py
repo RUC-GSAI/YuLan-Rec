@@ -3,7 +3,7 @@ from recommender.model import *
 import importlib
 import torch
 import pandas as pd
-from utils import utils
+from utils import utils,message
 
 
 class Recommender:
@@ -20,6 +20,7 @@ class Recommender:
         self.record = {}
         self.positive = {}
         self.inter_df = None
+        self.inter_num=0
         for user in self.data.get_full_users():
             self.record[user] = []
             self.positive[user] = []
@@ -38,6 +39,9 @@ class Recommender:
 
     def get_search_items(self, item_name):
         return self.data.search_items(item_name)
+    
+    def get_inter_num(self):
+        return self.inter_num
 
     def update_history(self, user_id, item_names):
         """
@@ -55,6 +59,7 @@ class Recommender:
         if len(item_ids) == 0:
             return
         self.positive[user_id].extend(item_ids)
+        self.inter_num+=len(item_ids)
 
     def save_interaction(self):
         """

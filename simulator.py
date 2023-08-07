@@ -32,7 +32,7 @@ from recommender.recommender import Recommender
 from recommender.data.data import Data
 from agents import RecAgent
 from agents import RoleAgent
-from utils import utils
+from utils import utils,message
 from utils.message import Message
 from utils.event import Event, update_event, reset_event
 import utils.interval as interval
@@ -49,15 +49,17 @@ class Simulator:
         self.config = config
         self.logger = logger
         self.round_cnt = 0
-        self.round_msg = []
-        self.active_agents = []
+        self.round_msg :list[Message]= []
+        self.active_agents: list[int] = [] #active agents in current round
         self.active_agent_threshold = config["active_agent_threshold"]
         self.active_method = config["active_method"]
-        self.file_name_path = []
+        self.file_name_path:list[str] =[]
         self.play_event = threading.Event()
-        self.working_agents = []
+        self.working_agents: list[RecAgent]=[] #busy agents
         self.now = datetime.now().replace(hour=8, minute=0, second=0)
         self.interval = interval.parse_interval(config["interval"])
+        self.rec_stat=message.RecommenderStat(cur_user_num=0,tot_item_num=0,inter_num=0)
+        self.social_stat=message.SocialStat(cur_user_num=0,tot_link_num=0,chat_num=0,cur_chat_num=0,post_num=0)
 
     def get_file_name_path(self):
         return self.file_name_path
@@ -153,6 +155,22 @@ class Simulator:
     def global_message(self, message: str):
         for i,agent in self.agents.items():
             agent.memory.add_memory(message, now=self.now)
+
+    def update_stat(self):
+        self.rec_stat.cur_user_num=0
+        self.social_stat.cur_user_num=0
+        self.social_stat.cur_chat_num=0
+        for agent in self.working_agents:
+            if agent.event.action_type == "watch":
+                self.rec_stat.cur_user_num+=1
+            elif agent.event.action_type == "chat":
+                self.social_stat.cur_user_num+=1
+                self.social_stat.cur_chat_num+=len(agent.event.target_agent)
+        self.rec_stat.tot_item_num = self.data.get_item_num()
+        self.rec_stat.inter_num = self.recsys.get_inter_num()
+        self.social_stat.tot_link_num = self.data.get_relationship_num()/2
+        self.social_stat.cur_chat_num/=2
+        #chat_num and post_num update in the one_step function
 
     def one_step(self, agent_id):
         """Run one step of an agent."""
@@ -437,6 +455,7 @@ class Simulator:
                     Message(agent_id=agent_id, action="SOCIAL", content=f"{name} has no acquaintance.")
                 )
             else:
+                self.social_stat.cur_user_num+=1
                 self.logger.info(f"{name} is going to social media.")
                 message.append(
                     Message(agent_id=agent_id, action="SOCIAL", content=f"{name} is going to social media.")
@@ -449,7 +468,7 @@ class Simulator:
                 if "CHAT" in choice:
                     agent_name2 = action.strip(" \t\n'\"")
                     agent_id2 = self.data.get_user_ids([agent_name2])[0]
-                    agent2 = self.agents[agent_id2]
+                    agent2 = self.agents[agent_id2]                
                     # If agent2 is watching moives, he cannot be interupted.
                     if agent2.event.action_type == "watch":
                         agent.memory.add_memory(
@@ -508,6 +527,7 @@ class Simulator:
                         action_type="chat",
                     )
                     self.logger.info(f"{name} is chatting with {agent_name2}.")
+                    self.social_stat.chat_num+=1
                     message.append(
                         Message(
                             agent_id=agent_id, action="CHAT", content=f"{name} is chatting with {agent_name2}."
@@ -599,6 +619,7 @@ class Simulator:
                     message.extend(msgs)
 
                 else:
+                    self.social_stat.post_num+=1
                     self.logger.info(f"{name} is posting.")
                     observation = f"{name} want to post for all acquaintances."
                     observation = agent.publish_posting(observation, self.now)

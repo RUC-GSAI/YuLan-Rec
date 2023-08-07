@@ -13,6 +13,7 @@ class Data:
         self.items = {}
         self.users = {}
         self.db = None
+        self.tot_relationship_num=0
         self.load_items(config["item_path"])
         self.load_users(config["user_path"])
         self.load_relationship(config["relationship_path"])
@@ -50,6 +51,7 @@ class Data:
                     self.users[user_1]["contact"] = dict()
                
                 self.users[user_1]["contact"][user_2]=relationship
+                self.tot_relationship_num+=1
 
     def load_items(self, file_path):
         """
@@ -141,6 +143,18 @@ class Data:
         Return the number of users.
         """
         return len(self.users.keys())
+    
+    def get_item_num(self):
+        """
+        Return the number of items.
+        """
+        return len(self.items.keys())
+    
+    def get_relationship_num(self):
+        """
+        Return the number of relationships.
+        """
+        return self.tot_relationship_num
 
     def search_items(self, item, k=5):
         """
