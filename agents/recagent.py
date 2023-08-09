@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from langchain import LLMChain
 from langchain.base_language import BaseLanguageModel
-from langchain.experimental.generative_agents.memory import GenerativeAgentMemory
+from langchain.experimental.generative_agents.memory import GenerativeAgentMemory,BaseMemory
 from langchain.prompts import PromptTemplate
 from langchain.experimental.generative_agents import (
     GenerativeAgent,
@@ -60,7 +60,7 @@ class RecAgent(GenerativeAgent):
     no_action_round: int = 0
     """The number of rounds that the agent has not taken action"""
 
-    memory: RecAgentMemory
+    memory: BaseMemory
     """The memory module in RecAgent."""
 
     def get_active_prob(self, method) -> float:
@@ -319,14 +319,19 @@ class RecAgent(GenerativeAgent):
 
     def get_memories_until_limit(self, consumed_tokens: int) -> str:
         """Reduce the number of tokens in the documents."""
+        # print('TEST----',type(self.memory) == GenerativeAgentMemory,type(self.memory) == RecAgentMemory)
+        retriever = self.memory.longTermMemory.memory_retriever if type(self.memory) == RecAgentMemory else self.memory.memory_retriever
         result = []
-        for doc in self.memory.longTermMemory.memory_retriever.memory_stream[::-1]:
+        for doc in retriever.memory_stream[::-1]:
             if consumed_tokens >= self.max_dialogue_token_limit:
                 break
             consumed_tokens += self.llm.get_num_tokens(doc.page_content)
             if consumed_tokens < self.max_dialogue_token_limit:
                 result.append(doc)
-        result = self.memory.longTermMemory.format_memories_simple(result)
+        if type(self.memory) == RecAgentMemory:
+            result = self.memory.longTermMemory.format_memories_simple(result)
+        else:
+            result = self.memory.format_memories_simple(result)
         return result
 
     def generate_plan(

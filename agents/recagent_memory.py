@@ -61,20 +61,41 @@ class SensoryMemory():
         self.llm = llm
         self.profile = None
         self.buffer_size = buffer_size
+        self.importance_weight = 0.15
 
         self.buffer = []
 
     def clear(self):
         self.buffer = []
 
-    def dump_shortTerm_list(self):
-        def parse_res(text: str):
-            pattern = re.compile(r'(Score: [\d.]*)')
+    def _score_memory_importance(self, memory_content: str) -> float:
+        """Score the absolute importance of the given memory."""
+        prompt = PromptTemplate.from_template(
+            "On the scale of 1 to 10, where 1 is purely mundane"
+            + " (e.g., brushing teeth, making bed) and 10 is"
+            + " extremely poignant (e.g., a break up, college"
+            + " acceptance), rate the likely poignancy of the"
+            + " following piece of memory. Respond with a single integer."
+            + "\nMemory: {memory_content}"
+            + "\nRating: "
+        )
+        score = LLMChain(llm=self.llm, prompt=prompt).run(memory_content=memory_content).strip()
+        match = re.search(r"^\D*(\d+)", score)
+        if match:
+            return (float(match.group(1)) / 10) * self.importance_weight
+        else:
+            return 0.0
 
-            score = [float(s[7:]) for s in re.findall(pattern, text)]
-            obs = [s[2:-2] if ind == 0 else s[4:-2] for ind, s in enumerate(re.split(pattern, text)) if
-                   not ind % 2][:-1]
-            return list(zip(score, obs))
+    def dump_shortTerm_list(self):
+        # def parse_res(text: str):
+        #     pattern = re.compile(r'(Score: [\d.]*)')
+        #
+        #     score = [float(s[7:]) for s in re.findall(pattern, text)]
+        #     obs = [s[2:-2] if ind == 0 else s[4:-2] for ind, s in enumerate(re.split(pattern, text)) if
+        #            not ind % 2][:-1]
+        #     return list(zip(score, obs))
+        def parse_res(text: str):
+            return [t+'.' for t in text.split('. ')]
 
         obs_str = "The observations are as following:\n"
         for ind, obs in enumerate(self.buffer):
@@ -90,28 +111,18 @@ class SensoryMemory():
                       "Feature: {agent_feature}\n" \
                       "Interpersonal Relationships: {agent_relationships}\n"
 
+        # order_str = "Please summarize the above observations into several independent sentences with the help of profiles, " \
+        #             "where we pay more attention to the movie interest and the reasons. For each sentence, provide a " \
+        #             "important score in [0,1]. The result should be in the format like: \n" \
+        #             "1. [SENTENCE] (Score: [FLOAT]) \n" \
+        #             "2. [SENTENCE] (Score: [FLOAT]) \n"
         order_str = "Please summarize the above observations into several independent sentences with the help of profiles, " \
-                    "where we pay more attention to the movie interest and the reasons. For each sentence, provide a " \
-                    "important score in [0,1]. The result should be in the format like: \n" \
-                    "1. [SENTENCE] (Score: [FLOAT]) \n" \
-                    "2. [SENTENCE] (Score: [FLOAT]) \n"
+                     "where we pay more attention to the movie interest and the reasons."
 
-        # prompt = PromptTemplate.from_template(obs_str + profile_str + order_str)
-        # result = LLMChain(llm=self.llm, prompt=prompt).run(self.profile)
-        # result = parse_res(result)
-        ## ---- Fix ----
-        result = [
-            (0.8, ' David Smith, a 25-year-old male photographer, is highly interested in sci-fi and comedy movies.'),
-            (0.7,
-             ' He is demanding in his standards for movies and the recommendation system, indicating that he has specific preferences and expectations.'),
-            (0.6,
-             'David enjoys watching movies and providing feedback and ratings to the recommendation system, suggesting that he actively engages with the platform.'),
-            (0.7,
-             ' He may criticize both the recommendation system and the movies, implying that he is vocal about his opinions and not afraid to express his dissatisfaction.'),
-            (0.8,
-             ' David enjoys publicly posting on social media and sharing content and insights with others, indicating his desire for social interaction and engagement.'),
-            (0.5,
-             ' He has a friend named David Miller, suggesting that he values interpersonal relationships and may share movie recommendations with his friend.')]
+        prompt = PromptTemplate.from_template(obs_str + profile_str + order_str)
+        result = LLMChain(llm=self.llm, prompt=prompt).run(self.profile)
+        result = parse_res(result)
+        result = [(self._score_memory_importance(text),text) for text in result]
 
         self.clear()
 

@@ -114,7 +114,10 @@ class Simulator:
             {},
             relevance_score_fn=self.relevance_score_fn,
         )
-        return RecAgentRetriever(
+
+        RetrieverClass = RecAgentRetriever if self.config["recagent_memory"] else TimeWeightedVectorStoreRetriever
+
+        return RetrieverClass(
             vectorstore=vectorstore, other_score_keys=["importance"], k=15
         )
 
@@ -676,7 +679,9 @@ class Simulator:
         Create an agent with the given id.
         """
         LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
-        agent_memory = RecAgentMemory(
+        MemoryClass = RecAgentMemory if self.config["recagent_memory"] else GenerativeAgentMemory
+
+        agent_memory = MemoryClass(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
             verbose=False,
@@ -731,7 +736,9 @@ class Simulator:
         relationships = [r.split(" ") for r in relationships]
 
         LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
-        agent_memory = RecAgentMemory(
+        MemoryClass = RecAgentMemory if self.config["recagent_memory"] else GenerativeAgentMemory
+
+        agent_memory = MemoryClass(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
             verbose=False,
@@ -841,6 +848,13 @@ def parse_args():
         type=bool,
         default=False,
         help="Add a user controllable role",
+    )
+    parser.add_argument(
+        "-m",
+        "--recagent_memory",
+        type=bool,
+        default=False,
+        help="Use RecAgent memory."
     )
     parser.add_argument(
         "opts",
@@ -970,6 +984,7 @@ def main():
     config = utils.add_variable_to_config(config, "log_file", args.log_file)
     config = utils.add_variable_to_config(config, "log_name", args.log_name)
     config = utils.add_variable_to_config(config, "play_role", args.play_role)
+    config = utils.add_variable_to_config(config, "recagent_memory", args.recagent_memory)
     config.merge_from_file(args.config_file)
     logger.info(f"\n{config}")
     os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
