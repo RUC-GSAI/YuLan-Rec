@@ -118,8 +118,7 @@ class Simulator:
         RetrieverClass = RecAgentRetriever if self.config["recagent_memory"] else TimeWeightedVectorStoreRetriever
 
         return RetrieverClass(
-            vectorstore=vectorstore, other_score_keys=["importance"], k=15
-        )
+            vectorstore=vectorstore, other_score_keys=["importance"],now=self.now, k=15)
 
     def check_active(self, index: int):
         # If agent's previous action is completed, reset the event
@@ -672,9 +671,12 @@ class Simulator:
                 msgs = self.one_step(i)
                 messages.append(msgs)
         self.now = interval.add_interval(self.now, self.interval)
+
+        for i, agent in self.agents.items():
+            agent.memory.update_now(self.now)
         return messages
 
-    def create_agent(self, i, api_key)->RecAgent:
+    def create_agent(self, i, api_key) -> RecAgent:
         """
         Create an agent with the given id.
         """
@@ -684,8 +686,9 @@ class Simulator:
         agent_memory = MemoryClass(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
+            now=self.now,
             verbose=False,
-            reflection_threshold=0.5,
+            reflection_threshold=1,
         )
         agent = RecAgent(
             id=i,
@@ -804,6 +807,7 @@ class Simulator:
                 agents[agent.id] = agent
 
         return agents
+
     def reset(self):
         # Reset the system
         self.pause()
@@ -853,7 +857,7 @@ def parse_args():
         "-m",
         "--recagent_memory",
         type=bool,
-        default=False,
+        default=True,
         help="Use RecAgent memory."
     )
     parser.add_argument(
