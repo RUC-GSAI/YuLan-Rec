@@ -52,7 +52,8 @@ class RecAgentRetriever(TimeWeightedVectorStoreRetriever):
         # Ensure frequently accessed memories aren't forgotten
         retrieved_num = 0
         for doc, _ in rescored_docs:
-            if retrieved_num < self.k and doc.page_content.find('[FORGET]') == -1:
+            if retrieved_num < self.k and doc.page_content.find('[FORGET]') == -1 \
+                    and doc.page_content.find('[MERGE]') == -1:
                 retrieved_num += 1
                 # TODO: Update vector store doc once `update` method is exposed.
                 buffered_doc = self.memory_stream[doc.metadata["buffer_idx"]]
@@ -106,15 +107,15 @@ class SensoryMemory():
         for ind, obs in enumerate(self.buffer):
             obs_str += "[%d] %s\n" % (ind, obs)
 
-        profile_str = "The profiles are as following:\n" \
-                      "Name: {agent_name}\n" \
-                      "Age: {agent_age}\n" \
-                      "Gender:{agent_gender}\n" \
-                      "Traits: {agent_traits}\n" \
-                      "Status: {agent_status}\n" \
-                      "Movie Interest: {agent_interest}\n" \
-                      "Feature: {agent_feature}\n" \
-                      "Interpersonal Relationships: {agent_relationships}\n"
+        # profile_str = "The profiles are as following:\n" \
+        #               "Name: {agent_name}\n" \
+        #               "Age: {agent_age}\n" \
+        #               "Gender:{agent_gender}\n" \
+        #               "Traits: {agent_traits}\n" \
+        #               "Status: {agent_status}\n" \
+        #               "Movie Interest: {agent_interest}\n" \
+        #               "Feature: {agent_feature}\n" \
+        #               "Interpersonal Relationships: {agent_relationships}\n"
 
         # order_str = "Please summarize the above observations into several independent sentences with the help of profiles, " \
         #             "where we pay more attention to the movie interest and the reasons. For each sentence, provide a " \
@@ -126,7 +127,7 @@ class SensoryMemory():
                     "Note that the number of sentences in the summary cannot exceed the number of observations given"\
                     "where we pay more attention to the movie interest and the reasons."
 
-        prompt = PromptTemplate.from_template(obs_str + profile_str + order_str)
+        prompt = PromptTemplate.from_template(obs_str + order_str)
         result = LLMChain(llm=self.llm, prompt=prompt).run(self.profile)
         result = parse_res(result)
         result = [(self._score_memory_importance(text),text) for text in result]
@@ -168,7 +169,7 @@ class ShortTermMemory():
         self.enhance_memories: List[List[str]] = [[] for _ in range(self.capacity)]
         """The enhance memory of each short-term memory"""
 
-        self.enhance_threshold: int = 5
+        self.enhance_threshold: int = 3
         """Summary the short-term memory with enhanced count larger or equal than the threshold"""
 
     @staticmethod
@@ -186,11 +187,14 @@ class ShortTermMemory():
         """"""
         prompt = PromptTemplate.from_template(
             "There are some memories separated by semicolons (;): {content}\n"
-            "What insight can you infer about the relationships among the above memories?"
-            + "\n\nNote that the insight should be different from the original memories."
-            + "\n\nWrite the insight directly with Third Person."
-            + "\n\nExample: He likes posting in social media."
+            + "Can you infer from the above memories the high-level insight for this person's behaviour?"
+            + "Respond in one sentence."
             + "\n\nResults:"
+            # "What insight can you infer about the relationships among the above memories?"
+            # + "\n\nNote that the insight should be different from the original memories."
+            # + "\n\nWrite the insight directly with Third Person."
+            # + "\n\nExample: He likes posting in social media."
+            # + "\n\nResults:"
         )
         result = self.chain(prompt).run(content=content).strip()
         print("-------The insight is-------: \n" + str(result))
@@ -306,7 +310,6 @@ class ShortTermMemory():
         const = 0.1
         # compute the vector similarities between observation and the existing short-term memories
         embeddings_model = OpenAIEmbeddings()
-        embedding_size = 1536
         observation_embedding = embeddings_model.embed_query(observation)
         short_term_embeddings = embeddings_model.embed_documents(self.short_memories)
         for idx, memory_embedding in enumerate(short_term_embeddings):
@@ -317,7 +320,7 @@ class ShortTermMemory():
             # sample and select the enhanced short-term memory
             # Sigmoid function
             prob = 1 / (1 + np.exp(-similarity))
-            if random() <= prob:
+            if prob >= 0.7 and random() <= prob:
                 self.enhance_cnt[idx] += 1
                 self.enhance_memories[idx].append(observation)
         # a list of long-term memory
@@ -357,6 +360,9 @@ class LongTermMemory(BaseMemory):
 
     forget_num: int = 3
 
+    importance_weight: float = 0.15
+    """How much weight to assign the memory importance."""
+
     def chain(self, prompt: PromptTemplate) -> LLMChain:
         return LLMChain(llm=self.llm, prompt=prompt, verbose=self.verbose)
 
@@ -368,12 +374,13 @@ class LongTermMemory(BaseMemory):
 
     @staticmethod
     def _parse_insight_with_connections(text: str):
-        pattern = re.compile(r'\(.*\)')
-
-        res = re.search(pattern, text)
+        # pattern = re.compile(r'\(.*\)')
+        # pattern = re.compile(r'\d+')
+        # res = re.search(pattern, text)
         try:
-            insight = text[:res.span()[0] - 1]
-            nums = re.findall(r'\d+', res.group())
+            insight = text
+            # insight = text[:res.span()[0] - 1 + len(" [Related statement IDs]:")] + '.'
+            nums = re.findall(r'\d+', text)
             connection_list = list(map(int, nums))
             # connetction_list = eval('[%s]' % text[res.span()[0] + len('(insight because of statement '):-2])
         except:
@@ -381,6 +388,25 @@ class LongTermMemory(BaseMemory):
             connection_list = [0]
 
         return insight, connection_list
+
+
+    def _score_memory_importance(self, memory_content: str) -> float:
+        """Score the absolute importance of the given memory."""
+        prompt = PromptTemplate.from_template(
+            "On the scale of 1 to 10, where 1 is purely mundane"
+            + " (e.g., entering the recommender system, getting the next page) and 10 is"
+            + " extremely poignant (e.g., watching a movie, posting in social media), "
+            + ", rate the likely poignancy of the"
+            + " following piece of memory. Respond with a single integer."
+            + "\nMemory: {memory_content}"
+            + "\nRating: "
+        )
+        score = LLMChain(llm=self.llm, prompt=prompt).run(memory_content=memory_content).strip()
+        match = re.search(r"^\D*(\d+)", score)
+        if match:
+            return (float(match.group(1)) / 10) * self.importance_weight
+        else:
+            return 0.0
 
     def fetch_memories_with_list(self, observation, stm):
         res_list, memories_tuple = self.fetch_memories(observation, stm=stm)
@@ -478,6 +504,14 @@ class LongTermMemory(BaseMemory):
             }
         return {}
 
+    @staticmethod
+    def cosine_similarity(embedding1: List[float], embedding2: List[float]):
+        dot_product = np.dot(embedding1, embedding2)
+        norm1 = np.linalg.norm(embedding1)
+        norm2 = np.linalg.norm(embedding2)
+        similarity = dot_product / (norm1 * norm2)
+        return similarity
+
     def _get_topics_of_reflection(self, last_k: int = 50) -> List[str]:
         """Return the 3 most salient high-level questions about recent observations."""
         prompt = PromptTemplate.from_template(
@@ -497,35 +531,83 @@ class LongTermMemory(BaseMemory):
         """Generate 'insights' on a topic of reflection, based on pertinent memories."""
         # TODO: Enhance the stability of the following prompt, as it sometimes return the
         #  indexes that are not exists in the given relatd statements.
-        prompt = PromptTemplate.from_template(
-            "Statements about {topic}:\n"
-            + "{related_statements}\n\n"
-            + "What a high-level insight can you infer from the above statements?"
-            + "Please write the content of the insight and also give the indexes of statements you derived from:"
+        prompt_insight = PromptTemplate.from_template(
+            "From the following statements about {topic}, provided in the format [id] statement,"
+            + "please identify one main insights and specify which statements each insight is derived from:\n"
+            + "{related_statements}\n"
+            + "Respond ONLY with the insight and the Ids of their related statements, adhering strictly to the following format:\n"
+            + "Content of insight [Related statement IDs]\n"
+            + "An insight can be derived from one or multiple statements."
+            + "Do NOT add any additional explanations, introductions, or summaries."
+            # "Statements about \"{topic}\":\n"
+            # + "{related_statements}\n\n"
+            # + "What a high-level insight can you infer from the above statements?"
+            # + "Please write the content of the insight and also give the indexes of statements you derived from:"
             # + "Example:\n"
             # + "Statements:\n"
             # + "[1] Statement\n"
             # + "[2] Statement\n"
             # + "[3] Statement\n"
             # + "Insight (1, 3)"
-            + "Example format of result (in one line):"
-            + "content of the insight ([2], [4], [7])"
+            # + "Example format of result (in one line):"
+            # + "content of the insight ([2], [4], [7])"
+        )
+
+        prompt_summary = PromptTemplate.from_template(
+            "The memories are:\n"
+            + "{memories}\n\n"
+            + "Can you summarize the above memories in one sentence?"
+            + "Note that memories are separated by semicolons(;)."
         )
         related_memories = self.fetch_memories(topic, now=now)
+
         # print('The fetched related memories of insight topic are ' + str(related_memories))
         related_statements = "\n".join(
             [
-                f"{i + 1}. {memory.page_content}"
+                # f"{i + 1}. {memory.page_content}"
+                f"{memory.page_content}"
                 for i, memory in enumerate(related_memories)
             ]
         )
-        result = self.chain(prompt).run(
+
+        pattern = r"(?<=\[)\d+(?=\])"
+        content = [related_memories[0].page_content]
+        indexes = []
+        embeddings_model = OpenAIEmbeddings()
+        embedding_size = 1536
+        embedding_1 = embeddings_model.embed_query(related_memories[0].page_content)
+        for document in related_memories[1:]:
+            memory_embedding = embeddings_model.embed_query(document.page_content)
+            similarity = self.cosine_similarity(embedding_1, memory_embedding)
+            # Sigmoid function
+            prob = 1 / (1 + np.exp(-similarity))
+            if prob >= 0.72:
+                content.append(document.page_content)
+                # print('The content is ' + document.page_content)
+                match = re.search(pattern, document.page_content)
+                idx = match.group()
+                # print('The idx is ' + str(idx))
+                indexes.append(int(idx))
+        content = ';'.join(content)
+
+        for idx in indexes:
+            self.memory_retriever.memory_stream[idx].page_content = '[MERGE]'
+            self.memory_retriever.memory_stream[idx].metadata['importance'] = 1.0
+            self.memory_retriever.memory_stream[idx].metadata['last_accessed_at'] = self.now
+
+        result_insight = self.chain(prompt_insight).run(
             topic=topic, related_statements=related_statements
         )
-        result = self._parse_list(result)
-        result = [self._parse_insight_with_connections(res) for res in result]
+
+        result_summary = self.chain(prompt_summary).run(
+            memories=content
+        )
+
+        result_insight = self._parse_list(result_insight)
+        result_insight = [self._parse_insight_with_connections(res) for res in result_insight]
+        result_summary = self._parse_list(result_summary)
         # print('The insights of reflection are ' + str(result))
-        return result
+        return result_insight, result_summary
 
     def pause_to_reflect(self, now: Optional[datetime] = None):
         """Reflect on recent observations and generate 'insights'."""
@@ -536,7 +618,7 @@ class LongTermMemory(BaseMemory):
         topics = self._get_topics_of_reflection()
         # print(topics)
         for topic in topics:
-            insights = self._get_insights_on_topic(topic, now=now)
+            insights, summary = self._get_insights_on_topic(topic, now=now)
             for insight in insights:
                 text, par_list = insight
                 importance_cur, recency_cur = 0.0, 0.0
@@ -550,10 +632,13 @@ class LongTermMemory(BaseMemory):
                 # recency_cur /= len(par_list)
                 # ltm = importance_cur, recency_cur, text
                 importance_cur /= len(par_list)
-                print('text is ' + str(text))
                 ltm = importance_cur, self.now, text
                 self.add_memory(ltm, now=now)
             new_insights.extend(insights)
+
+            importance_summary = self._score_memory_importance(summary[0])
+            memory_summary = importance_summary, self.now, summary[0]
+            self.add_memory(memory_summary, now=now)
         return new_insights
 
     def obtain_forget_prob_list(self):
@@ -577,12 +662,16 @@ class LongTermMemory(BaseMemory):
             logger.info("Character is forgetting.")
 
         prob_list = self.obtain_forget_prob_list()
+        forget_list = []
         if len(prob_list) != 0:
-            forget_list = np.random.choice(range(len(prob_list)), size=self.forget_num, p=prob_list)
-            for idx in forget_list:
-                self.memory_retriever.memory_stream[idx].page_content = '[FORGET]'
-                self.memory_retriever.memory_stream[idx].metadata['importance'] = 1.0
-                self.memory_retriever.memory_stream[idx].metadata['last_accessed_at'] = self.now
+            for idx in range(len(prob_list)):
+                if (self.now - self.memory_retriever.memory_stream[idx].metadata['last_accessed_at']).total_seconds() / 3600 <= 24:
+                    prob_list[idx] = 0
+                if random() < prob_list[idx]:
+                    self.memory_retriever.memory_stream[idx].page_content = '[FORGET]'
+                    self.memory_retriever.memory_stream[idx].metadata['importance'] = 1.0
+                    self.memory_retriever.memory_stream[idx].metadata['last_accessed_at'] = self.now
+
 
     def add_memory(self, ltm, now=None):
         importance, last_accessed_at, text = ltm
