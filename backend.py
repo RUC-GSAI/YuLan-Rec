@@ -5,7 +5,7 @@ from yacs.config import CfgNode
 from pydantic import BaseModel, parse_obj_as
 from typing import Optional, Union
 from demo import Demo
-from utils import utils
+from utils import utils,message
 import uvicorn
 import csv
 from simulator import *
@@ -22,8 +22,6 @@ class Agent(BaseModel):
     status: str
     interest: str
     feature: str
-    watched_history: list[str] = []
-    heared_history: list[str] = []
     event: Event
 
 
@@ -43,9 +41,7 @@ def convert_rec_agent_to_agent(rec_agent: RecAgent):
         "status": rec_agent.status,
         "interest": rec_agent.interest,
         "feature": rec_agent.feature,
-        # 'role': rec_agent.role,  # Uncomment this line if 'role' is an attribute of rec_agent
-        "watched_history": rec_agent.watched_history,
-        "heared_history": rec_agent.heared_history,
+        "role": rec_agent.role,  # Uncomment this line if 'role' is an attribute of rec_agent
         "event": rec_agent.event,
     }
     return Agent(**data)
@@ -98,9 +94,9 @@ else:
     recagent.load_simulator()
 
 play = False
-agents: dict[int, Agent] = {}
+agents: list[Agent] = []
 for k, v in recagent.agents.items():
-    agents[k] = convert_rec_agent_to_agent(v)
+    agents.append(convert_rec_agent_to_agent(v))
 
 # links
 links: list[Link] = []
@@ -112,7 +108,7 @@ with open(config["relationship_path"], "r", newline="") as file:
         user_1, user_2, relationship,_ = row
         user_1 = int(user_1)
         user_2 = int(user_2)
-        if user_1 not in agents or user_2 not in agents:
+        if user_1 >=len(agents) or user_2 >=len(agents):
             continue
         user_1, user_2 = min(user_1, user_2), max(user_1, user_2)
         if (user_1,user_2) in link_flag:
@@ -123,7 +119,7 @@ with open(config["relationship_path"], "r", newline="") as file:
 app = FastAPI()
 
 
-@app.get("/agents",response_model=dict[int, Agent])
+@app.get("/agents",response_model=list[Agent])
 def get_agents():
     return agents
 
@@ -138,6 +134,23 @@ def update_user(user_id: int, agent: Agent):
     update_rec_agent(recagent.agents[user_id], agent)
     agents[user_id] = agent
 
+
+@app.get("/active-agents",response_model=list[Agent])
+def get_active_agents():
+    return recagent.working_agents
+
+@app.get("/interview-agents/{user_id}",response_model=str)
+def get_interview_agent(user_id: int,query:str):
+    _,result=recagent.agents[user_id].interact_reaction(query,recagent.now)
+    return result
+
+@app.get("/watched-history/{user_id}",response_model=list[str])
+def get_watched_history(user_id: int):
+    return recagent.agents[user_id].watched_history
+
+@app.get("/heared-history/{user_id}",response_model=list[str])
+def get_heared_history(user_id: int):
+    return recagent.agents[user_id].heared_history
 
 @app.get("/relationships",response_model=list[Link])
 def get_relations():
@@ -180,6 +193,16 @@ def get_messages():
         msgs=recagent.round_msg.copy()
         recagent.round_msg=recagent.round_msg[len(msgs):]
     return msgs
+
+@app.get("/recommender-stats",response_model=message.RecommenderStat)
+def get_recommender_stats():
+    recagent.update_stat()
+    return recagent.rec_stat
+
+@app.get("/social-stats",response_model=message.SocialStat)
+def get_social_stats():
+    recagent.update_stat()
+    return recagent.social_stat
 
 @app.get("/start")
 async def start():

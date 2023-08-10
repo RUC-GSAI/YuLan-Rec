@@ -14,3 +14,15 @@ class Message(BaseModel):
         return cls(
             message_dict["agent_id"], message_dict["action"], message_dict["content"]
         )
+    
+class RecommenderStat(BaseModel):
+    cur_user_num: int
+    tot_item_num: int
+    inter_num: int
+
+class SocialStat(BaseModel):
+    cur_user_num: int
+    tot_link_num: int
+    chat_num: int
+    cur_chat_num: int
+    post_num: int
