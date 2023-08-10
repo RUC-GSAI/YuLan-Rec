@@ -1,7 +1,7 @@
 """
 @Name: recagent_memory.py
-@Author: Zeyu Zhang
-@Date: 2023/8/4-17:00
+@Author: Hao Yang, Zeyu Zhang
+@Date: 2023/8/10
 
 Script: This is the memory module for recagent.
 """
@@ -55,7 +55,6 @@ class RecAgentRetriever(TimeWeightedVectorStoreRetriever):
             if retrieved_num < self.k and doc.page_content.find('[FORGET]') == -1 \
                     and doc.page_content.find('[MERGE]') == -1:
                 retrieved_num += 1
-                # TODO: Update vector store doc once `update` method is exposed.
                 buffered_doc = self.memory_stream[doc.metadata["buffer_idx"]]
                 buffered_doc.metadata["last_accessed_at"] = current_time
                 result.append(buffered_doc)
@@ -93,13 +92,7 @@ class SensoryMemory():
             return 0.0
 
     def dump_shortTerm_list(self):
-        # def parse_res(text: str):
-        #     pattern = re.compile(r'(Score: [\d.]*)')
-        #
-        #     score = [float(s[7:]) for s in re.findall(pattern, text)]
-        #     obs = [s[2:-2] if ind == 0 else s[4:-2] for ind, s in enumerate(re.split(pattern, text)) if
-        #            not ind % 2][:-1]
-        #     return list(zip(score, obs))
+
         def parse_res(text: str):
             return [t+'.' for t in text.split('. ')]
 
@@ -107,21 +100,6 @@ class SensoryMemory():
         for ind, obs in enumerate(self.buffer):
             obs_str += "[%d] %s\n" % (ind, obs)
 
-        # profile_str = "The profiles are as following:\n" \
-        #               "Name: {agent_name}\n" \
-        #               "Age: {agent_age}\n" \
-        #               "Gender:{agent_gender}\n" \
-        #               "Traits: {agent_traits}\n" \
-        #               "Status: {agent_status}\n" \
-        #               "Movie Interest: {agent_interest}\n" \
-        #               "Feature: {agent_feature}\n" \
-        #               "Interpersonal Relationships: {agent_relationships}\n"
-
-        # order_str = "Please summarize the above observations into several independent sentences with the help of profiles, " \
-        #             "where we pay more attention to the movie interest and the reasons. For each sentence, provide a " \
-        #             "important score in [0,1]. The result should be in the format like: \n" \
-        #             "1. [SENTENCE] (Score: [FLOAT]) \n" \
-        #             "2. [SENTENCE] (Score: [FLOAT]) \n"
         order_str = "You should summarize the above observation(s) into several independent sentences with the help of profiles," \
                     "If there is a person's name in the observation, use third person, otherwise use first person. " \
                     "Note that the number of sentences in the summary cannot exceed the number of observations given"\
@@ -190,14 +168,8 @@ class ShortTermMemory():
             + "Can you infer from the above memories the high-level insight for this person's behaviour?"
             + "Respond in one sentence."
             + "\n\nResults:"
-            # "What insight can you infer about the relationships among the above memories?"
-            # + "\n\nNote that the insight should be different from the original memories."
-            # + "\n\nWrite the insight directly with Third Person."
-            # + "\n\nExample: He likes posting in social media."
-            # + "\n\nResults:"
         )
         result = self.chain(prompt).run(content=content).strip()
-        print("-------The insight is-------: \n" + str(result))
         return self._parse_list(result)
 
     def transfer_memories(self, observation):
@@ -206,18 +178,9 @@ class ShortTermMemory():
         transfer_flag = False
         existing_memory = [True for _ in range(len(self.short_memories))]
         memory_content, memory_importance, insight_content = [], [], []
-        file_path = open('/Users/peteryang/Desktop/RecAgent事务/RecAgent_v2_zzy/temp_log.txt', 'a')
-        # print('=' * 15 + ' start ' + '=' * 15, file=file_path)
-        # print('Now we are testing an example case to verify the usefulness of short-term memory.', file=file_path)
-        # print('The current observation is ' + observation, file=file_path)
-        # print('The current short-term memories are ' + str(self.short_memories), file=file_path)
-        # print('The current enhanced memories are ' + str(self.enhance_memories), file=file_path)
-        # print('The current enhanced counts are ' + str(self.enhance_cnt), file=file_path)
         for idx, memory in enumerate(self.short_memories):
             # if exceed the enhancement threshold
             if self.enhance_cnt[idx] >= self.enhance_threshold and existing_memory[idx] is True:
-                # print(r'In this time, the memory \'{}\' is summarized with enhanced memory {} and observation {}.'
-                #       .format(self.short_memories[idx], self.enhance_memories[idx][0], observation), file=file_path)
                 existing_memory[idx] = False
                 transfer_flag = True
                 # combine all existing related memories to current memory in short-term memories
@@ -225,23 +188,11 @@ class ShortTermMemory():
                 # do not repeatedly add observation memory to summary, so use [:-1].
                 for enhance_memory in self.enhance_memories[idx][:-1]:
                     content.append(enhance_memory)
-                    # if self.short_memories.count(enhance_memory) != 0:
-                    #     find_idx = self.short_memories.index(enhance_memory)
-                    #     existing_memory[find_idx] = False
-                    # # remove all summarized memories from the enhance list of each
-                    # # short-term memory, and decrease the corresponding enhanced count by 1.
-                    # for dec_id, dec_memory in enumerate(self.short_memories):
-                    #     if existing_memory[dec_id] is True and enhance_memory in self.enhance_memories[dec_id]:
-                    #         self.enhance_memories[dec_id].remove(enhance_memory)
-                    #         self.enhance_cnt[dec_id] -= 1
-
                 content.append(observation)
                 content = ';'.join(content)
                 memory_content.append(memory)
                 memory_importance.append(self.memory_importance[idx])
                 insight = self.get_short_term_insight(content)
-                # insight = insight[0] + '---insight---'
-                # print('The insight long-term memory is ' + str(insight), file=file_path)
                 insight_content.append(insight)
 
         # remove the transferred memories from short-term memories
@@ -262,16 +213,10 @@ class ShortTermMemory():
             self.enhance_memories = new_enhance_memories
             self.enhance_cnt = new_enhance_cnt
 
-        # print('The new short-term memories are ' + str(self.short_memories), file=file_path)
-        # print('The new enhanced memories are ' + str(self.enhance_memories), file=file_path)
-        # print('The new enhanced counts are ' + str(self.enhance_cnt), file=file_path)
-        # print('=' * 15 + ' end ' + '=' * 15, file=file_path)
         return memory_content, memory_importance, insight_content
 
     def discard_memories(self) -> str:
         """discard the least importance memory when short-term memory module exceeds its capacity"""
-        # file_path = open('/Users/peteryang/Desktop/RecAgent事务/RecAgent_v2_zzy/temp_log.txt', 'a')
-        # print('=' * 15 + 'Discarding memory' + '=' * 15, file=file_path)
         if len(self.short_memories) > self.capacity:
             memory_dict = dict()
             for idx in range(len(self.short_memories) - 1):
@@ -294,7 +239,6 @@ class ShortTermMemory():
                     self.enhance_memories[idx].remove(sort_list[0])
                     self.enhance_cnt[idx] -= 1
 
-            # print('The discarded memory is ' + str(discard_memory), file=file_path)
             return discard_memory
 
     @staticmethod
@@ -323,7 +267,6 @@ class ShortTermMemory():
             if prob >= 0.7 and random() <= prob:
                 self.enhance_cnt[idx] += 1
                 self.enhance_memories[idx].append(observation)
-        # a list of long-term memory
         memory_content, memory_importance, insight_content = self.transfer_memories(observation)
         if op == 'add':
             self.short_memories.append(observation)
@@ -374,21 +317,14 @@ class LongTermMemory(BaseMemory):
 
     @staticmethod
     def _parse_insight_with_connections(text: str):
-        # pattern = re.compile(r'\(.*\)')
-        # pattern = re.compile(r'\d+')
-        # res = re.search(pattern, text)
-        try:
-            insight = text
-            # insight = text[:res.span()[0] - 1 + len(" [Related statement IDs]:")] + '.'
-            nums = re.findall(r'\d+', text)
+        insight = text
+        nums = re.findall(r'\d+', text)
+        if len(nums) != 0:
             connection_list = list(map(int, nums))
-            # connetction_list = eval('[%s]' % text[res.span()[0] + len('(insight because of statement '):-2])
-        except:
-            insight = text
+        else:
             connection_list = [0]
 
         return insight, connection_list
-
 
     def _score_memory_importance(self, memory_content: str) -> float:
         """Score the absolute importance of the given memory."""
@@ -418,8 +354,6 @@ class LongTermMemory(BaseMemory):
         with mock_now(now):
             # reflection do not enhance the short-term memories
             retrieved_list = self.memory_retriever.get_relevant_documents(observation)
-            # retrieved_list = [retrieved_document for retrieved_document in retrieved_list
-            #                   if retrieved_document.page_content.find("[FORGET]") == -1]
             if stm is None:
                 return retrieved_list
             # retrieval enhance the short-term memories
@@ -441,11 +375,6 @@ class LongTermMemory(BaseMemory):
                     retrieved_list.append(short_term_document)
 
                 return retrieved_list, (ltm_memory_list, ltm_importance_scores, insight_memory_list)
-        # if now is not None:
-        #     with mock_now(now):
-        #         return self.memory_retriever.get_relevant_documents(observation)
-        # else:
-        #     return self.memory_retriever.get_relevant_documents(observation)
 
     def format_memories_detail(self, relevant_memories: List[Document]) -> str:
         content_strs = set()
@@ -529,8 +458,6 @@ class LongTermMemory(BaseMemory):
             self, topic: str, now: Optional[datetime] = None
     ):
         """Generate 'insights' on a topic of reflection, based on pertinent memories."""
-        # TODO: Enhance the stability of the following prompt, as it sometimes return the
-        #  indexes that are not exists in the given relatd statements.
         prompt_insight = PromptTemplate.from_template(
             "From the following statements about {topic}, provided in the format [id] statement,"
             + "please identify one main insights and specify which statements each insight is derived from:\n"
@@ -539,18 +466,6 @@ class LongTermMemory(BaseMemory):
             + "Content of insight [Related statement IDs]\n"
             + "An insight can be derived from one or multiple statements."
             + "Do NOT add any additional explanations, introductions, or summaries."
-            # "Statements about \"{topic}\":\n"
-            # + "{related_statements}\n\n"
-            # + "What a high-level insight can you infer from the above statements?"
-            # + "Please write the content of the insight and also give the indexes of statements you derived from:"
-            # + "Example:\n"
-            # + "Statements:\n"
-            # + "[1] Statement\n"
-            # + "[2] Statement\n"
-            # + "[3] Statement\n"
-            # + "Insight (1, 3)"
-            # + "Example format of result (in one line):"
-            # + "content of the insight ([2], [4], [7])"
         )
 
         prompt_summary = PromptTemplate.from_template(
@@ -561,7 +476,6 @@ class LongTermMemory(BaseMemory):
         )
         related_memories = self.fetch_memories(topic, now=now)
 
-        # print('The fetched related memories of insight topic are ' + str(related_memories))
         related_statements = "\n".join(
             [
                 # f"{i + 1}. {memory.page_content}"
@@ -574,7 +488,6 @@ class LongTermMemory(BaseMemory):
         content = [related_memories[0].page_content]
         indexes = []
         embeddings_model = OpenAIEmbeddings()
-        embedding_size = 1536
         embedding_1 = embeddings_model.embed_query(related_memories[0].page_content)
         for document in related_memories[1:]:
             memory_embedding = embeddings_model.embed_query(document.page_content)
@@ -583,10 +496,8 @@ class LongTermMemory(BaseMemory):
             prob = 1 / (1 + np.exp(-similarity))
             if prob >= 0.72:
                 content.append(document.page_content)
-                # print('The content is ' + document.page_content)
                 match = re.search(pattern, document.page_content)
                 idx = match.group()
-                # print('The idx is ' + str(idx))
                 indexes.append(int(idx))
         content = ';'.join(content)
 
@@ -606,7 +517,6 @@ class LongTermMemory(BaseMemory):
         result_insight = self._parse_list(result_insight)
         result_insight = [self._parse_insight_with_connections(res) for res in result_insight]
         result_summary = self._parse_list(result_summary)
-        # print('The insights of reflection are ' + str(result))
         return result_insight, result_summary
 
     def pause_to_reflect(self, now: Optional[datetime] = None):
@@ -616,21 +526,13 @@ class LongTermMemory(BaseMemory):
 
         new_insights = []
         topics = self._get_topics_of_reflection()
-        # print(topics)
         for topic in topics:
             insights, summary = self._get_insights_on_topic(topic, now=now)
             for insight in insights:
                 text, par_list = insight
                 importance_cur, recency_cur = 0.0, 0.0
                 for par in par_list:
-                    # print('The importance of memory {} are {}'.format(par,self.memory_retriever.memory_stream[par].metadata['importance']))
                     importance_cur += self.memory_retriever.memory_stream[par].metadata['importance']
-                    # hours_passed = (self.now -
-                    #                 self.memory_retriever.memory_stream[par].metadata['last_accessed_at']).total_seconds() / 3600
-                    # recency = (1.0 - self.decay_rate) ** hours_passed
-                    # recency_cur += recency
-                # recency_cur /= len(par_list)
-                # ltm = importance_cur, recency_cur, text
                 importance_cur /= len(par_list)
                 ltm = importance_cur, self.now, text
                 self.add_memory(ltm, now=now)
@@ -808,7 +710,6 @@ class RecAgentMemory(BaseMemory):
             logger.info(f"Importance score: {score}")
         match = re.search(r"^\D*(\d+)", score)
         if match:
-            # 这里的weight相当于给重要性赋予的权重，因为除了重要性之外，一条记忆还有salience和recency
             return (float(match.group(1)) / 10) * self.importance_weight
         else:
             return 0.0
@@ -832,7 +733,6 @@ class RecAgentMemory(BaseMemory):
         save_ltm_memory = [(all_memory_scores[i], self.now, all_memories[i])
                            for i in range(len(all_memories))]
         self.longTermMemory.save_context({}, save_ltm_memory)
-        # self.longTermMemory.print_memory()
 
     def save_context(self, inputs: Dict[str, Any], outputs: Dict[str, str]) -> None:
         self.sensoryMemory.add_profile(inputs)
@@ -845,7 +745,6 @@ class RecAgentMemory(BaseMemory):
             ltm_memory_list, ltm_importance_scores = [], []
             insight_memory_list = []
             for stm_memory in stm_memory_list:
-                # stm_memory: tuple
                 memory_content, memory_importance, insight_content \
                     = self.shortTermMemory.add_stm_memory(stm_memory[1], stm_memory[0], op='add')
                 ltm_memory_list.extend(memory_content)
