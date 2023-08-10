@@ -1053,7 +1053,7 @@ def main():
         with open(config['output_file'], "w") as file:
             json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
         recagent.recsys.save_interaction()
-        recagent.save(os.path.join(config["simulator_dir"]))
+        #recagent.save(os.path.join(config["simulator_dir"]))
 
 
 if __name__ == "__main__":

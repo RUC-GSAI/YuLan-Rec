@@ -684,7 +684,7 @@ class RecAgentMemory(BaseMemory):
         # LongTermMemory --> ShortTermMemory
         # ShortTermMemory --> result
 
-        print('----Load----:\n', inputs)
+        #print('----Load----:\n', inputs)
         ltm_memory_list, memories_tuple = self.longTermMemory.fetch_memories_with_list(inputs['observation'], self.shortTermMemory)
         self.save_context_after_retrieval(memories_tuple)
         if len(ltm_memory_list) == 0:
@@ -759,7 +759,7 @@ class RecAgentMemory(BaseMemory):
             save_ltm_memory = [(all_memory_scores[i], self.now, all_memories[i])
                                for i in range(len(all_memories))]
             self.longTermMemory.save_context(inputs, save_ltm_memory)
-            self.longTermMemory.print_memory()
+            #self.longTermMemory.print_memory()
 
     def update_now(self, now: datetime):
         self.now = now
