@@ -76,7 +76,8 @@ class Data:
             reader = csv.reader(file)
             next(reader)  # Skip the header line
             for row in reader:
-                user_id, name, gender, age, traits, status, interest,feature = row
+                print(row)
+                user_id, name, gender, age, traits, status, interest, feature = row
                 self.users[int(user_id)] = {
                     "name": name,
                     "gender": gender,

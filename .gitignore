@@ -166,5 +166,6 @@ develop.yaml
 data/simulator
 data/interaction.csv
 config/myconfig.yaml
+config/develop.yaml
 .vscode/
 test.py

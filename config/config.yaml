@@ -3,9 +3,9 @@ llm: gpt-3.5-16k
 # path for item data
 item_path: data/item.csv
 # path for user data
-user_path: data/user.csv
+user_path: data/user_1000.csv
 # path for relationship data
-relationship_path: data/relationship.csv
+relationship_path: data/relationship_1000.csv
 # path for save interaction records
 interaction_path: data/interaction.csv
 # directory name for faiss index
@@ -42,6 +42,6 @@ active_method: random
 active_prob: 1
 # list of api keys for LLM API
 api_keys:
-  - xxx
+  - xxxx
 
 

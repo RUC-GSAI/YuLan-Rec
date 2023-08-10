@@ -37,6 +37,7 @@ from utils.message import Message
 from utils.event import Event, update_event, reset_event
 import utils.interval as interval
 import threading
+from agents.recagent_memory import RecAgentMemory,RecAgentRetriever
 import heapq
 lock=threading.Lock()
 
@@ -118,9 +119,11 @@ class Simulator:
             {},
             relevance_score_fn=self.relevance_score_fn,
         )
-        return TimeWeightedVectorStoreRetriever(
-            vectorstore=vectorstore, other_score_keys=["importance"], k=15
-        )
+
+        RetrieverClass = RecAgentRetriever if self.config["recagent_memory"] else TimeWeightedVectorStoreRetriever
+
+        return RetrieverClass(
+            vectorstore=vectorstore, other_score_keys=["importance"],now=self.now, k=15)
 
     def check_active(self, index: int):
         # If agent's previous action is completed, reset the event
@@ -147,14 +150,14 @@ class Simulator:
         return True
 
     def pause(self):
-        self.play_event.clear() 
+        self.play_event.clear()
 
     def play(self):
-        self.play_event.set() 
+        self.play_event.set()
 
     def global_message(self, message: str):
         for i,agent in self.agents.items():
-            agent.memory.add_memory(message, now=self.now)
+            agent.memory.add_memory(message, self.now)
 
     def update_stat(self):
         self.rec_stat.cur_user_num=0
@@ -174,7 +177,7 @@ class Simulator:
 
     def one_step(self, agent_id):
         """Run one step of an agent."""
-        self.play_event.wait() 
+        self.play_event.wait()
         if not self.check_active(agent_id):
             return [Message(agent_id=agent_id, action="NO_ACTION", content="No action.")]
         agent:RecAgent = self.agents[agent_id]
@@ -704,19 +707,26 @@ class Simulator:
                 msgs = self.one_step(i)
                 messages.append(msgs)
         self.now = interval.add_interval(self.now, self.interval)
+
+        for i, agent in self.agents.items():
+            agent.memory.update_now(self.now)
+            
         self.update_working_agents()
         return messages
 
-    def create_agent(self, i, api_key)->RecAgent:
+    def create_agent(self, i, api_key) -> RecAgent:
         """
         Create an agent with the given id.
         """
         LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
-        agent_memory = GenerativeAgentMemory(
+        MemoryClass = RecAgentMemory if self.config["recagent_memory"] else GenerativeAgentMemory
+
+        agent_memory = MemoryClass(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
+            now=self.now,
             verbose=False,
-            reflection_threshold=0.5,
+            reflection_threshold=1,
         )
         agent = RecAgent(
             id=i,
@@ -742,7 +752,7 @@ class Simulator:
         """
         @ Zeyu Zhang
         Create a user controllable agent.
-        :param i: the id of role.
+        :param id: the id of role.
         :param api_key: the API key of the role.
         :return: an object of `RoleAgent`.
         """
@@ -767,7 +777,9 @@ class Simulator:
         relationships = [r.split(" ") for r in relationships]
 
         LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
-        agent_memory = GenerativeAgentMemory(
+        MemoryClass = RecAgentMemory if self.config["recagent_memory"] else GenerativeAgentMemory
+
+        agent_memory = MemoryClass(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
             verbose=False,
@@ -833,6 +845,7 @@ class Simulator:
                 agents[agent.id] = agent
 
         return agents
+
     def reset(self):
         # Reset the system
         self.pause()
@@ -843,7 +856,7 @@ class Simulator:
         log_string = "The system is reset, and the historic records are removed."
         self.round_msg.append(Message(agent_id=-1,action="System",content=log_string))
         return log_string
-        
+
     def start(self):
         self.play()
         messages=[]
@@ -877,6 +890,13 @@ def parse_args():
         type=bool,
         default=False,
         help="Add a user controllable role",
+    )
+    parser.add_argument(
+        "-m",
+        "--recagent_memory",
+        type=bool,
+        default=True,
+        help="Use RecAgent memory."
     )
     parser.add_argument(
         "opts",
@@ -1006,10 +1026,11 @@ def main():
     config = utils.add_variable_to_config(config, "log_file", args.log_file)
     config = utils.add_variable_to_config(config, "log_name", args.log_name)
     config = utils.add_variable_to_config(config, "play_role", args.play_role)
+    config = utils.add_variable_to_config(config, "recagent_memory", args.recagent_memory)
     config.merge_from_file(args.config_file)
     logger.info(f"\n{config}")
     os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
-    
+
     # run
     if config["simulator_restore_file_name"]:
         restore_path = os.path.join(
