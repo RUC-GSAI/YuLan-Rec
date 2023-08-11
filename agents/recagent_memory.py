@@ -531,9 +531,15 @@ class LongTermMemory(BaseMemory):
             for insight in insights:
                 text, par_list = insight
                 importance_cur, recency_cur = 0.0, 0.0
+                valid = 0
                 for par in par_list:
-                    importance_cur += self.memory_retriever.memory_stream[par].metadata['importance']
-                importance_cur /= len(par_list)
+                    if par < len(self.memory_retriever.memory_stream):
+                        importance_cur += self.memory_retriever.memory_stream[par].metadata['importance']
+                        valid += 1
+                if valid == 0:
+                    importance_cur = 0.0
+                else:
+                    importance_cur /= valid
                 ltm = importance_cur, self.now, text
                 self.add_memory(ltm, now=now)
             new_insights.extend(insights)
