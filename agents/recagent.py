@@ -511,12 +511,16 @@ class RecAgent(GenerativeAgent):
         call_to_action_template = (
             "{agent_name} must take one of the two actions below:\n(1)Chat with one acquaintance about movies recently watched on recommender system: {watched_history}, or movies heared about on social media: {heared_history}.\n(2) Publish posting to all acquaintances about movies recently watched on recommender system: {watched_history}, or heared about on social media: {heared_history}."
             + "\nWhat action would {agent_name} like to take and how much time does the action cost?"
-            + "\nIf {agent_name} want to chat with one acquaintance, write:\n[CHAT]:: acquaintance's name\n[TIME]:: hours for chat. Select a number from 0.5, 1 and 2"
+            + "\nIf {agent_name} want to chat with one acquaintance, write:\n[CHAT]:: acquaintance's name\n[TIME]:: hours for chat. Select a number from 0.5, 1 and 2."
             + "\nIf {agent_name} want to publish posting to all acquaintances, write:\n[POST]:: what to post\n[TIME]:: 1"
             + "\n\n"
         )
         full_result = self._generate_reaction(observation, call_to_action_template, now)
-        result, duration = full_result.split("\n")
+        if len(full_result.split("\n")) == 1:
+            result=full_result
+            duration=1
+        else:
+            result, duration = full_result.split("\n")
         choice = result.split("::")[0]
         action = result.split("::")[1].strip()
         self.memory.save_context(
