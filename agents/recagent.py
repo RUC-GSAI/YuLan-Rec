@@ -16,7 +16,6 @@ from utils import utils
 from utils.event import Event
 from agents.recagent_memory import RecAgentMemory
 
-
 class RecAgent(GenerativeAgent):
     id: int
     """The agent's unique identifier"""
@@ -64,6 +63,24 @@ class RecAgent(GenerativeAgent):
     """The memory module in RecAgent."""
 
     role: str = "agent"
+
+    @classmethod
+    def from_roleagent(cls, roleagent_instance: "RecAgent"):
+        # 使用RoleRecAgent实例的属性来创建一个RecAgent实例
+        new_instance = cls(id=roleagent_instance.id,
+            name=roleagent_instance.name,
+            age=roleagent_instance.age,
+            gender=roleagent_instance.gender,
+            traits=roleagent_instance.traits,
+            status=roleagent_instance.status,
+            interest=roleagent_instance.interest,
+            relationships=roleagent_instance.relationships,
+            feature=roleagent_instance.feature,
+            memory_retriever=roleagent_instance.memory_retriever,
+            llm=roleagent_instance.llm,
+            memory=roleagent_instance.memory,
+            event=roleagent_instance.event)
+        return new_instance
 
     def __lt__(self, other: "RecAgent"):
         return self.event.end_time < other.event.end_time

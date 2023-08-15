@@ -1,11 +1,11 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 import os
 import argparse
 from yacs.config import CfgNode
 from pydantic import BaseModel, parse_obj_as
 from typing import Optional, Union
 from demo import Demo
-from utils import utils,message
+from utils import utils,message,connect
 import uvicorn
 import csv
 from simulator import *
@@ -22,13 +22,14 @@ class Agent(BaseModel):
     status: str
     interest: str
     feature: str
+    role: str
     event: Event
 
 
 class Link(BaseModel):
     source: int
     target: int
-    label: str
+    name: str
 
 
 def convert_rec_agent_to_agent(rec_agent: RecAgent):
@@ -114,7 +115,7 @@ with open(config["relationship_path"], "r", newline="") as file:
         if (user_1,user_2) in link_flag:
             continue
         link_flag.add((user_1,user_2))
-        links.append(Link(source=user_1, target=user_2, label=relationship))
+        links.append(Link(source=user_1, target=user_2, name=relationship))
 
 app = FastAPI()
 
@@ -167,7 +168,7 @@ def update_relation(source: int, target: int, label: str):
             links[i].label = label
             flag = i
     if flag == -1:
-        links.append(Link(source=source, target=target, label=label))
+        links.append(Link(source=source, target=target, name=label))
         flag = len(links) - 1
     
 
@@ -203,6 +204,26 @@ def get_recommender_stats():
 def get_social_stats():
     recagent.update_stat()
     return recagent.social_stat
+
+@app.websocket("/role-play/{user_id}")
+async def role_play(user_id:int,websocket: WebSocket):
+    route = await connect.websocket_manager.connect("role_play",websocket)
+    recagent.agents[user_id]=RoleAgent.from_recagent(recagent.agents[user_id])
+    # try:
+    #     while True:
+    #         data = await websocket.receive_text()
+    #         # Do something with the received data...
+    # except WebSocketDisconnect:
+    #     connect.websocket_manager.disconnect(route)
+
+
+@app.get("/configs",response_model=dict)
+def get_configs():
+    return recagent.config
+
+@app.patch("/configs")
+def update_configs(config:dict):
+    recagent.config.update(config)
 
 @app.get("/start")
 async def start():

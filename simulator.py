@@ -849,10 +849,8 @@ class Simulator:
     def reset(self):
         # Reset the system
         self.pause()
-        all_agents = [v for k, v in self.agents.items()]
         log_string = ""
-        for agent in all_agents:
-            agent.reset_agent()
+        self.load_simulator()
         log_string = "The system is reset, and the historic records are removed."
         self.round_msg.append(Message(agent_id=-1,action="System",content=log_string))
         return log_string
