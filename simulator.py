@@ -66,6 +66,7 @@ class Simulator:
 
     def load_simulator(self):
         """Load and initiate the simulator."""
+        self.round_cnt=0
         self.data = Data(self.config)
         self.agents = self.agent_creation()
         self.recsys = Recommender(self.config, self.data)
@@ -836,6 +837,7 @@ class Simulator:
     def reset(self):
         # Reset the system
         self.pause()
+        self.round_cnt=0
         all_agents = [v for k, v in self.agents.items()]
         log_string = ""
         for agent in all_agents:

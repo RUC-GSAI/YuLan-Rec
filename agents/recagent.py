@@ -47,9 +47,6 @@ class RecAgent(GenerativeAgent):
     max_dialogue_token_limit: int = 600
     """The maximum number of tokens to use in a dialogue"""
 
-    available_time: datetime = Field(default_factory=datetime.now)
-    """The time when the agent is available"""
-
     event: Event
     """The agent action"""
 

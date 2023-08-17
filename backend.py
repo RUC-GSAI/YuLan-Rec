@@ -101,6 +101,7 @@ for k, v in recagent.agents.items():
 # links
 links: list[Link] = []
 link_flag=set()
+cnt={}
 with open(config["relationship_path"], "r", newline="") as file:
     reader = csv.reader(file)
     next(reader)
@@ -108,11 +109,20 @@ with open(config["relationship_path"], "r", newline="") as file:
         user_1, user_2, relationship,_ = row
         user_1 = int(user_1)
         user_2 = int(user_2)
+       
         if user_1 >=len(agents) or user_2 >=len(agents):
             continue
         user_1, user_2 = min(user_1, user_2), max(user_1, user_2)
         if (user_1,user_2) in link_flag:
             continue
+        if user_1 not in cnt:
+            cnt[user_1]=0
+        if user_2 not in cnt:
+            cnt[user_2]=0
+        if cnt[user_1]>=5 or cnt[user_2]>=5:
+            continue
+        cnt[user_1]+=1
+        cnt[user_2]+=1
         link_flag.add((user_1,user_2))
         links.append(Link(source=user_1, target=user_2, label=relationship))
 
@@ -204,13 +214,17 @@ def get_social_stats():
     recagent.update_stat()
     return recagent.social_stat
 
-@app.get("/start")
+@app.get("/rounds",response_model=int)
+def get_rounds():
+    return recagent.round_cnt
+
+@app.post("/start")
 async def start():
     
     play_thread = threading.Thread(target=recagent.start)
     play_thread.start()
 
-@app.get("/pause")
+@app.post("/pause")
 async def pause():
     print("is_set",recagent.play_event.is_set())
     if recagent.play_event.is_set():
@@ -220,7 +234,7 @@ async def pause():
     print("is_set",recagent.play_event.is_set())
 
 
-@app.get("/reset")
+@app.post("/reset")
 async def reset():
     log = recagent.reset()
     return log
