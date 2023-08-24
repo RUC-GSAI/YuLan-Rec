@@ -726,7 +726,7 @@ class Simulator:
             memory_retriever=self.create_new_memory_retriever(),
             now=self.now,
             verbose=False,
-            reflection_threshold=1,
+            reflection_threshold=3,
         )
         agent = RecAgent(
             id=i,
