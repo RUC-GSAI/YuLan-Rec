@@ -123,7 +123,7 @@ class Simulator:
         RetrieverClass = RecAgentRetriever if self.config["recagent_memory"] else TimeWeightedVectorStoreRetriever
 
         return RetrieverClass(
-            vectorstore=vectorstore, other_score_keys=["importance"],now=self.now, k=15)
+            vectorstore=vectorstore, other_score_keys=["importance"],now=self.now, k=5)
 
     def check_active(self, index: int):
         # If agent's previous action is completed, reset the event
