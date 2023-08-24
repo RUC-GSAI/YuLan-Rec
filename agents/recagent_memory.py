@@ -94,21 +94,28 @@ class SensoryMemory():
     def dump_shortTerm_list(self):
 
         def parse_res(text: str):
-            return [t+'.' for t in text.split('. ')]
+            return [text]
 
         obs_str = "The observations are as following:\n"
         for ind, obs in enumerate(self.buffer):
             obs_str += "[%d] %s\n" % (ind, obs)
 
-        order_str = "You should summarize the above observation(s) into several independent sentences with the help of profiles," \
+        order_str = "You should summarize the above observation(s) into one independent sentence." \
                     "If there is a person's name in the observation, use third person, otherwise use first person. " \
-                    "Note that the number of sentences in the summary cannot exceed the number of observations given"\
-                    "where we pay more attention to the movie interest and the reasons."
+                    "Note that the sentence should pay more attention to the movie interest and the reasons in the " \
+                    "observations." \
+                    "The summarization should not include the profile explicitly."
 
         prompt = PromptTemplate.from_template(obs_str + order_str)
-        result = LLMChain(llm=self.llm, prompt=prompt).run(self.profile)
+        result = LLMChain(llm=self.llm, prompt=prompt).run({})
         result = parse_res(result)
-        result = [(self._score_memory_importance(text),text) for text in result]
+        result = [(self._score_memory_importance(text), text) for text in result]
+
+        # print('\n------------------------SSM(Before)-------------------------')
+        # print(self.buffer)
+        # print('------------------------SSM(After)-------------------------')
+        # print(result)
+        # print('------------------------END-------------------------\n')
 
         self.clear()
 
@@ -573,13 +580,13 @@ class LongTermMemory(BaseMemory):
         forget_list = []
         if len(prob_list) != 0:
             for idx in range(len(prob_list)):
-                if (self.now - self.memory_retriever.memory_stream[idx].metadata['last_accessed_at']).total_seconds() / 3600 <= 24:
+                if (self.now - self.memory_retriever.memory_stream[idx].metadata[
+                    'last_accessed_at']).total_seconds() / 3600 <= 24:
                     prob_list[idx] = 0
                 if random() < prob_list[idx]:
                     self.memory_retriever.memory_stream[idx].page_content = '[FORGET]'
                     self.memory_retriever.memory_stream[idx].metadata['importance'] = 1.0
                     self.memory_retriever.memory_stream[idx].metadata['last_accessed_at'] = self.now
-
 
     def add_memory(self, ltm, now=None):
         importance, last_accessed_at, text = ltm
@@ -587,7 +594,8 @@ class LongTermMemory(BaseMemory):
             self.aggregate_importance += importance
         memory_idx = len(self.memory_retriever.memory_stream)
         document = Document(
-            page_content='[{}] '.format(memory_idx) + str(text), metadata={"importance": importance, "last_accessed_at": last_accessed_at}
+            page_content='[{}] '.format(memory_idx) + str(text),
+            metadata={"importance": importance, "last_accessed_at": last_accessed_at}
         )
         result = self.memory_retriever.add_documents([document], current_time=now)
         return result
@@ -690,8 +698,9 @@ class RecAgentMemory(BaseMemory):
         # LongTermMemory --> ShortTermMemory
         # ShortTermMemory --> result
 
-        #print('----Load----:\n', inputs)
-        ltm_memory_list, memories_tuple = self.longTermMemory.fetch_memories_with_list(inputs['observation'], self.shortTermMemory)
+        # print('----Load----:\n', inputs)
+        ltm_memory_list, memories_tuple = self.longTermMemory.fetch_memories_with_list(inputs['observation'],
+                                                                                       self.shortTermMemory)
         self.save_context_after_retrieval(memories_tuple)
         if len(ltm_memory_list) == 0:
             memory_tmp = ''
@@ -765,7 +774,7 @@ class RecAgentMemory(BaseMemory):
             save_ltm_memory = [(all_memory_scores[i], self.now, all_memories[i])
                                for i in range(len(all_memories))]
             self.longTermMemory.save_context(inputs, save_ltm_memory)
-            #self.longTermMemory.print_memory()
+            # self.longTermMemory.print_memory()
 
     def update_now(self, now: datetime):
         self.now = now
