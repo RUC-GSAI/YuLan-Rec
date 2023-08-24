@@ -173,6 +173,7 @@ class ShortTermMemory():
         prompt = PromptTemplate.from_template(
             "There are some memories separated by semicolons (;): {content}\n"
             + "Can you infer from the above memories the high-level insight for this person's behaviour?"
+            + "Note that the insight should be totally different from any memory in the above memories."
             + "Respond in one sentence."
             + "\n\nResults:"
         )
@@ -324,7 +325,8 @@ class LongTermMemory(BaseMemory):
 
     @staticmethod
     def _parse_insight_with_connections(text: str):
-        insight = text
+        pattern = r'\[.*?\]'
+        insight = re.sub(pattern, '', text)
         nums = re.findall(r'\d+', text)
         if len(nums) != 0:
             connection_list = list(map(int, nums))
@@ -482,7 +484,6 @@ class LongTermMemory(BaseMemory):
             + "Note that memories are separated by semicolons(;)."
         )
         related_memories = self.fetch_memories(topic, now=now)
-
         related_statements = "\n".join(
             [
                 # f"{i + 1}. {memory.page_content}"
@@ -491,40 +492,35 @@ class LongTermMemory(BaseMemory):
             ]
         )
 
+        result_insight = self.chain(prompt_insight).run(
+            topic=topic, related_statements=related_statements
+        )
+
         pattern = r"(?<=\[)\d+(?=\])"
-        content = [related_memories[0].page_content]
         indexes = []
         embeddings_model = OpenAIEmbeddings()
-        embedding_1 = embeddings_model.embed_query(related_memories[0].page_content)
-        for document in related_memories[1:]:
+        embedding_1 = embeddings_model.embed_query(result_insight)
+        for document in related_memories:
             memory_embedding = embeddings_model.embed_query(document.page_content)
             similarity = self.cosine_similarity(embedding_1, memory_embedding)
             # Sigmoid function
-            prob = 1 / (1 + np.exp(-similarity))
-            if prob >= 0.72:
-                content.append(document.page_content)
+            value = 1 / (1 + np.exp(-similarity))
+            if value >= 0.72:
                 match = re.search(pattern, document.page_content)
                 idx = match.group()
                 indexes.append(int(idx))
-        content = ';'.join(content)
 
         for idx in indexes:
             self.memory_retriever.memory_stream[idx].page_content = '[MERGE]'
             self.memory_retriever.memory_stream[idx].metadata['importance'] = 1.0
             self.memory_retriever.memory_stream[idx].metadata['last_accessed_at'] = self.now
 
-        result_insight = self.chain(prompt_insight).run(
-            topic=topic, related_statements=related_statements
-        )
-
-        result_summary = self.chain(prompt_summary).run(
-            memories=content
-        )
 
         result_insight = self._parse_list(result_insight)
         result_insight = [self._parse_insight_with_connections(res) for res in result_insight]
-        result_summary = self._parse_list(result_summary)
-        return result_insight, result_summary
+
+        return result_insight
+
 
     def pause_to_reflect(self, now: Optional[datetime] = None):
         """Reflect on recent observations and generate 'insights'."""
@@ -534,7 +530,7 @@ class LongTermMemory(BaseMemory):
         new_insights = []
         topics = self._get_topics_of_reflection()
         for topic in topics:
-            insights, summary = self._get_insights_on_topic(topic, now=now)
+            insights = self._get_insights_on_topic(topic, now=now)
             for insight in insights:
                 text, par_list = insight
                 importance_cur, recency_cur = 0.0, 0.0
@@ -551,10 +547,9 @@ class LongTermMemory(BaseMemory):
                 self.add_memory(ltm, now=now)
             new_insights.extend(insights)
 
-            importance_summary = self._score_memory_importance(summary[0])
-            memory_summary = importance_summary, self.now, summary[0]
-            self.add_memory(memory_summary, now=now)
+
         return new_insights
+
 
     def obtain_forget_prob_list(self):
 
