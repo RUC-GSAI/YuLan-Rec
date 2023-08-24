@@ -123,7 +123,7 @@ class Simulator:
         RetrieverClass = RecAgentRetriever if self.config["recagent_memory"] else TimeWeightedVectorStoreRetriever
 
         return RetrieverClass(
-            vectorstore=vectorstore, other_score_keys=["importance"],now=self.now, k=15)
+            vectorstore=vectorstore, other_score_keys=["importance"],now=self.now, k=5)
 
     def check_active(self, index: int):
         # If agent's previous action is completed, reset the event
@@ -270,7 +270,7 @@ class Simulator:
                     )
                     agent.update_watched_history(item_names)
                     self.recsys.update_positive(agent_id, item_names)
-                    item_descriptions = self.data.get_item_descriptions(item_names)
+                    item_descriptions = self.data.get_item_description_by_name(item_names)
                     if len(item_descriptions) == 0:
                         self.logger.info(f"{name} leaves the recommender system.")
                         message.append(
