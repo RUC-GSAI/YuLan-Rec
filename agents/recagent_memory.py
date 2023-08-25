@@ -578,7 +578,7 @@ class LongTermMemory(BaseMemory):
             hours_passed = (self.now - last_accessed_time).total_seconds() / 3600
             recency = (1.0 - self.decay_rate) ** hours_passed
 
-            return max((float(index) / total) ** 1.5, 0.01) * (importance + recency) / 2
+            return max(recency ** 1.5, 0.01) * (importance + recency) / 2
 
         score_list = []
         for ind, mem in enumerate(self.memory_retriever.memory_stream):
