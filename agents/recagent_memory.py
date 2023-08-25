@@ -700,8 +700,8 @@ class RecAgentMemory(BaseMemory):
         if len(ltm_memory_list) == 0:
             memory_tmp = ''
         else:
-            memory_tmp = ltm_memory_list[0][1]
-        # print('memory_tmp:',memory_tmp)
+            memory_tmp = [memory[1] for memory in ltm_memory_list]
+        memory_tmp = ''.join(memory_tmp)
         output = {'most_recent_memories': memory_tmp}
         return output
 

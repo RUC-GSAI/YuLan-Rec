@@ -169,3 +169,4 @@ config/myconfig.yaml
 config/develop.yaml
 .vscode/
 test.py
+interaction.csv

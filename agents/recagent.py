@@ -6,7 +6,10 @@ from pydantic import BaseModel, Field
 
 from langchain import LLMChain
 from langchain.base_language import BaseLanguageModel
-from langchain.experimental.generative_agents.memory import GenerativeAgentMemory,BaseMemory
+from langchain.experimental.generative_agents.memory import (
+    GenerativeAgentMemory,
+    BaseMemory,
+)
 from langchain.prompts import PromptTemplate
 from langchain.experimental.generative_agents import (
     GenerativeAgent,
@@ -15,6 +18,7 @@ from langchain.experimental.generative_agents import (
 from utils import utils
 from utils.event import Event
 from agents.recagent_memory import RecAgentMemory
+
 
 class RecAgent(GenerativeAgent):
     id: int
@@ -32,7 +36,7 @@ class RecAgent(GenerativeAgent):
     feature: str
     """The agent's action feature"""
 
-    relationships: dict[str,str]={}
+    relationships: dict[str, str] = {}
     """The agent's relationship with other agents"""
 
     watched_history: List[str] = []
@@ -67,7 +71,8 @@ class RecAgent(GenerativeAgent):
     @classmethod
     def from_roleagent(cls, roleagent_instance: "RecAgent"):
         # 使用RoleRecAgent实例的属性来创建一个RecAgent实例
-        new_instance = cls(id=roleagent_instance.id,
+        new_instance = cls(
+            id=roleagent_instance.id,
             name=roleagent_instance.name,
             age=roleagent_instance.age,
             gender=roleagent_instance.gender,
@@ -79,7 +84,8 @@ class RecAgent(GenerativeAgent):
             memory_retriever=roleagent_instance.memory_retriever,
             llm=roleagent_instance.llm,
             memory=roleagent_instance.memory,
-            event=roleagent_instance.event)
+            event=roleagent_instance.event,
+        )
         return new_instance
 
     def __lt__(self, other: "RecAgent"):
@@ -94,7 +100,7 @@ class RecAgent(GenerativeAgent):
     def update_from_dict(self, data_dict: dict):
         for key, value in data_dict.items():
             setattr(self, key, value)
-            
+
     def interact_agent(self):
         """
         type the sentences you want to interact with the agent.
@@ -198,15 +204,15 @@ class RecAgent(GenerativeAgent):
         """Return a descriptive summary of the agent."""
         prompt = PromptTemplate.from_template(
             "Given the following observation about {agent_name}: '{observation}', please summarize the relevant details from his profile. His profile information is as follows:\n"
-            +"Name: {agent_name}\n"
-            +"Age: {agent_age}\n"
-            +"Gender:{agent_gender}\n"
-            +"Traits: {agent_traits}\n"
-            +"Status: {agent_status}\n"
-            +"Movie Interest: {agent_interest}\n"
-            +"Feature: {agent_feature}\n"
-            +"Interpersonal Relationships: {agent_relationships}\n"
-            +"Connect the observation with the appropriate details from his profile and provide a concise summary.\nSummary:"
+            + "Name: {agent_name}\n"
+            + "Age: {agent_age}\n"
+            + "Gender:{agent_gender}\n"
+            + "Traits: {agent_traits}\n"
+            + "Status: {agent_status}\n"
+            + "Movie Interest: {agent_interest}\n"
+            + "Feature: {agent_feature}\n"
+            + "Interpersonal Relationships: {agent_relationships}\n"
+            + "Please avoid repeating the observation in the summary.\nSummary:"
         )
         kwargs: Dict[str, Any] = dict(
             observation=observation,
@@ -221,10 +227,7 @@ class RecAgent(GenerativeAgent):
         )
         result = self.chain(prompt=prompt).run(**kwargs).strip()
         age = self.age if self.age is not None else "N/A"
-        return (
-            f"Name: {self.name} (age: {age})"
-            + f"\n{result}"
-        )
+        return f"Name: {self.name} (age: {age})" + f"\n{result}"
 
     def _generate_reaction(
         self, observation: str, suffix: str, now: Optional[datetime] = None
@@ -270,7 +273,11 @@ class RecAgent(GenerativeAgent):
         return result
 
     def _generate_reaction_bewteen_two(
-        self, agent2: 'RecAgent', observation: str, suffix: str, now: Optional[datetime] = None
+        self,
+        agent2: "RecAgent",
+        observation: str,
+        suffix: str,
+        now: Optional[datetime] = None,
     ) -> str:
         """React to a given observation or dialogue act."""
         prompt = PromptTemplate.from_template(
@@ -291,8 +298,10 @@ class RecAgent(GenerativeAgent):
             + suffix
         )
         now = datetime.now() if now is None else now
-        agent_summary_description = self.get_summary(now=now,observation=observation)
-        agent_summary_description2 = agent2.get_summary(now=now,observation=observation)
+        agent_summary_description = self.get_summary(now=now, observation=observation)
+        agent_summary_description2 = agent2.get_summary(
+            now=now, observation=observation
+        )
         current_time_str = (
             datetime.now().strftime("%B %d, %Y, %I:%M %p")
             if now is None
@@ -334,7 +343,11 @@ class RecAgent(GenerativeAgent):
     def get_memories_until_limit(self, consumed_tokens: int) -> str:
         """Reduce the number of tokens in the documents."""
         # print('TEST----',type(self.memory) == GenerativeAgentMemory,type(self.memory) == RecAgentMemory)
-        retriever = self.memory.longTermMemory.memory_retriever if type(self.memory) == RecAgentMemory else self.memory.memory_retriever
+        retriever = (
+            self.memory.longTermMemory.memory_retriever
+            if type(self.memory) == RecAgentMemory
+            else self.memory.memory_retriever
+        )
         result = []
         for doc in retriever.memory_stream[::-1]:
             if consumed_tokens >= self.max_dialogue_token_limit:
@@ -380,7 +393,7 @@ class RecAgent(GenerativeAgent):
         call_to_action_template = (
             "What action would {agent_name} like to take? Respond in one line."
             + "\nIf {agent_name} wants to enter the Recommender System, write:\n [RECOMMENDER]:: {agent_name} enters the Recommender System"
-            + "\nIf {agent_name} wants to enter the Social Media, write:\n [SOCIAL]:: {agent_name} enters the Social Media"
+            # + "\nIf {agent_name} wants to enter the Social Media, write:\n [SOCIAL]:: {agent_name} enters the Social Media"
             + "\nIf {agent_name} wants to do nothing, write:\n [NOTHING]:: {agent_name} does nothing"
         )
         observation = f"{self.name} must take only ONE of the actions below:(1) Enter the Recommender System. If so, {self.name} will be recommended some movies, from which {self.name} can watch some movies, or search for movies by himself.\n(2) Enter the Social Media. {self.name} can chat with friends or publish a post to all friends of {self.name}. If {self.name} recently watched some movies they might want to share with others.\n(3) Do Nothing."
@@ -406,15 +419,16 @@ class RecAgent(GenerativeAgent):
         (4) Leave the recommender system.
         """
         call_to_action_template = (
-            "{agent_name} must take one of the four actions below:\n(1) Watch some movies in the item list returned by recommender system.\n(2) See the next page.\n(3) Search items.\n(4) Leave the recommender system."
-            + "\nIf {agent_name} has recently heard about a particular movie on a social media, {agent_name} might want to search for that movie on the recommender system."
-            + "If {agent_name} wants to watch movies, {agent_name} usually watches one to three recommended movies."
-            + "\nWhat action would {agent_name} like to take?"
-            + "\nIf {agent_name} want to watch movies in returned list, write:\n[BUY]:: movie names in the list returned by the recommender system, only movie names, separated by semicolons\n"
-            + "\nIf {agent_name} want to see the next page, write:\n[NEXT]:: {agent_name} looks the next page\n"
-            + "\nIf {agent_name} want to search specific item, write:\n[SEARCH]:: single, specific item name want to search\n"
-            + "\nIf {agent_name} want to leave the recommender system, write:\n[LEAVE]:: {agent_name} leaves the recommender system\n"
-            + "\n\n"
+            "{agent_name} must choose one of the four actions below:\n"
+            "(1) Watch ONLY ONE movie from the list returned by the recommender system.\n"
+            "(2) See the next page.\n"
+            "(3) Search for a specific item.\n"
+            "(4) Leave the recommender system."
+            + "\nIf {agent_name} has recently heard about a particular movie on social media, {agent_name} might want to search for that movie on the recommender system."
+            + "\nTo watch a movie from the recommended list, write:\n[BUY]:: ONLY ONE movie name."
+            + "\nTo see the next page, write:\n[NEXT]:: {agent_name} views the next page."
+            + "\nTo search for a specific item, write:\n[SEARCH]:: single, specific movie name to search for."
+            + "\nTo leave the recommender system, write:\n[LEAVE]:: {agent_name} leaves the recommender system."
         )
         full_result = self._generate_reaction(observation, call_to_action_template, now)
 
@@ -432,50 +446,13 @@ class RecAgent(GenerativeAgent):
                 self.memory.now_key: now,
             },
         )
-        # if choice == "[BUY]":
-        #     time = time[9:]
-        #     time = int(time) if time.isdigit() else 6
-        # else:
-        #     time = None
 
         return choice, action
 
-    # def generate_feelings(self, observation: str,now) -> str:
-    #     """Feel about each item bought."""
-    #     call_to_action_template = (
-    #         "{agent_name} has not seen these movies before. "
-    #         + "If you were {agent_name}, how will you feel about each movie just watched? Respond all in one line."
-    #         + "Feelings is slpit by semicolon."
-    #         + "\n\n"
-    #     )
-
-    #     full_result = self._generate_reaction(observation, call_to_action_template,now)
-    #     results = full_result.split(".")
-    #     feelings = ""
-    #     for result in results:
-    #         if result.find("language model") != -1:
-    #             break
-    #         feelings += result
-    #     if feelings == "":
-    #         results = full_result.split(",")
-    #         for result in results:
-    #             if result.find("language model") != -1:
-    #                 break
-    #             feelings += result
-    #     self.memory.save_context(
-    #         {},
-    #         {
-    #             self.memory.add_memory_key: f"{self.name} felt: "
-    #             f"{feelings}",
-    #             self.memory.now_key: now,
-    #         },
-    #     )
-    #     return feelings
     def generate_feeling(self, observation: str, now) -> str:
         """Feel about each item bought."""
         call_to_action_template = (
-            "{agent_name} has not seen this movie before. "
-            + "Imagine you are {agent_name}, how will you feel about this movie just watched? Please share your personal feelings about the movie in one line."
+            "You've just finished a new movie, {agent_name}. What's your immediate reaction? Describe in one line."
             + "\n\n"
         )
 
@@ -534,8 +511,8 @@ class RecAgent(GenerativeAgent):
         )
         full_result = self._generate_reaction(observation, call_to_action_template, now)
         if len(full_result.split("\n")) == 1:
-            result=full_result
-            duration=1
+            result = full_result
+            duration = 1
         else:
             result, duration = full_result.split("\n")
         choice = result.split("::")[0]
