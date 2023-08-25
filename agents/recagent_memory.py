@@ -488,7 +488,7 @@ class LongTermMemory(BaseMemory):
         """Generate 'insights' on a topic of reflection, based on pertinent memories."""
         prompt_insight = PromptTemplate.from_template(
             "From the following statements about {topic}, provided in the format [id] statement,"
-            + "please identify one main insights and specify which statements each insight is derived from:\n"
+            + "please identify one main insight and specify which statements the insight is derived from:\n"
             + "{related_statements}\n"
             + "Respond ONLY with the insight and the Ids of their related statements, adhering strictly to the following format:\n"
             + "Content of insight [Related statement IDs]\n"
@@ -496,12 +496,6 @@ class LongTermMemory(BaseMemory):
             + "Do NOT add any additional explanations, introductions, or summaries."
         )
 
-        prompt_summary = PromptTemplate.from_template(
-            "The memories are:\n"
-            + "{memories}\n\n"
-            + "Can you summarize the above memories in one sentence?"
-            + "Note that memories are separated by semicolons(;)."
-        )
         related_memories = self.fetch_memories(topic, now=now)
         related_statements = "\n".join(
             [
@@ -562,7 +556,7 @@ class LongTermMemory(BaseMemory):
                     importance_cur = 0.0
                 else:
                     importance_cur /= valid
-                ltm = importance_cur, self.now, text
+                ltm = importance_cur, now, text
                 self.add_memory(ltm, now=now)
             new_insights.extend(insights)
 
@@ -596,7 +590,7 @@ class LongTermMemory(BaseMemory):
             for idx in range(len(prob_list)):
                 if (self.now - self.memory_retriever.memory_stream[idx].metadata[
                     'last_accessed_at']).total_seconds() / 3600 <= 24:
-                    prob_list[idx] = 0
+                    continue
                 if random() < prob_list[idx]:
                     self.memory_retriever.memory_stream[idx].page_content = '[FORGET]'
                     self.memory_retriever.memory_stream[idx].metadata['importance'] = 1.0
@@ -648,6 +642,8 @@ class LongTermMemory(BaseMemory):
 
     def update_now(self, now: datetime):
         self.now = now
+        self.memory_retriever.now = now
+
 
     def clear(self) -> None:
         self.memory_retriever.memory_stream = []
@@ -657,15 +653,15 @@ class RecAgentMemory(BaseMemory):
     """
     RecAgentMemory is the proposed memory module for RecAgent. We replace `GenerativeAgentMemory` with this class.
     Similarly, it has three necessary methods to implement:
-    - load_memory_variables: accept observations and store them as memory.
-    - save_context: given inputs, return the corresponding information in the memory.
+    - load_memory_variables: given inputs, return the corresponding information in the memory.
+    - save_context: accept observations and store them as memory.
     - clear: clear the memory content.
 
     We have three key components, which is consistent with human's brain.
     - SensoryMemory: Receive observations, abstract significant information, and pass to short-term memory.
     - ShortTermMemory: Receive sensory memories, enhance them with new observations or retrieved memories,
-                       and then transport frequently enhanced short-term memories to long-term memory,
-                       or discard the least importance memory when exceeding its capacity.
+                       and then transfer the enhanced short-term memories with an insight to long-term memory,
+                       or discard the less important memory in cases of capacity overload.
     - LongTermMemory: Receive short-term memories, store and forget memories, and retrival memories to short-term memory.
 
     """
@@ -677,7 +673,7 @@ class RecAgentMemory(BaseMemory):
     shortTermMemory: ShortTermMemory = None
     longTermMemory: LongTermMemory = None
 
-    importance_weight: float = 0.15
+    importance_weight: float = 0.9
     """How much weight to assign the memory importance."""
 
     # input keys
@@ -727,12 +723,17 @@ class RecAgentMemory(BaseMemory):
     def _score_memory_importance(self, memory_content: str) -> float:
         """Score the absolute importance of the given memory."""
         prompt = PromptTemplate.from_template(
-            "On the scale of 1 to 10, where 1 is purely mundane"
-            + " (e.g., entering the recommender system, getting the next page) and 10 is"
-            + " extremely poignant (e.g., watching a movie, posting in social media), rate the likely poignancy of the"
-            + " following piece of memory. Respond with a single integer."
-            + "\nMemory: {memory_content}"
-            + "\nRating: "
+            """
+            Please give an importance score between 1 to 10 for the following observation. Higher score indicates the observation is more important. More rules that should be followed are
+            \n(1) The observation that includes entering social media is not important. e.g., David Smith takes action by entering the world of social media.
+            \n(2) The observation that describes chatting with someone but no specific movie name is not important. e.g., David Smith observed that David Miller expressed interest in chatting about movies.
+            \n(3) The observation that includes 'chatting' is not important. e.r., David Smith observed that David Miller expressed interest in chatting about movies, indicating a shared passion for films.
+            \n(4) The observation that recommends or mentions specific movies is important.
+            \n(5) More informative indicates more important, especially when two people are chatting.
+            Please respond with a single integer.
+            \nObservation:{memory_content}
+            \nRating:
+            """
         )
         score = self.chain(prompt).run(memory_content=memory_content).strip()
         if self.verbose:
@@ -796,4 +797,5 @@ class RecAgentMemory(BaseMemory):
 
     def clear(self) -> None:
         print('----Clear----')
+        self.longTermMemory.clear()
         pass
