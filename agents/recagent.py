@@ -319,10 +319,13 @@ class RecAgent(GenerativeAgent):
             else "nothing",
         )
 
-        consumed_tokens = self.llm.get_num_tokens(
-            prompt.format(most_recent_memories="", most_recent_memories2="", **kwargs)
+        result_memories2, memories_tuple = agent2.memory.longTermMemory.fetch_memories_with_list(
+            observation, agent2.memory.shortTermMemory
         )
-        most_recent_memories2 = agent2.get_memories_until_limit(consumed_tokens)
+        result_memories2 = [memory[1] for memory in result_memories2]
+        most_recent_memories2 = '; '.join(result_memories2)
+        agent2.memory.save_context_after_retrieval(memories_tuple)
+
         kwargs["most_recent_memories2"] = most_recent_memories2
         consumed_tokens = self.llm.get_num_tokens(
             prompt.format(most_recent_memories="", **kwargs)
