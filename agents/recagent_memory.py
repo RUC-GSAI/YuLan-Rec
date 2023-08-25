@@ -66,7 +66,8 @@ class SensoryMemory():
         self.llm = llm
         self.profile = None
         self.buffer_size = buffer_size
-        self.importance_weight = 0.15
+        # self.importance_weight = 0.15
+        self.importance_weight = 0.9
 
         self.buffer = []
 
@@ -76,15 +77,29 @@ class SensoryMemory():
     def _score_memory_importance(self, memory_content: str) -> float:
         """Score the absolute importance of the given memory."""
         prompt = PromptTemplate.from_template(
-            "On the scale of 1 to 10, where 1 is purely mundane"
-            + " (e.g., entering the recommender system, getting the next page) and 10 is"
-            + " extremely poignant (e.g., watching a movie, posting in social media), "
-            + ", rate the likely poignancy of the"
-            + " following piece of memory. Respond with a single integer."
-            + "\nMemory: {memory_content}"
-            + "\nRating: "
+            # "On the scale of importance score from 1 to 10, where score 1 is the least importance"
+            # + " (low score observations including: enter social media, start a chatting) and score 10 is"
+            # + " the most importance (high score observations including: post, dialogue with someone). "
+            # + "More information will obtain higher score."
+            # + "Give a score of the"
+            # + " following piece of observations that respond with a single integer."
+            # + "\nMemory: {memory_content}"
+            # + "\nRating: "
+            """
+            Please give an importance score between 1 to 10 for the following observation. Higher score indicates the observation is more important. More rules that should be followed are
+            \n(1) The observation that includes entering social media is not important. e.g., David Smith takes action by entering the world of social media.
+            \n(2) The observation that describes chatting with someone but no specific movie name is not important. e.g., David Smith observed that David Miller expressed interest in chatting about movies.
+            \n(3) More informative indicates more important, especially when two people are chatting.
+            Please respond with a single integer.
+            \nObservation:{memory_content}
+            \nRating:
+            """
         )
         score = LLMChain(llm=self.llm, prompt=prompt).run(memory_content=memory_content).strip()
+        # print('---------score')
+        # print(LLMChain(llm=self.llm, prompt=prompt).prompt)
+        # print(score)
+        # print('---------end')
         match = re.search(r"^\D*(\d+)", score)
         if match:
             return (float(match.group(1)) / 10) * self.importance_weight
@@ -110,6 +125,7 @@ class SensoryMemory():
         result = LLMChain(llm=self.llm, prompt=prompt).run({})
         result = parse_res(result)
         result = [(self._score_memory_importance(text), text) for text in result]
+        result = [text for text in result if text[0] > 0.5]
 
         # print('\n------------------------SSM(Before)-------------------------')
         # print(self.buffer)
@@ -119,7 +135,10 @@ class SensoryMemory():
 
         self.clear()
 
-        return result
+        if len(result) != 0:
+            return result
+        else:
+            return None
 
     def add_profile(self, input):
         if not self.profile:
