@@ -64,7 +64,7 @@ class RecAgentRetriever(TimeWeightedVectorStoreRetriever):
 class SensoryMemory():
     def __init__(self, llm, buffer_size=1):
         self.llm = llm
-        self.profile = None
+        # self.profile = None
         self.buffer_size = buffer_size
         # self.importance_weight = 0.15
         self.importance_weight = 0.9
@@ -142,9 +142,9 @@ class SensoryMemory():
         else:
             return None
 
-    def add_profile(self, input):
-        if not self.profile:
-            self.profile = deepcopy(input)
+    # def add_profile(self, input):
+    #     if not self.profile:
+    #         self.profile = deepcopy(input)
 
     def transport_ssm_to_stm(self, text):
         self.buffer.append(text)
@@ -767,7 +767,7 @@ class RecAgentMemory(BaseMemory):
         self.longTermMemory.save_context({}, save_ltm_memory)
 
     def save_context(self, inputs: Dict[str, Any], outputs: Dict[str, str]) -> None:
-        self.sensoryMemory.add_profile(inputs)
+        # self.sensoryMemory.add_profile(inputs)
         if 'add_memory' not in outputs:
             return
         stm_memory_list = self.sensoryMemory.transport_ssm_to_stm(outputs['add_memory'])
