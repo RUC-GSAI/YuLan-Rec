@@ -64,7 +64,7 @@ class RecAgentRetriever(TimeWeightedVectorStoreRetriever):
 class SensoryMemory():
     def __init__(self, llm, buffer_size=1):
         self.llm = llm
-        self.profile = None
+        # self.profile = None
         self.buffer_size = buffer_size
         # self.importance_weight = 0.15
         self.importance_weight = 0.9
@@ -142,9 +142,9 @@ class SensoryMemory():
         else:
             return None
 
-    def add_profile(self, input):
-        if not self.profile:
-            self.profile = deepcopy(input)
+    # def add_profile(self, input):
+    #     if not self.profile:
+    #         self.profile = deepcopy(input)
 
     def transport_ssm_to_stm(self, text):
         self.buffer.append(text)
@@ -165,7 +165,10 @@ class ShortTermMemory():
 
         self.short_memories: List[str] = []
         """The list of short-term memories"""
-
+        
+        self.short_embeddings: List[List[float]] = []
+        """The OpenAI embeddings of short-term memories"""
+        
         self.memory_importance: List[float] = []
         """The importance score list of short-term memories"""
 
@@ -228,6 +231,7 @@ class ShortTermMemory():
         if transfer_flag:
             # re-construct the indexes of short-term memories after removing summarized memories
             new_memories = []
+            new_embeddings = []
             new_importance = []
             new_enhance_memories = [[] for _ in range(self.capacity)]
             new_enhance_cnt = [0 for _ in range(self.capacity)]
@@ -236,8 +240,10 @@ class ShortTermMemory():
                     new_enhance_memories[len(new_memories)] = self.enhance_memories[idx]
                     new_enhance_cnt[len(new_memories)] = self.enhance_cnt[idx]
                     new_memories.append(memory)
+                    new_embeddings.append(self.short_embeddings[idx])
                     new_importance.append(self.memory_importance[idx])
             self.short_memories = new_memories
+            self.short_embeddings = new_embeddings
             self.memory_importance = new_importance
             self.enhance_memories = new_enhance_memories
             self.enhance_cnt = new_enhance_cnt
@@ -261,7 +267,8 @@ class ShortTermMemory():
             self.enhance_memories.append([])
             self.memory_importance.pop(find_idx)
             discard_memory = self.short_memories.pop(find_idx)
-
+            self.short_embeddings.pop(find_idx)
+            
             # remove the discard_memory from other short-term memory's enhanced list
             for idx in range(len(self.short_memories)):
                 if self.enhance_memories[idx].count(sort_list[0]) != 0:
@@ -284,8 +291,7 @@ class ShortTermMemory():
         # compute the vector similarities between observation and the existing short-term memories
         embeddings_model = OpenAIEmbeddings()
         observation_embedding = embeddings_model.embed_query(observation)
-        short_term_embeddings = embeddings_model.embed_documents(self.short_memories)
-        for idx, memory_embedding in enumerate(short_term_embeddings):
+        for idx, memory_embedding in enumerate(self.short_embeddings):
             similarity = self.cosine_similarity(observation_embedding, memory_embedding)
             # primacy effect
             if idx + 1 == len(short_term_embeddings):
@@ -300,7 +306,8 @@ class ShortTermMemory():
         if op == 'add':
             self.short_memories.append(observation)
             self.memory_importance.append(importance)
-            discard_memory = self.discard_memories()
+            self.short_embeddings.append(observation_embedding)
+            self.discard_memories()
         return memory_content, memory_importance, insight_content
 
 
@@ -511,17 +518,26 @@ class LongTermMemory(BaseMemory):
             topic=topic, related_statements=related_statements
         )
 
+        result_insight = self._parse_list(result_insight)
+        result_insight = [self._parse_insight_with_connections(res) for res in result_insight]
+        statements_id = result_insight[0][1]
+
         pattern = r"(?<=\[)\d+(?=\])"
         indexes = []
         embeddings_model = OpenAIEmbeddings()
-        embedding_1 = embeddings_model.embed_query(result_insight)
-        for document in related_memories:
-            memory_embedding = embeddings_model.embed_query(document.page_content)
+        embedding_1 = embeddings_model.embed_query(result_insight[0][0])
+        for memory_id in statements_id:
+            if memory_id < 0 or memory_id >= len(self.memory_retriever.memory_stream):
+                continue
+            memory = self.memory_retriever.memory_stream[memory_id].page_content
+            if memory == '[MERGE]' or memory == '[FORGET]':
+                continue
+            memory_embedding = embeddings_model.embed_query(memory)
             similarity = self.cosine_similarity(embedding_1, memory_embedding)
             # Sigmoid function
             value = 1 / (1 + np.exp(-similarity))
             if value >= 0.72:
-                match = re.search(pattern, document.page_content)
+                match = re.search(pattern, memory)
                 idx = match.group()
                 indexes.append(int(idx))
 
@@ -531,8 +547,6 @@ class LongTermMemory(BaseMemory):
             self.memory_retriever.memory_stream[idx].metadata['last_accessed_at'] = self.now
 
 
-        result_insight = self._parse_list(result_insight)
-        result_insight = [self._parse_insight_with_connections(res) for res in result_insight]
 
         return result_insight
 
@@ -767,7 +781,7 @@ class RecAgentMemory(BaseMemory):
         self.longTermMemory.save_context({}, save_ltm_memory)
 
     def save_context(self, inputs: Dict[str, Any], outputs: Dict[str, str]) -> None:
-        self.sensoryMemory.add_profile(inputs)
+        # self.sensoryMemory.add_profile(inputs)
         if 'add_memory' not in outputs:
             return
         stm_memory_list = self.sensoryMemory.transport_ssm_to_stm(outputs['add_memory'])
