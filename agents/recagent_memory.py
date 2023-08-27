@@ -62,29 +62,41 @@ class RecAgentRetriever(TimeWeightedVectorStoreRetriever):
 
 
 class SensoryMemory():
+    """
+    Sensory memory is intended to receive the observations (that are ready to be stored as memories) from the environment,
+    extract and summarize important elements by attention mechanism, and output them to short term memory.
+    """
+
     def __init__(self, llm, buffer_size=1):
+        """
+        Initialize the sensory memory.
+        :param llm: The LLM object passed from RecAgentMemory.
+        :param buffer_size (default as 1): Maximum number of observations. When len(self.buffer) >= buffer_size,
+            then dump them as a piece of short term memory.
+        """
+
         self.llm = llm
-        # self.profile = None
         self.buffer_size = buffer_size
-        # self.importance_weight = 0.15
+
+        # Important weight can be used to adjust the balance between 'importance' and 'recency'.
         self.importance_weight = 0.9
 
+        # Store a batch of observations.
         self.buffer = []
 
     def clear(self):
+        """
+        Clear the short term memory.
+        """
         self.buffer = []
 
-    def _score_memory_importance(self, memory_content: str) -> float:
-        """Score the absolute importance of the given memory."""
+    def _score_memory_importance(self, observation: str) -> float:
+        """
+        Obtain the importance score of this memory.
+        :param observation: The text of the observation.
+        :return: (float) The importance of this observation.
+        """
         prompt = PromptTemplate.from_template(
-            # "On the scale of importance score from 1 to 10, where score 1 is the least importance"
-            # + " (low score observations including: enter social media, start a chatting) and score 10 is"
-            # + " the most importance (high score observations including: post, dialogue with someone). "
-            # + "More information will obtain higher score."
-            # + "Give a score of the"
-            # + " following piece of observations that respond with a single integer."
-            # + "\nMemory: {memory_content}"
-            # + "\nRating: "
             """
             Please give an importance score between 1 to 10 for the following observation. Higher score indicates the observation is more important. More rules that should be followed are
             \n(1) The observation that includes entering social media is not important. e.g., David Smith takes action by entering the world of social media.
@@ -93,11 +105,11 @@ class SensoryMemory():
             \n(4) The observation that recommends or mentions specific movies is important.
             \n(5) More informative indicates more important, especially when two people are chatting.
             Please respond with a single integer.
-            \nObservation:{memory_content}
+            \nObservation:{observation}
             \nRating:
             """
         )
-        score = LLMChain(llm=self.llm, prompt=prompt).run(memory_content=memory_content).strip()
+        score = LLMChain(llm=self.llm, prompt=prompt).run(observation=observation).strip()
         # print('---------score')
         # print(LLMChain(llm=self.llm, prompt=prompt).prompt)
         # print(score)
@@ -109,24 +121,36 @@ class SensoryMemory():
             return 0.0
 
     def dump_shortTerm_list(self):
+        """
+        Convert all the observations in buffer to a piece of short term memory, and clear the buffer.
+        :return: List of tuple (score[float], stm[str])
+        """
 
         def parse_res(text: str):
+            """
+            Parse the output of LLM.
+            """
             return [text]
 
+        # Construct a string which includes all the observations in the buffer.
         obs_str = "The observations are as following:\n"
         for ind, obs in enumerate(self.buffer):
             obs_str += "[%d] %s\n" % (ind, obs)
 
+        # Construct the order for converting.
         order_str = "You should summarize the above observation(s) into one independent sentence." \
                     "If there is a person's name in the observation, use third person, otherwise use first person. " \
                     "Note that the sentence should pay more attention to the movie interest and the reasons in the " \
                     "observations." \
                     "The summarization should not include the profile explicitly."
 
+        # Construct the prompt for LLM.
         prompt = PromptTemplate.from_template(obs_str + order_str)
         result = LLMChain(llm=self.llm, prompt=prompt).run({})
         result = parse_res(result)
+        # Give the short term memory an importance score.
         result = [(self._score_memory_importance(text), text) for text in result]
+        # Remove the short term memory whose importance score is lower than a threshold.
         result = [text for text in result if text[0] > 0.62]
 
         # print('\n------------------------SSM(Before)-------------------------')
@@ -135,6 +159,7 @@ class SensoryMemory():
         # print(result)
         # print('------------------------END-------------------------\n')
 
+        # Clear the buffer.
         self.clear()
 
         if len(result) != 0:
@@ -142,12 +167,18 @@ class SensoryMemory():
         else:
             return None
 
-    # def add_profile(self, input):
-    #     if not self.profile:
-    #         self.profile = deepcopy(input)
+    def transport_obs_to_stm(self, obs):
+        """
+        This function is only called in the function RecAgentMemory.save_context(). It is used to transport observations to a piece of short term memory.
+        For each time, it receives only one observation, and adds into buffer. If buffer is full, then converts them into a piece of term memory.
+        :param obs: The observation that is ready to transport to short term memory.
+        :return: (1)Buffer full: List of tuple (score[float], stm[str]). (2) Buffer not full: None.
+        """
+        # Add the observation into the buffer.
+        self.buffer.append(obs)
 
-    def transport_ssm_to_stm(self, text):
-        self.buffer.append(text)
+        # If the buffer is full, then dump and return the short term list to RecAgentMemory.
+        # If the buffer is not full, then directly return 'None'.
         if len(self.buffer) >= self.buffer_size:
             return self.dump_shortTerm_list()
         else:
@@ -165,10 +196,10 @@ class ShortTermMemory():
 
         self.short_memories: List[str] = []
         """The list of short-term memories"""
-        
+
         self.short_embeddings: List[List[float]] = []
         """The OpenAI embeddings of short-term memories"""
-        
+
         self.memory_importance: List[float] = []
         """The importance score list of short-term memories"""
 
@@ -268,7 +299,7 @@ class ShortTermMemory():
             self.memory_importance.pop(find_idx)
             discard_memory = self.short_memories.pop(find_idx)
             self.short_embeddings.pop(find_idx)
-            
+
             # remove the discard_memory from other short-term memory's enhanced list
             for idx in range(len(self.short_memories)):
                 if self.enhance_memories[idx].count(sort_list[0]) != 0:
@@ -294,7 +325,8 @@ class ShortTermMemory():
         for idx, memory_embedding in enumerate(self.short_embeddings):
             similarity = self.cosine_similarity(observation_embedding, memory_embedding)
             # primacy effect
-            if idx + 1 == len(short_term_embeddings):
+            # The following one line was corrected by Zeyu on 23.8.27-7pm. Ori: if idx + 1 == len(short_term_embeddings):
+            if idx + 1 == len(self.short_embeddings):
                 similarity += const
             # sample and select the enhanced short-term memory
             # Sigmoid function
@@ -312,6 +344,9 @@ class ShortTermMemory():
 
 
 class LongTermMemory(BaseMemory):
+    """
+    Long-term memory is the memory base for the long term.
+    """
     llm: BaseLanguageModel
     now: datetime
     memory_retriever: RecAgentRetriever
@@ -353,6 +388,11 @@ class LongTermMemory(BaseMemory):
 
     @staticmethod
     def _parse_insight_with_connections(text: str):
+        """
+        Parse the output of LLM to the insight and the corresponding connections.
+        :param text: The output of LLM.
+        :return: The insight, and the list of connections.
+        """
         pattern = r'\[.*?\]'
         insight = re.sub(pattern, '', text)
         nums = re.findall(r'\d+', text)
@@ -444,31 +484,7 @@ class LongTermMemory(BaseMemory):
         return []
 
     def load_memory_variables(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        raise
-        """Return key-value pairs given the text input to the chain."""
-        queries = inputs.get(self.queries_key)
-        now = inputs.get(self.now_key)
-        if queries is not None:
-            relevant_memories = [
-                mem for query in queries for mem in self.fetch_memories(query, now=now)
-            ]
-            return {
-                self.relevant_memories_key: self.format_memories_detail(
-                    relevant_memories
-                ),
-                self.relevant_memories_simple_key: self.format_memories_simple(
-                    relevant_memories
-                ),
-            }
-
-        most_recent_memories_token = inputs.get(self.most_recent_memories_token_key)
-        if most_recent_memories_token is not None:
-            return {
-                self.most_recent_memories_key: self._get_memories_until_limit(
-                    most_recent_memories_token
-                )
-            }
-        return {}
+        pass
 
     @staticmethod
     def cosine_similarity(embedding1: List[float], embedding2: List[float]):
@@ -546,13 +562,14 @@ class LongTermMemory(BaseMemory):
             self.memory_retriever.memory_stream[idx].metadata['importance'] = 1.0
             self.memory_retriever.memory_stream[idx].metadata['last_accessed_at'] = self.now
 
-
-
         return result_insight
 
-
     def pause_to_reflect(self, now: Optional[datetime] = None):
-        """Reflect on recent observations and generate 'insights'."""
+        """
+        Reflect on recent observations and generate 'insights'.
+        :param now: (optional) The current time.
+        :return: The list of new insights. [No use for this version.]
+        """
         if self.verbose:
             logger.info("Character is reflecting")
 
@@ -576,13 +593,21 @@ class LongTermMemory(BaseMemory):
                 self.add_memory(ltm, now=now)
             new_insights.extend(insights)
 
-
         return new_insights
 
-
     def obtain_forget_prob_list(self):
+        """
+        Obtain the forgetting probability of each memory.
+        :return: (List) The distribution of forgetting probability.
+        """
 
-        def score_func(index, total, importance, last_accessed_time):
+        def score_func(importance, last_accessed_time):
+            """
+            Given the importance score and last accessed time, calculate the score of this memory.
+            :param importance: The importance score.
+            :param last_accessed_time: The last accessed time.
+            :return: Score of this memory.
+            """
             hours_passed = (self.now - last_accessed_time).total_seconds() / 3600
             recency = (1.0 - self.decay_rate) ** hours_passed
 
@@ -590,22 +615,22 @@ class LongTermMemory(BaseMemory):
 
         score_list = []
         for ind, mem in enumerate(self.memory_retriever.memory_stream):
-            score = score_func(ind, len(self.memory_retriever.memory_stream), mem.metadata['importance'],
-                               mem.metadata['last_accessed_at'])
+            score = score_func(mem.metadata['importance'], mem.metadata['last_accessed_at'])
             score_list.append(score)
         score_list = 1.0 - np.array(score_list)
         return score_list / np.sum(score_list)
 
     def pause_to_forget(self):
+        """
+        Forget parts of long term memories.
+        """
         if self.verbose:
             logger.info("Character is forgetting.")
 
         prob_list = self.obtain_forget_prob_list()
-        forget_list = []
         if len(prob_list) != 0:
             for idx in range(len(prob_list)):
-                if (self.now - self.memory_retriever.memory_stream[idx].metadata[
-                    'last_accessed_at']).total_seconds() / 3600 <= 24:
+                if (self.now - self.memory_retriever.memory_stream[idx].metadata['last_accessed_at']).total_seconds() / 3600 <= 24:
                     continue
                 if random() < prob_list[idx]:
                     self.memory_retriever.memory_stream[idx].page_content = '[FORGET]'
@@ -613,6 +638,12 @@ class LongTermMemory(BaseMemory):
                     self.memory_retriever.memory_stream[idx].metadata['last_accessed_at'] = self.now
 
     def add_memory(self, ltm, now=None):
+        """
+        Store the long term memory.
+        :param ltm: The long term memory that is ready to be stored.
+        :param now: Current time.
+        :return: List of IDs of the added texts. [No use in this version.]
+        """
         importance, last_accessed_at, text = ltm
         if not self.reflecting:
             self.aggregate_importance += importance
@@ -625,30 +656,39 @@ class LongTermMemory(BaseMemory):
         return result
 
     def save_context(self, inputs: Dict[str, Any], ltm_list: list) -> None:
+        """
+        Store the long term memories. Execute reflection and forgetting.
+        :param inputs: [No use for this version.]
+        :param ltm_list: The list of long term memory with tuple format (importance score[float], now[datetime], memory[string]).
+        :return: None
+        """
 
         now = self.now
         for ltm in ltm_list:
             self.add_memory(ltm, now)
 
+        # When the aggregation of importance is above the threshold, execute the reflection function once.
         if (
                 self.reflection_threshold is not None
                 and self.aggregate_importance > self.reflection_threshold
                 and not self.reflecting
         ):
-            # if True:
             self.reflecting = True
             self.pause_to_reflect(now=now)
             # Hack to clear the importance from reflection
             self.aggregate_importance = 0.0
             self.reflecting = False
 
-        # Forget once
+        # Execute the forget function once.
         if True:
             self.forgetting = True
             self.pause_to_forget()
             self.forgetting = False
 
     def print_memory(self):
+        """
+        [Tool for Debug] Print the long term memories.
+        """
         print('----- Memories -----\n')
         for ind, mem in enumerate(self.memory_retriever.memory_stream):
             hours_passed = (self.now - mem.metadata['last_accessed_at']).total_seconds() / 3600
@@ -657,11 +697,17 @@ class LongTermMemory(BaseMemory):
                 ind, mem.metadata['importance'], recency, mem.page_content))
 
     def update_now(self, now: datetime):
+        """
+        Update the current time.
+        :param now: Current time.
+        """
         self.now = now
         self.memory_retriever.now = now
 
-
     def clear(self) -> None:
+        """
+        Clear all the memories in long term memory.
+        """
         self.memory_retriever.memory_stream = []
 
 
@@ -719,12 +765,13 @@ class RecAgentMemory(BaseMemory):
     def memory_variables(self) -> List[str]:
         return []
 
-    # Return most_recent_memories with fetched memories, not recent memories.
     def load_memory_variables(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        # LongTermMemory --> ShortTermMemory
-        # ShortTermMemory --> result
+        """
+        Return 'most_recent_memories' with fetched memories (not recent memories).
+        :param inputs: The dict that contains the key 'observation'.
+        :return: The fetched memories.
+        """
 
-        # print('----Load----:\n', inputs)
         ltm_memory_list, memories_tuple = self.longTermMemory.fetch_memories_with_list(inputs['observation'],
                                                                                        self.shortTermMemory)
         self.save_context_after_retrieval(memories_tuple)
@@ -761,6 +808,11 @@ class RecAgentMemory(BaseMemory):
             return 0.0
 
     def add_memory(self, memory_content: str, now: Optional[datetime] = None):
+        """
+        The Simulator can add memory by using this function.
+        :param memory_content: The content of memory.
+        :param now: Current time.
+        """
         self.save_context(
             {},
             {
@@ -781,12 +833,20 @@ class RecAgentMemory(BaseMemory):
         self.longTermMemory.save_context({}, save_ltm_memory)
 
     def save_context(self, inputs: Dict[str, Any], outputs: Dict[str, str]) -> None:
-        # self.sensoryMemory.add_profile(inputs)
+        """
+        The RecAgent can add memory by using this function.
+        :param inputs: Will be directly pass to LongTermMemory. [No use for this version.]
+        :param outputs: The core memory dict that is passed from RecAgent. It has to obtain the key 'add_memory' to save the memory content.
+        :return: None
+        """
+        # If the 'outputs' does not contain the memory, then exit the function.
         if 'add_memory' not in outputs:
             return
-        stm_memory_list = self.sensoryMemory.transport_ssm_to_stm(outputs['add_memory'])
+        # Add the observation into the buffer of sensory memory, and obtain a list of short term memory if the buffer is full.
+        obs = outputs['add_memory']
+        stm_memory_list = self.sensoryMemory.transport_obs_to_stm(obs)
         if stm_memory_list is None:
-            return None
+            return
         else:
             ltm_memory_list, ltm_importance_scores = [], []
             insight_memory_list = []
@@ -804,14 +864,19 @@ class RecAgentMemory(BaseMemory):
             all_memory_scores = ltm_importance_scores + insight_scores_list
             save_ltm_memory = [(all_memory_scores[i], self.now, all_memories[i])
                                for i in range(len(all_memories))]
+            # Store the long term memories.
             self.longTermMemory.save_context(inputs, save_ltm_memory)
-            # self.longTermMemory.print_memory()
 
     def update_now(self, now: datetime):
+        """
+        Update the current time.
+        :param now: Current time.
+        """
         self.now = now
         self.longTermMemory.update_now(self.now)
 
     def clear(self) -> None:
-        print('----Clear----')
+        """
+        Clear all the (long term) memory in RecAgentMemory.
+        """
         self.longTermMemory.clear()
-        pass

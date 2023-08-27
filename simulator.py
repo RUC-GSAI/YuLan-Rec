@@ -120,6 +120,7 @@ class Simulator:
             relevance_score_fn=self.relevance_score_fn,
         )
 
+        # If choose RecAgentMemory, you must use RecAgentRetriever rather than TimeWeightedVectorStoreRetriever.
         RetrieverClass = RecAgentRetriever if self.config["recagent_memory"] else TimeWeightedVectorStoreRetriever
 
         return RetrieverClass(
