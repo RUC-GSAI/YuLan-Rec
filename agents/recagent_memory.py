@@ -101,9 +101,10 @@ class SensoryMemory():
             Please give an importance score between 1 to 10 for the following observation. Higher score indicates the observation is more important. More rules that should be followed are
             \n(1) The observation that includes entering social media is not important. e.g., David Smith takes action by entering the world of social media.
             \n(2) The observation that describes chatting with someone but no specific movie name is not important. e.g., David Smith observed that David Miller expressed interest in chatting about movies.
-            \n(3) The observation that includes 'chatting' is not important. e.r., David Smith observed that David Miller expressed interest in chatting about movies, indicating a shared passion for films.
-            \n(4) The observation that recommends or mentions specific movies is important.
-            \n(5) More informative indicates more important, especially when two people are chatting.
+            \n(3) The observation that includes 'chatting' is not important. e.g., David Smith observed that David Miller expressed interest in chatting about movies, indicating a shared passion for films.
+            \n(4) The observation that includes 'enter the recommender system' is not important. e.g. David Smith enters the Recommender System to explore movie recommendations based on his interests and preferences.
+            \n(5) The observation that recommends or mentions specific movies is important.
+            \n(6) More informative indicates more important, especially when two people are chatting.
             Please respond with a single integer.
             \nObservation:{observation}
             \nRating:
@@ -167,7 +168,7 @@ class SensoryMemory():
         else:
             return None
 
-    def transport_obs_to_stm(self, obs):
+    def add_ssm(self, obs):
         """
         This function is only called in the function RecAgentMemory.save_context(). It is used to transport observations to a piece of short term memory.
         For each time, it receives only one observation, and adds into buffer. If buffer is full, then converts them into a piece of term memory.
@@ -227,8 +228,8 @@ class ShortTermMemory():
         """"""
         prompt = PromptTemplate.from_template(
             "There are some memories separated by semicolons (;): {content}\n"
-            + "Can you infer from the above memories the high-level insight for this person's behaviour?"
-            + "Note that the insight should be totally different from any memory in the above memories."
+            + "Can you infer from the above memories the high-level insight for this person's character?"
+            + "The insight needs to be significantly different from the content and structure of the original memories."
             + "Respond in one sentence."
             + "\n\nResults:"
         )
@@ -495,12 +496,12 @@ class LongTermMemory(BaseMemory):
         return similarity
 
     def _get_topics_of_reflection(self, last_k: int = 50) -> List[str]:
-        """Return the 3 most salient high-level questions about recent observations."""
+        """Return the 1 most salient high-level questions about recent observations."""
         prompt = PromptTemplate.from_template(
             "{observations}\n\n"
-            + "Given only the information above, what are the 3 most salient"
+            + "Given only the information above, what is the 1 most salient"
             + " high-level questions we can answer about the subjects in"
-            + " the statements? Provide each question on a new line.\n\n"
+            + " the statements? Provide the question on a new line.\n\n"
         )
         observations = self.memory_retriever.memory_stream[-last_k:]
         observation_str = "\n".join([o.page_content for o in observations])
@@ -512,13 +513,16 @@ class LongTermMemory(BaseMemory):
     ):
         """Generate 'insights' on a topic of reflection, based on pertinent memories."""
         prompt_insight = PromptTemplate.from_template(
-            "From the following statements about {topic}, provided in the format [id] statement,"
-            + "please identify one main insight and specify which statements the insight is derived from:\n"
+            "The topic or question is:\n"
+            + "{topic}\n"
+            + "Some statements are provided in the format [id] in the following:\n"
             + "{related_statements}\n"
+            + "please identify one main insight to answer the above question, "
+            + "and simultaneously specify which statements the insight is derived from:\n"
             + "Respond ONLY with the insight and the Ids of their related statements, adhering strictly to the following format:\n"
             + "Content of insight [Related statement IDs]\n"
-            + "An insight can be derived from one or multiple statements."
-            + "Do NOT add any additional explanations, introductions, or summaries."
+            + "An insight can be derived from multiple statements."
+            + "The insight needs to be significantly different from the statement(s) in sentence structure and content it is derived from."
         )
 
         related_memories = self.fetch_memories(topic, now=now)
@@ -790,9 +794,10 @@ class RecAgentMemory(BaseMemory):
             Please give an importance score between 1 to 10 for the following observation. Higher score indicates the observation is more important. More rules that should be followed are
             \n(1) The observation that includes entering social media is not important. e.g., David Smith takes action by entering the world of social media.
             \n(2) The observation that describes chatting with someone but no specific movie name is not important. e.g., David Smith observed that David Miller expressed interest in chatting about movies.
-            \n(3) The observation that includes 'chatting' is not important. e.r., David Smith observed that David Miller expressed interest in chatting about movies, indicating a shared passion for films.
-            \n(4) The observation that recommends or mentions specific movies is important.
-            \n(5) More informative indicates more important, especially when two people are chatting.
+            \n(3) The observation that includes 'chatting' is not important. e.g., David Smith observed that David Miller expressed interest in chatting about movies, indicating a shared passion for films.
+            \n(4) The observation that includes 'enter the recommender system' is not important. e.g. David Smith enters the Recommender System to explore movie recommendations based on his interests and preferences.
+            \n(5) The observation that recommends or mentions specific movies is important.
+            \n(6) More informative indicates more important, especially when two people are chatting.
             Please respond with a single integer.
             \nObservation:{memory_content}
             \nRating:
@@ -844,7 +849,7 @@ class RecAgentMemory(BaseMemory):
             return
         # Add the observation into the buffer of sensory memory, and obtain a list of short term memory if the buffer is full.
         obs = outputs['add_memory']
-        stm_memory_list = self.sensoryMemory.transport_obs_to_stm(obs)
+        stm_memory_list = self.sensoryMemory.add_ssm(obs)
         if stm_memory_list is None:
             return
         else:
