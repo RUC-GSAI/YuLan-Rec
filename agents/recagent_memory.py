@@ -300,7 +300,10 @@ class ShortTermMemory():
         return memory_content, memory_importance, insight_content
 
     def discard_memories(self) -> str:
-        """discard the least importance memory when short-term memory module exceeds its capacity"""
+        """
+        discard the least importance memory when short-term memory module exceeds its capacity
+        :return: (str) The content of the discard memory
+        """
         if len(self.short_memories) > self.capacity:
             memory_dict = dict()
             for idx in range(len(self.short_memories) - 1):
@@ -328,6 +331,12 @@ class ShortTermMemory():
 
     @staticmethod
     def cosine_similarity(embedding1: List[float], embedding2: List[float]):
+        """
+        Calculate the cosine similarity between two vectors.
+        :param embedding1: the first embedding
+        :param embedding2: the second embedding
+        :return: (float) the cosine similarity
+        """
         dot_product = np.dot(embedding1, embedding2)
         norm1 = np.linalg.norm(embedding1)
         norm2 = np.linalg.norm(embedding2)
@@ -335,7 +344,13 @@ class ShortTermMemory():
         return similarity
 
     def add_stm_memory(self, observation: str, importance: float, op: str):
-        """add a new observation into short-term memory"""
+        """
+        Add a new observation into short-term memory, and return the enhanced short-term memory and with the insight.
+        :param observation: the content of the sensory memory of retrieved memory
+        :param imporatance: the importance score of observation
+        :param op: specify the types of observation. "add" means that the observation is sensory memory,
+                 "retrieval" means that the observation is the retrieved memory.
+        """
         const = 0.1
         # compute the vector similarities between observation and the existing short-term memories
         embeddings_model = OpenAIEmbeddings()
