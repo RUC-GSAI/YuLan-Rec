@@ -244,7 +244,6 @@ class RecAgent(GenerativeAgent):
             + "\nAll occurrences of movie names should be enclosed with <>"
             + "\n\n"
             + suffix
-            + "\nPlease act as {agent_name} well.'"
         )
         now = datetime.now() if now is None else now
         agent_summary_description = self.get_summary(now=now, observation=observation)
@@ -345,7 +344,6 @@ class RecAgent(GenerativeAgent):
 
     def get_memories_until_limit(self, consumed_tokens: int) -> str:
         """Reduce the number of tokens in the documents."""
-        # print('TEST----',type(self.memory) == GenerativeAgentMemory,type(self.memory) == RecAgentMemory)
         retriever = (
             self.memory.longTermMemory.memory_retriever
             if type(self.memory) == RecAgentMemory
@@ -374,8 +372,6 @@ class RecAgent(GenerativeAgent):
         )
         result = self._generate_reaction(observation, call_to_action_template, now=now)
 
-        # result = full_result.strip().split("\n")[0]
-        # AAA
         self.memory.save_context(
             {},
             {
@@ -396,7 +392,7 @@ class RecAgent(GenerativeAgent):
         call_to_action_template = (
             "What action would {agent_name} like to take? Respond in one line."
             + "\nIf {agent_name} wants to enter the Recommender System, write:\n [RECOMMENDER]:: {agent_name} enters the Recommender System"
-            # + "\nIf {agent_name} wants to enter the Social Media, write:\n [SOCIAL]:: {agent_name} enters the Social Media"
+            + "\nIf {agent_name} wants to enter the Social Media, write:\n [SOCIAL]:: {agent_name} enters the Social Media"
             + "\nIf {agent_name} wants to do nothing, write:\n [NOTHING]:: {agent_name} does nothing"
         )
         observation = f"{self.name} must take only ONE of the actions below:(1) Enter the Recommender System. If so, {self.name} will be recommended some movies, from which {self.name} can watch some movies, or search for movies by himself.\n(2) Enter the Social Media. {self.name} can chat with friends or publish a post to all friends of {self.name}. If {self.name} recently watched some movies they might want to share with others.\n(3) Do Nothing."
@@ -455,7 +451,8 @@ class RecAgent(GenerativeAgent):
     def generate_feeling(self, observation: str, now) -> str:
         """Feel about each item bought."""
         call_to_action_template = (
-            "You've just finished a new movie, {agent_name}. What's your immediate reaction? Describe in one line."
+            "{agent_name}, how did you feel about the movie you just watched? Describe your feelings in one line."
+            +"NOTE: Please answer in the first-person perspective."
             + "\n\n"
         )
 
