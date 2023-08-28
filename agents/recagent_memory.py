@@ -168,7 +168,7 @@ class SensoryMemory():
         else:
             return None
 
-    def transport_obs_to_stm(self, obs):
+    def add_ssm(self, obs):
         """
         This function is only called in the function RecAgentMemory.save_context(). It is used to transport observations to a piece of short term memory.
         For each time, it receives only one observation, and adds into buffer. If buffer is full, then converts them into a piece of term memory.
@@ -849,7 +849,7 @@ class RecAgentMemory(BaseMemory):
             return
         # Add the observation into the buffer of sensory memory, and obtain a list of short term memory if the buffer is full.
         obs = outputs['add_memory']
-        stm_memory_list = self.sensoryMemory.transport_obs_to_stm(obs)
+        stm_memory_list = self.sensoryMemory.add_ssm(obs)
         if stm_memory_list is None:
             return
         else:
