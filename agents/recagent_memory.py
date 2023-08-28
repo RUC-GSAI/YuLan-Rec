@@ -31,6 +31,9 @@ logger = logging.getLogger(__name__)
 
 
 class RecAgentRetriever(TimeWeightedVectorStoreRetriever):
+    """
+    RecAgentRetriever is to retrieve memories from long-term memory module based on memory salience, importance and recency.
+    """
     now: datetime
 
     def get_relevant_documents(self, query: str) -> List[Document]:
@@ -187,6 +190,10 @@ class SensoryMemory():
 
 
 class ShortTermMemory():
+    """
+    The short-term memory module is to temporally store the observations from sensory memory module,
+    which can be enhanced by other observations or retrieved memories to enter the long-term memory module.
+    """
     def __init__(self, llm):
         self.llm = llm
         """The core language model."""
@@ -224,8 +231,11 @@ class ShortTermMemory():
         return LLMChain(llm=self.llm, prompt=prompt, verbose=self.verbose)
 
     def get_short_term_insight(self, content: str):
-        """summary the short-term memory with enhanced count larger or equal than enhance_threshold"""
-        """"""
+        """
+        Get insight of the short-term memory and other memories or observations that enhance that short-term memory.
+        :param content: short-term memory and other memories or observations that enhance that short-term memory
+        :return: (List[str]) The insight of the short-term memory.
+        """
         prompt = PromptTemplate.from_template(
             "There are some memories separated by semicolons (;): {content}\n"
             + "Can you infer from the above memories the high-level insight for this person's character?"
@@ -237,7 +247,14 @@ class ShortTermMemory():
         return self._parse_list(result)
 
     def transfer_memories(self, observation):
-        """Transfer all possible short-term memories to long-term memory"""
+        """
+        Transfer all possible short-term memories to long-term memory.
+        :param observation: the observation enters the short-term memory or the retrieved memory
+        :return
+            (List[str]) memory_content: the enhanced short-term memories
+            (List[float]) memory_importance: the importance scores of the enhanced short-term memories
+            (List[List[str]]) insight_content: the insight from the short-term memories
+        """
         # if the observation is summarized, otherwise add it into short-term memory
         transfer_flag = False
         existing_memory = [True for _ in range(len(self.short_memories))]
@@ -283,7 +300,10 @@ class ShortTermMemory():
         return memory_content, memory_importance, insight_content
 
     def discard_memories(self) -> str:
-        """discard the least importance memory when short-term memory module exceeds its capacity"""
+        """
+        discard the least importance memory when short-term memory module exceeds its capacity
+        :return: (str) The content of the discard memory
+        """
         if len(self.short_memories) > self.capacity:
             memory_dict = dict()
             for idx in range(len(self.short_memories) - 1):
@@ -311,6 +331,12 @@ class ShortTermMemory():
 
     @staticmethod
     def cosine_similarity(embedding1: List[float], embedding2: List[float]):
+        """
+        Calculate the cosine similarity between two vectors.
+        :param embedding1: the first embedding
+        :param embedding2: the second embedding
+        :return: (float) the cosine similarity
+        """
         dot_product = np.dot(embedding1, embedding2)
         norm1 = np.linalg.norm(embedding1)
         norm2 = np.linalg.norm(embedding2)
@@ -318,7 +344,13 @@ class ShortTermMemory():
         return similarity
 
     def add_stm_memory(self, observation: str, importance: float, op: str):
-        """add a new observation into short-term memory"""
+        """
+        Add a new observation into short-term memory, and return the enhanced short-term memory and with the insight.
+        :param observation: the content of the sensory memory of retrieved memory
+        :param imporatance: the importance score of observation
+        :param op: specify the types of observation. "add" means that the observation is sensory memory,
+                 "retrieval" means that the observation is the retrieved memory.
+        """
         const = 0.1
         # compute the vector similarities between observation and the existing short-term memories
         embeddings_model = OpenAIEmbeddings()
@@ -346,7 +378,7 @@ class ShortTermMemory():
 
 class LongTermMemory(BaseMemory):
     """
-    Long-term memory is the memory base for the long term.
+    Long-term memory is the memory base for the RecAgent.
     """
     llm: BaseLanguageModel
     now: datetime
@@ -405,15 +437,24 @@ class LongTermMemory(BaseMemory):
         return insight, connection_list
 
     def _score_memory_importance(self, memory_content: str) -> float:
-        """Score the absolute importance of the given memory."""
+        """
+        Obtain the importance score of this memory.
+        :param memory_content: The text of the observation.
+        :return: (float) The importance of this observation.
+        """
         prompt = PromptTemplate.from_template(
-            "On the scale of 1 to 10, where 1 is purely mundane"
-            + " (e.g., entering the recommender system, getting the next page) and 10 is"
-            + " extremely poignant (e.g., watching a movie, posting in social media), "
-            + ", rate the likely poignancy of the"
-            + " following piece of memory. Respond with a single integer."
-            + "\nMemory: {memory_content}"
-            + "\nRating: "
+            """
+            Please give an importance score between 1 to 10 for the following observation. Higher score indicates the observation is more important. More rules that should be followed are
+            \n(1) The observation that includes entering social media is not important. e.g., David Smith takes action by entering the world of social media.
+            \n(2) The observation that describes chatting with someone but no specific movie name is not important. e.g., David Smith observed that David Miller expressed interest in chatting about movies.
+            \n(3) The observation that includes 'chatting' is not important. e.g., David Smith observed that David Miller expressed interest in chatting about movies, indicating a shared passion for films.
+            \n(4) The observation that includes 'enter the recommender system' is not important. e.g. David Smith enters the Recommender System to explore movie recommendations based on his interests and preferences.
+            \n(5) The observation that recommends or mentions specific movies is important.
+            \n(6) More informative indicates more important, especially when two people are chatting.
+            Please respond with a single integer.
+            \nObservation:{memory_content}
+            \nRating:
+            """
         )
         score = LLMChain(llm=self.llm, prompt=prompt).run(memory_content=memory_content).strip()
         match = re.search(r"^\D*(\d+)", score)
@@ -423,12 +464,28 @@ class LongTermMemory(BaseMemory):
             return 0.0
 
     def fetch_memories_with_list(self, observation, stm):
+        """
+        Transfer the retrieved memories and the enhanced short-term memory with the insight into List.
+        :param observation: the observation to retrieve related memories
+        :param stm: the short term memory instance
+        :return
+            (List[(float, str)]) res: the list tuples contains the memory content with corresponding importance score
+            (Tuple(List[str], List[float], List[str])) memories_tuple: contains the short-term memories, importances and the insights.
+        """
         res_list, memories_tuple = self.fetch_memories(observation, stm=stm)
         res = [(res.metadata['importance'], res.page_content) for res in res_list]
         return res, memories_tuple
 
     def fetch_memories(self, observation: str, stm=None, now: Optional[datetime] = None):
-        """Fetch related memories."""
+        """
+        Fetch related memories.
+        :param observation: the observation to retrieve related memories
+        :param stm: the short term memory instance
+        :param now: (optional) the current time.
+        :return
+                (List[Document]) the retrieved memory documents
+                (Tuple(List[str], List[float], List[str])) memories_tuple: contains the short-term memories, importances and the insights.
+        """
         with mock_now(now):
             # reflection do not enhance the short-term memories
             retrieved_list = self.memory_retriever.get_relevant_documents(observation)
@@ -827,6 +884,11 @@ class RecAgentMemory(BaseMemory):
         )
 
     def save_context_after_retrieval(self, memories_tuple):
+        """
+        The RecAgent can transfer short-term memory to long-term memory.
+        :param memories_tuple:  (Tuple(List[str], List[float], List[str])) memories_tuple: contains the short-term memories, importances and the insights.
+        :return None
+        """
         ltm_memory_list, ltm_importance_scores, insight_memory_list = memories_tuple
         insight_memory_list = [memory[0] for memory in insight_memory_list]
         insight_scores_list = [self._score_memory_importance(memory) for memory in insight_memory_list]
