@@ -154,11 +154,11 @@ class SensoryMemory():
         # Remove the short term memory whose importance score is lower than a threshold.
         result = [text for text in result if text[0] > 0.62]
 
-        print('\n------------------------SSM(Before)-------------------------')
-        print(self.buffer)
-        print('------------------------SSM(After)-------------------------')
-        print(result)
-        print('------------------------END-------------------------\n')
+        # print('\n------------------------SSM(Before)-------------------------')
+        # print(self.buffer)
+        # print('------------------------SSM(After)-------------------------')
+        # print(result)
+        # print('------------------------END-------------------------\n')
 
         # Clear the buffer.
         self.clear()
