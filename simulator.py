@@ -727,7 +727,7 @@ class Simulator:
             memory_retriever=self.create_new_memory_retriever(),
             now=self.now,
             verbose=False,
-            reflection_threshold=3,
+            reflection_threshold=10,
         )
         agent = RecAgent(
             id=i,
@@ -784,7 +784,7 @@ class Simulator:
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
             verbose=False,
-            reflection_threshold=8,
+            reflection_threshold=10,
         )
         agent = RoleAgent(
             id=id,
