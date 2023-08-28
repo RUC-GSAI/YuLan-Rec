@@ -228,8 +228,8 @@ class ShortTermMemory():
         """"""
         prompt = PromptTemplate.from_template(
             "There are some memories separated by semicolons (;): {content}\n"
-            + "Can you infer from the above memories the high-level insight for this person's behaviour?"
-            + "Note that the insight should be totally different from any memory in the above memories."
+            + "Can you infer from the above memories the high-level insight for this person's character?"
+            + "The insight needs to be significantly different from the content and structure of the original memories."
             + "Respond in one sentence."
             + "\n\nResults:"
         )
@@ -496,12 +496,12 @@ class LongTermMemory(BaseMemory):
         return similarity
 
     def _get_topics_of_reflection(self, last_k: int = 50) -> List[str]:
-        """Return the 3 most salient high-level questions about recent observations."""
+        """Return the 1 most salient high-level questions about recent observations."""
         prompt = PromptTemplate.from_template(
             "{observations}\n\n"
-            + "Given only the information above, what are the 3 most salient"
+            + "Given only the information above, what is the 1 most salient"
             + " high-level questions we can answer about the subjects in"
-            + " the statements? Provide each question on a new line.\n\n"
+            + " the statements? Provide the question on a new line.\n\n"
         )
         observations = self.memory_retriever.memory_stream[-last_k:]
         observation_str = "\n".join([o.page_content for o in observations])
@@ -513,13 +513,16 @@ class LongTermMemory(BaseMemory):
     ):
         """Generate 'insights' on a topic of reflection, based on pertinent memories."""
         prompt_insight = PromptTemplate.from_template(
-            "From the following statements about {topic}, provided in the format [id] statement,"
-            + "please identify one main insight and specify which statements the insight is derived from:\n"
+            "The topic or question is:\n"
+            + "{topic}\n"
+            + "Some statements are provided in the format [id] in the following:\n"
             + "{related_statements}\n"
+            + "please identify one main insight to answer the above question, "
+            + "and simultaneously specify which statements the insight is derived from:\n"
             + "Respond ONLY with the insight and the Ids of their related statements, adhering strictly to the following format:\n"
             + "Content of insight [Related statement IDs]\n"
-            + "An insight can be derived from one or multiple statements."
-            + "Do NOT add any additional explanations, introductions, or summaries."
+            + "An insight can be derived from multiple statements."
+            + "The insight needs to be significantly different from the statement(s) in sentence structure and content it is derived from."
         )
 
         related_memories = self.fetch_memories(topic, now=now)
