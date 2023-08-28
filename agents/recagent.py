@@ -402,6 +402,7 @@ class RecAgent(GenerativeAgent):
         observation = f"{self.name} must take only ONE of the actions below:(1) Enter the Recommender System. If so, {self.name} will be recommended some movies, from which {self.name} can watch some movies, or search for movies by himself.\n(2) Enter the Social Media. {self.name} can chat with friends or publish a post to all friends of {self.name}. If {self.name} recently watched some movies they might want to share with others.\n(3) Do Nothing."
         full_result = self._generate_reaction(observation, call_to_action_template, now)
         result = full_result.strip().split("\n")[0]
+
         choice = result.split("::")[0]
         # action = result.split("::")[1]
 

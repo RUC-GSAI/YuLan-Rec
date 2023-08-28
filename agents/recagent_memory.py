@@ -101,9 +101,10 @@ class SensoryMemory():
             Please give an importance score between 1 to 10 for the following observation. Higher score indicates the observation is more important. More rules that should be followed are
             \n(1) The observation that includes entering social media is not important. e.g., David Smith takes action by entering the world of social media.
             \n(2) The observation that describes chatting with someone but no specific movie name is not important. e.g., David Smith observed that David Miller expressed interest in chatting about movies.
-            \n(3) The observation that includes 'chatting' is not important. e.r., David Smith observed that David Miller expressed interest in chatting about movies, indicating a shared passion for films.
-            \n(4) The observation that recommends or mentions specific movies is important.
-            \n(5) More informative indicates more important, especially when two people are chatting.
+            \n(3) The observation that includes 'chatting' is not important. e.g., David Smith observed that David Miller expressed interest in chatting about movies, indicating a shared passion for films.
+            \n(4) The observation that includes 'enter the recommender system' is not important. e.g. David Smith enters the Recommender System to explore movie recommendations based on his interests and preferences.
+            \n(5) The observation that recommends or mentions specific movies is important.
+            \n(6) More informative indicates more important, especially when two people are chatting.
             Please respond with a single integer.
             \nObservation:{observation}
             \nRating:
@@ -153,11 +154,11 @@ class SensoryMemory():
         # Remove the short term memory whose importance score is lower than a threshold.
         result = [text for text in result if text[0] > 0.62]
 
-        # print('\n------------------------SSM(Before)-------------------------')
-        # print(self.buffer)
-        # print('------------------------SSM(After)-------------------------')
-        # print(result)
-        # print('------------------------END-------------------------\n')
+        print('\n------------------------SSM(Before)-------------------------')
+        print(self.buffer)
+        print('------------------------SSM(After)-------------------------')
+        print(result)
+        print('------------------------END-------------------------\n')
 
         # Clear the buffer.
         self.clear()
@@ -790,9 +791,10 @@ class RecAgentMemory(BaseMemory):
             Please give an importance score between 1 to 10 for the following observation. Higher score indicates the observation is more important. More rules that should be followed are
             \n(1) The observation that includes entering social media is not important. e.g., David Smith takes action by entering the world of social media.
             \n(2) The observation that describes chatting with someone but no specific movie name is not important. e.g., David Smith observed that David Miller expressed interest in chatting about movies.
-            \n(3) The observation that includes 'chatting' is not important. e.r., David Smith observed that David Miller expressed interest in chatting about movies, indicating a shared passion for films.
-            \n(4) The observation that recommends or mentions specific movies is important.
-            \n(5) More informative indicates more important, especially when two people are chatting.
+            \n(3) The observation that includes 'chatting' is not important. e.g., David Smith observed that David Miller expressed interest in chatting about movies, indicating a shared passion for films.
+            \n(4) The observation that includes 'enter the recommender system' is not important. e.g. David Smith enters the Recommender System to explore movie recommendations based on his interests and preferences.
+            \n(5) The observation that recommends or mentions specific movies is important.
+            \n(6) More informative indicates more important, especially when two people are chatting.
             Please respond with a single integer.
             \nObservation:{memory_content}
             \nRating:
