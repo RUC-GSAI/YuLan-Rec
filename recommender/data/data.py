@@ -210,7 +210,7 @@ class Data:
         for item in item_names:
             found = False
             for item_id, item_info in self.items.items():
-                if (item_info["name"] in item) or (item in item_info["name"]):
+                if item_info["name"].strip().strip('<').strip('>') == item.strip().strip('<').strip('>'):
                     item_descriptions.append(item_info["description"])
                     found = True
                     break
