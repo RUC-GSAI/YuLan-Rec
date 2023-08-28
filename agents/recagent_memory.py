@@ -31,6 +31,9 @@ logger = logging.getLogger(__name__)
 
 
 class RecAgentRetriever(TimeWeightedVectorStoreRetriever):
+    """
+    RecAgentRetriever is to retrieve memories from long-term memory module based on memory salience, importance and recency.
+    """
     now: datetime
 
     def get_relevant_documents(self, query: str) -> List[Document]:
@@ -187,6 +190,10 @@ class SensoryMemory():
 
 
 class ShortTermMemory():
+    """
+    The short-term memory module is to temporally store the observations from sensory memory module,
+    which can be enhanced by other observations or retrieved memories to enter the long-term memory module.
+    """
     def __init__(self, llm):
         self.llm = llm
         """The core language model."""
@@ -224,8 +231,11 @@ class ShortTermMemory():
         return LLMChain(llm=self.llm, prompt=prompt, verbose=self.verbose)
 
     def get_short_term_insight(self, content: str):
-        """summary the short-term memory with enhanced count larger or equal than enhance_threshold"""
-        """"""
+        """
+        Get insight of the short-term memory and other memories or observations that enhance that short-term memory.
+        :param content: short-term memory and other memories or observations that enhance that short-term memory
+        :return: (List[str]) The insight of the short-term memory.
+        """
         prompt = PromptTemplate.from_template(
             "There are some memories separated by semicolons (;): {content}\n"
             + "Can you infer from the above memories the high-level insight for this person's character?"
@@ -237,7 +247,14 @@ class ShortTermMemory():
         return self._parse_list(result)
 
     def transfer_memories(self, observation):
-        """Transfer all possible short-term memories to long-term memory"""
+        """
+        Transfer all possible short-term memories to long-term memory.
+        :param observation: the observation enters the short-term memory or the retrieved memory
+        :return
+            (List[str]) memory_content: the enhanced short-term memories
+            (List[float]) memory_importance: the importance scores of the enhanced short-term memories
+            (List[List[str]]) insight_content: the insight from the short-term memories
+        """
         # if the observation is summarized, otherwise add it into short-term memory
         transfer_flag = False
         existing_memory = [True for _ in range(len(self.short_memories))]
