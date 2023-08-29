@@ -293,7 +293,7 @@ class Simulator:
                     # observation=f"{name} has just finished watching"
 
                     for i in range(len(item_names)):
-                        observation = f"{name} has just finished watching {item_names[i]}:{item_descriptions[i]}."
+                        observation = f"{name} has just finished watching {item_names[i]}||{item_descriptions[i]}."
                         feelings = agent.generate_feeling(
                             observation, self.now + timedelta(hours=duration)
                         )
