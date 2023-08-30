@@ -425,7 +425,7 @@ class RecAgent(GenerativeAgent):
             "(3) Search for a specific item.\n"
             "(4) Leave the recommender system."
             + "\nIf {agent_name} has recently heard about a particular movie on social media, {agent_name} might want to search for that movie on the recommender system."
-            + "\nTo watch a movie from the recommended list, write:\n[BUY]:: ONLY ONE movie name||description, where || is the separated symbol."
+            + "\nTo watch a movie from the recommended list, write:\n[BUY]:: ONLY ONE movie name;;description"
             + "\nTo see the next page, write:\n[NEXT]:: {agent_name} views the next page."
             + "\nTo search for a specific item, write:\n[SEARCH]:: single, specific movie name to search for."
             + "\nTo leave the recommender system, write:\n[LEAVE]:: {agent_name} leaves the recommender system."
@@ -435,8 +435,10 @@ class RecAgent(GenerativeAgent):
         result = full_result.strip()
         if result.find("::") != -1:
             choice, action = result.split("::")
-            action = action.strip()
-            action = action.split("||")
+            if "BUY" in choice:    
+                pattern = r"<(.*?)>"
+                match = re.search(pattern, result)
+                action = match.group(0)
         else:
             choice = "[LEAVE]"
             action = f"{self.name} leaves the recommender system."
@@ -448,7 +450,7 @@ class RecAgent(GenerativeAgent):
             },
         )
 
-        return choice, action[0]
+        return choice, action
 
     def generate_feeling(self, observation: str, now) -> str:
         """Feel about each item bought."""

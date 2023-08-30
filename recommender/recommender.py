@@ -36,7 +36,7 @@ class Recommender:
         sorted_items = [item for item in sorted_items if item not in self.record[user]]
         sorted_item_names = self.data.get_item_names(sorted_items)
         description = self.data.get_item_description_by_id(sorted_items)
-        items = [sorted_item_names[i] + "||" + description[i] for i in range(len(sorted_item_names))]
+        items = [sorted_item_names[i] + ";;" + description[i] for i in range(len(sorted_item_names))]
         return items
 
     def get_search_items(self, item_name):
