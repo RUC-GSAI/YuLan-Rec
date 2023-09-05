@@ -389,7 +389,6 @@ class RecAgent(GenerativeAgent):
         (2) Enter the Social Media.
         (3) Do Nothing.
         """
-        print("recagent take action")
         call_to_action_template = (
             "What action would {agent_name} like to take? Respond in one line."
             + "\nIf {agent_name} wants to enter the Recommender System, write:\n [RECOMMENDER]:: {agent_name} enters the Recommender System"

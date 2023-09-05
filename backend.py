@@ -256,34 +256,6 @@ def get_rounds():
     return recagent.round_cnt
 
 
-@app.websocket("/test")
-async def test(websocket: WebSocket):
-    route = await connect.websocket_manager.connect("test",websocket)
-    i=0
-    try:
-        while True:
-            data = await websocket.receive_text()
-            s=await connect.websocket_manager.send_personal_message(f"test:{i}","test")
-            i+=1
-            if data == "exit":  # 你可以设置一些条件来断开连接
-                break
-           
-    except WebSocketDisconnect:
-        # 这里处理客户端断开连接的情况
-        pass
-    finally:
-        await websocket.close()
-
-@app.websocket("/test-response")
-async def test(websocket: WebSocket):
-    route = await connect.websocket_manager.connect("test-response",websocket)
-    try:
-        s=await connect.websocket_manager.send_and_wait_for_response("test-response","test-response")
-        print(s)
-    except Exception as e:
-        print(e)
-
-
 @app.websocket("/role-play/{user_id}")
 async def role_play(user_id:int,websocket: WebSocket):
     await connect.websocket_manager.connect("role-play",websocket)
@@ -318,12 +290,10 @@ def start():
 
 @app.post("/pause")
 def pause():
-    print("is_set",recagent.play_event.is_set())
     if recagent.play_event.is_set():
         recagent.pause()
     else:
         recagent.play()
-    print("is_set",recagent.play_event.is_set())
     return "Simulation pause!"
 
 @app.post("/reset")

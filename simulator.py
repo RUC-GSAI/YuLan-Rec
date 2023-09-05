@@ -170,11 +170,6 @@ class Simulator:
         self.social_stat.cur_user_num=0
         self.social_stat.cur_chat_num=0
         for agent in self.working_agents:
-            if isinstance(agent.event,dict):
-                print('*'*50)
-                print(agent.event)
-                print('*'*50)
-                input()
             if agent.event.action_type == "watch":
                 self.rec_stat.cur_user_num+=1
             elif agent.event.action_type == "chat":
@@ -190,18 +185,12 @@ class Simulator:
 
     def one_step(self, agent_id):
         """Run one step of an agent."""
-        print(agent_id)
         self.play_event.wait()
         if not self.check_active(agent_id):
             return [Message(agent_id=agent_id, action="NO_ACTION", content="No action.")]
         agent= self.agents[agent_id]
         name = agent.name
         message = []
-       
-        if agent.__class__.__name__!="RoleAgent":
-            print(agent.__class__.__name__)
-            print(self.agents[0])
-            print(agent_id)
         choice, observation = agent.take_action(self.now)
         with lock:
             heapq.heappush(self.working_agents, agent)

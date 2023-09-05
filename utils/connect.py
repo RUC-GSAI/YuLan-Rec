@@ -21,20 +21,16 @@ class WebSocketManager:
     
     async def send_personal_message(self, route: str,message: str):
         websocket = self.active_connections.get(route)
-        print(message)
         if websocket:
             await websocket.send_text(message)
 
     async def send_and_wait_for_response(self, route: str, message: str) -> Optional[str]:
         websocket = self.active_connections.get(route)
-        print(message)
-        print(websocket)
         if not websocket:
             return None
         
         await websocket.send_text(message)
         response = await websocket.receive_text()
-        print(response)
         input()
         return response
     
