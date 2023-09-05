@@ -37,7 +37,9 @@ from utils.message import Message
 from utils.event import Event, update_event, reset_event
 import utils.interval as interval
 import threading
+from agents.recagent_memory import RecAgentMemory,RecAgentRetriever
 import heapq
+from fastapi.middleware.cors import CORSMiddleware
 lock=threading.Lock()
 
 class Simulator:
@@ -58,8 +60,8 @@ class Simulator:
         self.working_agents: list[RecAgent]=[] #busy agents
         self.now = datetime.now().replace(hour=8, minute=0, second=0)
         self.interval = interval.parse_interval(config["interval"])
-        self.rec_stat=message.RecommenderStat(cur_user_num=0,tot_item_num=0,inter_num=0)
-        self.social_stat=message.SocialStat(cur_user_num=0,tot_link_num=0,chat_num=0,cur_chat_num=0,post_num=0)
+        self.rec_stat=message.RecommenderStat(tot_user_num=0,cur_user_num=0,tot_item_num=0,inter_num=0,rec_model=config["rec_model"],pop_items=[])
+        self.social_stat=message.SocialStat(tot_user_num=0,cur_user_num=0,tot_link_num=0,chat_num=0,cur_chat_num=0,post_num=0,pop_items=[])
 
     def get_file_name_path(self):
         return self.file_name_path
@@ -76,7 +78,7 @@ class Simulator:
         """Save the simulator status of current epoch"""
         utils.ensure_dir(save_dir_name)
         ID = utils.generate_id(self.config["simulator_dir"])
-        file_name = f"{ID}-Round[{self.round_cnt}]-AgentNum[{self.config['num_agents']}]-{datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pkl"
+        file_name = f"{ID}-Round[{self.round_cnt}]-AgentNum[{self.config['agent_num']}]-{datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pkl"
         self.file_name_path.append(file_name)
         save_file_name = os.path.join(save_dir_name, file_name)
         with open(save_file_name, "wb") as f:
@@ -119,14 +121,17 @@ class Simulator:
             {},
             relevance_score_fn=self.relevance_score_fn,
         )
-        return TimeWeightedVectorStoreRetriever(
-            vectorstore=vectorstore, other_score_keys=["importance"], k=15
-        )
+
+        RetrieverClass = RecAgentRetriever if self.config["recagent_memory"]=='recagent' else TimeWeightedVectorStoreRetriever
+
+        return RetrieverClass(
+            vectorstore=vectorstore, other_score_keys=["importance"],now=self.now, k=15)
 
     def check_active(self, index: int):
         # If agent's previous action is completed, reset the event
         agent = self.agents[index]
-        
+        if isinstance(agent,RoleAgent):
+            return True
 
         if (
             self.active_agent_threshold
@@ -148,25 +153,34 @@ class Simulator:
         return True
 
     def pause(self):
-        self.play_event.clear() 
+        self.play_event.clear()
 
     def play(self):
-        self.play_event.set() 
+        self.play_event.set()
 
     def global_message(self, message: str):
         for i,agent in self.agents.items():
-            agent.memory.add_memory(message, now=self.now)
+            agent.memory.add_memory(message, self.now)
 
     def update_stat(self):
+        self.rec_stat.tot_user_num=len(self.agents)
+        self.social_stat.tot_user_num=len(self.agents)
         self.rec_stat.cur_user_num=0
         self.social_stat.cur_user_num=0
         self.social_stat.cur_chat_num=0
         for agent in self.working_agents:
+            if isinstance(agent.event,dict):
+                print('*'*50)
+                print(agent.event)
+                print('*'*50)
+                input()
             if agent.event.action_type == "watch":
                 self.rec_stat.cur_user_num+=1
             elif agent.event.action_type == "chat":
                 self.social_stat.cur_user_num+=1
                 self.social_stat.cur_chat_num+=len(agent.event.target_agent)
+        self.rec_stat.pop_items=self.data.get_inter_popular_items()
+        self.social_stat.pop_items=self.data.get_mention_popular_items()
         self.rec_stat.tot_item_num = self.data.get_item_num()
         self.rec_stat.inter_num = self.recsys.get_inter_num()
         self.social_stat.tot_link_num = self.data.get_relationship_num()/2
@@ -175,13 +189,18 @@ class Simulator:
 
     def one_step(self, agent_id):
         """Run one step of an agent."""
-        self.play_event.wait() 
+        print(agent_id)
+        self.play_event.wait()
         if not self.check_active(agent_id):
             return [Message(agent_id=agent_id, action="NO_ACTION", content="No action.")]
-        agent:RecAgent = self.agents[agent_id]
+        agent= self.agents[agent_id]
         name = agent.name
         message = []
-
+       
+        if agent.__class__.__name__!="RoleAgent":
+            print(agent.__class__.__name__)
+            print(self.agents[0])
+            print(agent_id)
         choice, observation = agent.take_action(self.now)
         with lock:
             heapq.heappush(self.working_agents, agent)
@@ -611,6 +630,7 @@ class Simulator:
                             id = agent_id2
                             id2 = agent_id
                         item_names = utils.extract_item_names(content, "SOCIAL")
+                        self.data.add_mention_cnt(item_names)
                         if item_names != []:
                             self.agents[id2].update_heared_history(item_names)
                         msgs.append(Message(agent_id=id, action="CHAT", content=f"{speaker} says:{content}"))
@@ -693,7 +713,7 @@ class Simulator:
 
         if self.config["execution_mode"] == "parallel":
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                for i in tqdm(range(self.config["num_agents"])):
+                for i in tqdm(range(self.config["agent_num"])):
                     futures.append(executor.submit(self.one_step, i))
                     # time.sleep(10)
 
@@ -701,23 +721,33 @@ class Simulator:
                 msgs = future.result()
                 messages.append(msgs)
         else:
-            for i in tqdm(range(self.config["num_agents"])):
+            for i in tqdm(range(self.config["agent_num"])):
                 msgs = self.one_step(i)
                 messages.append(msgs)
         self.now = interval.add_interval(self.now, self.interval)
+
+        for i, agent in self.agents.items():
+            agent.memory.update_now(self.now)
+            
         self.update_working_agents()
         return messages
 
-    def create_agent(self, i, api_key)->RecAgent:
+    def convert_agent_to_role(self, agent_id):
+        self.agents[agent_id]=RoleAgent.from_recagent(self.agents[agent_id])
+
+    def create_agent(self, i, api_key) -> RecAgent:
         """
         Create an agent with the given id.
         """
         LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
-        agent_memory = GenerativeAgentMemory(
+        MemoryClass = RecAgentMemory if self.config["recagent_memory"]=='recagent' else GenerativeAgentMemory
+
+        agent_memory = MemoryClass(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
+            now=self.now,
             verbose=False,
-            reflection_threshold=0.5,
+            reflection_threshold=1,
         )
         agent = RecAgent(
             id=i,
@@ -733,6 +763,7 @@ class Simulator:
             llm=LLM,
             memory=agent_memory,
             event=reset_event(self.now),
+            avatar_url=utils.get_avatar_url(id=i,gender=self.data.users[i]["gender"]),
         )
         # observations = self.data.users[i]["observations"].strip(".").split(".")
         # for observation in observations:
@@ -743,7 +774,7 @@ class Simulator:
         """
         @ Zeyu Zhang
         Create a user controllable agent.
-        :param i: the id of role.
+        :param id: the id of role.
         :param api_key: the API key of the role.
         :return: an object of `RoleAgent`.
         """
@@ -756,19 +787,24 @@ class Simulator:
         # relations = input("Please input the relations by names-relation, split by comma. \n").strip(",").split(",")
 
         # The debug version.
-        name, age, traits, status, interest,feature = (
+        name, age,gender, traits, status, interest,feature,event,avatar_url = (
             "Zeyu",
             23,
+            "male"
             "happy",
             "nice",
-            "He has a girl friend. He has watched many films.",
-            "Watcher"
+            "sci-fic",
+            "Watcher",
+            
         )
         relationships = f"{id} 0 friend,0 {id} friend,{id} 1 friend,1 {id} friend".strip(",").split(",")
         relationships = [r.split(" ") for r in relationships]
-
+        event=reset_event(self.now),
+        avatar_url=utils.get_avatar_url(id=id,gender=gender),
         LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
-        agent_memory = GenerativeAgentMemory(
+        MemoryClass = RecAgentMemory if self.config["recagent_memory"]=='recagent' else GenerativeAgentMemory
+
+        agent_memory = MemoryClass(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
             verbose=False,
@@ -778,11 +814,17 @@ class Simulator:
             id=id,
             name=name,
             age=age,
+            gender=gender,
             traits=traits,
             status=status,
+            interest=interest,
+            relationships=relationships,
+            feature=feature,
             memory_retriever=self.create_new_memory_retriever(),
             llm=LLM,
             memory=agent_memory,
+            event=event,
+            avatar_url=avatar_url,
         )
         # for observation in observations:
         #     agent.memory.add_memory(observation, now=self.now)
@@ -797,7 +839,7 @@ class Simulator:
         """
         agents = {}
         api_keys = list(self.config["api_keys"])
-        num_agents = int(self.config["num_agents"])
+        agent_num = int(self.config["agent_num"])
         # Add ONE user controllable user into the simulator if the flag is true.
         # We block the main thread when the user is creating the role.
         if self.config["play_role"]:
@@ -806,16 +848,16 @@ class Simulator:
             agent = self.create_user_role(role_id, api_key)
             agents[role_id] = agent
         if self.active_method == "random":
-            active_probs = [self.config["active_prob"]] * num_agents
+            active_probs = [self.config["active_prob"]] * agent_num
         else:
-            active_probs = np.random.pareto(self.config["active_prob"]*10, num_agents)
+            active_probs = np.random.pareto(self.config["active_prob"]*10, agent_num)
             active_probs=active_probs/active_probs.max()
 
         if self.config["execution_mode"] == "parallel":
             futures = []
             start_time = time.time()
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                for i in range(num_agents):
+                for i in range(agent_num):
                     api_key = api_keys[i % len(api_keys)]
                     futures.append(executor.submit(self.create_agent, i, api_key))
                 for future in tqdm(concurrent.futures.as_completed(futures)):
@@ -824,28 +866,27 @@ class Simulator:
                     agents[agent.id] = agent
             end_time = time.time()
             self.logger.info(
-                f"Time for creating {num_agents} agents: {end_time-start_time}"
+                f"Time for creating {agent_num} agents: {end_time-start_time}"
             )
         else:
-            for i in tqdm(range(num_agents)):
+            for i in tqdm(range(agent_num)):
                 api_key = api_keys[i % len(api_keys)]
                 agent = self.create_agent(i, api_key)
                 agent.active_prob = active_probs[agent.id]
                 agents[agent.id] = agent
 
         return agents
+
     def reset(self):
         # Reset the system
         self.pause()
         self.round_cnt=0
-        all_agents = [v for k, v in self.agents.items()]
         log_string = ""
-        for agent in all_agents:
-            agent.reset_agent()
+        self.load_simulator()
         log_string = "The system is reset, and the historic records are removed."
         self.round_msg.append(Message(agent_id=-1,action="System",content=log_string))
         return log_string
-        
+
     def start(self):
         self.play()
         messages=[]
@@ -879,6 +920,13 @@ def parse_args():
         type=bool,
         default=False,
         help="Add a user controllable role",
+    )
+    parser.add_argument(
+        "-m",
+        "--recagent_memory",
+        type=str,
+        default="recagent",
+        help="Memory mecanism"
     )
     parser.add_argument(
         "opts",
@@ -1008,10 +1056,11 @@ def main():
     config = utils.add_variable_to_config(config, "log_file", args.log_file)
     config = utils.add_variable_to_config(config, "log_name", args.log_name)
     config = utils.add_variable_to_config(config, "play_role", args.play_role)
+    config = utils.add_variable_to_config(config, "recagent_memory", args.recagent_memory)
     config.merge_from_file(args.config_file)
     logger.info(f"\n{config}")
     os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
-    
+
     # run
     if config["simulator_restore_file_name"]:
         restore_path = os.path.join(
@@ -1034,7 +1083,7 @@ def main():
         with open(config['output_file'], "w") as file:
             json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
         recagent.recsys.save_interaction()
-        recagent.save(os.path.join(config["simulator_dir"]))
+        #recagent.save(os.path.join(config["simulator_dir"]))
 
 
 if __name__ == "__main__":

@@ -1,16 +1,20 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 import os
 import argparse
 from yacs.config import CfgNode
 from pydantic import BaseModel, parse_obj_as
 from typing import Optional, Union
 from demo import Demo
-from utils import utils,message
+from utils import utils,message,connect
 import uvicorn
 import csv
 from simulator import *
 from agents import *
 import threading
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.gzip import GZipMiddleware
+import time
+import asyncio
 lock = threading.Lock()
 
 class Agent(BaseModel):
@@ -22,14 +26,19 @@ class Agent(BaseModel):
     status: str
     interest: str
     feature: str
+    role: str
+    avatar_url: str
     event: Event
 
 
 class Link(BaseModel):
     source: int
     target: int
-    label: str
+    name: str
 
+class SystemStat(BaseModel):
+    recommender: message.RecommenderStat
+    social: message.SocialStat
 
 def convert_rec_agent_to_agent(rec_agent: RecAgent):
     data = {
@@ -42,6 +51,7 @@ def convert_rec_agent_to_agent(rec_agent: RecAgent):
         "interest": rec_agent.interest,
         "feature": rec_agent.feature,
         "role": rec_agent.role,  # Uncomment this line if 'role' is an attribute of rec_agent
+        "avatar_url": rec_agent.avatar_url,
         "event": rec_agent.event,
     }
     return Agent(**data)
@@ -82,6 +92,7 @@ config.merge_from_file(args['config_file'])
 logger.info(f"\n{config}")
 os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
 # run
+recagent=None
 if config["simulator_restore_file_name"]:
     restore_path = os.path.join(
         config["simulator_dir"], config["simulator_restore_file_name"]
@@ -93,46 +104,75 @@ else:
     recagent = Simulator(config, logger)
     recagent.load_simulator()
 
-play = False
-agents: list[Agent] = []
-for k, v in recagent.agents.items():
-    agents.append(convert_rec_agent_to_agent(v))
-
-# links
+agents: list[Agent] = [None]*config["agent_num"]
 links: list[Link] = []
-link_flag=set()
-cnt={}
-with open(config["relationship_path"], "r", newline="") as file:
-    reader = csv.reader(file)
-    next(reader)
-    for row in reader:
-        user_1, user_2, relationship,_ = row
-        user_1 = int(user_1)
-        user_2 = int(user_2)
-       
-        if user_1 >=len(agents) or user_2 >=len(agents):
-            continue
-        user_1, user_2 = min(user_1, user_2), max(user_1, user_2)
-        if (user_1,user_2) in link_flag:
-            continue
-        if user_1 not in cnt:
-            cnt[user_1]=0
-        if user_2 not in cnt:
-            cnt[user_2]=0
-        if cnt[user_1]>=5 or cnt[user_2]>=5:
-            continue
-        cnt[user_1]+=1
-        cnt[user_2]+=1
-        link_flag.add((user_1,user_2))
-        links.append(Link(source=user_1, target=user_2, label=relationship))
+def init():
+    global agents,links
+    agents= [None]*config["agent_num"]
+    for k, v in recagent.agents.items():
+        agents[v.id]=convert_rec_agent_to_agent(v)
+
+    # links
+    links = []
+    link_flag=set()
+    cnt={}
+    with open(config["relationship_path"], "r", newline="") as file:
+        reader = csv.reader(file)
+        next(reader)
+        for row in reader:
+            user_1, user_2, relationship,_ = row
+            user_1 = int(user_1)
+            user_2 = int(user_2)
+        
+            if user_1 >=len(agents) or user_2 >=len(agents):
+                continue
+            user_1, user_2 = min(user_1, user_2), max(user_1, user_2)
+            if (user_1,user_2) in link_flag:
+                continue
+            if user_1 not in cnt:
+                cnt[user_1]=0
+            if user_2 not in cnt:
+                cnt[user_2]=0
+            if cnt[user_1]>=5 or cnt[user_2]>=5:
+                continue
+            cnt[user_1]+=1
+            cnt[user_2]+=1
+            link_flag.add((user_1,user_2))
+            links.append(Link(source=user_1, target=user_2, name=relationship))
 
 app = FastAPI()
+init()
+app.mount("/asset", StaticFiles(directory="asset"), name="asset")
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+# @app.get("/agents",response_model=list[Agent])
+# def get_agents():
+#     return agents
+@app.get("/agents", response_model=List[Agent])
+async def get_agents(query: Optional[str] = None):
+    # 定义一个函数用于模糊搜索
+    def fuzzy_search(keyword, lst):
+        return [
+            agent
+            for agent in lst
+            if keyword.lower() in agent.name.lower() or
+               str(keyword) in str(agent.id) or
+               keyword.lower() in agent.gender.lower() or
+               str(keyword) in str(agent.age) or
+               keyword.lower() in agent.traits.lower() or
+               keyword.lower() in agent.status.lower() or
+               keyword.lower() in agent.interest.lower() or
+               keyword.lower() in agent.feature.lower() or
+               keyword.lower() in agent.role.lower() or
+               keyword.lower() in agent.event.action_type.lower()
+        ]
 
+    if query:
+        result = fuzzy_search(query, agents)
+        if not result:
+            return []
+        return result
 
-@app.get("/agents",response_model=list[Agent])
-def get_agents():
-    return agents
-
+    return agents  # 如果没有提供查询参数，则返回所有代理
 
 @app.get("/agents/{user_id}",response_model=Agent)
 def get_agent(user_id: int):
@@ -177,7 +217,7 @@ def update_relation(source: int, target: int, label: str):
             links[i].label = label
             flag = i
     if flag == -1:
-        links.append(Link(source=source, target=target, label=label))
+        links.append(Link(source=source, target=target, name=label))
         flag = len(links) - 1
     
 
@@ -186,9 +226,9 @@ async def search(query: str):
     # 定义一个函数用于模糊搜索
     def fuzzy_search(keyword, lst):
         return [
-            k
-            for k, v in lst.items()
-            if keyword.lower() in v.name.lower() or str(keyword) == str(v.id)
+            v
+            for v in lst
+            if keyword.lower() in v.name.lower() or str(keyword) in str(v.id)
         ]
 
     result = fuzzy_search(query, agents)
@@ -204,41 +244,95 @@ def get_messages():
         recagent.round_msg=recagent.round_msg[len(msgs):]
     return msgs
 
-@app.get("/recommender-stats",response_model=message.RecommenderStat)
-def get_recommender_stats():
-    recagent.update_stat()
-    return recagent.rec_stat
 
-@app.get("/social-stats",response_model=message.SocialStat)
-def get_social_stats():
+@app.get("/system-stat",response_model=SystemStat)
+def get_system_stat():
     recagent.update_stat()
-    return recagent.social_stat
+    return SystemStat(recommender=recagent.rec_stat,social=recagent.social_stat)
+
 
 @app.get("/rounds",response_model=int)
 def get_rounds():
     return recagent.round_cnt
 
+
+@app.websocket("/test")
+async def test(websocket: WebSocket):
+    route = await connect.websocket_manager.connect("test",websocket)
+    i=0
+    try:
+        while True:
+            data = await websocket.receive_text()
+            s=await connect.websocket_manager.send_personal_message(f"test:{i}","test")
+            i+=1
+            if data == "exit":  # 你可以设置一些条件来断开连接
+                break
+           
+    except WebSocketDisconnect:
+        # 这里处理客户端断开连接的情况
+        pass
+    finally:
+        await websocket.close()
+
+@app.websocket("/test-response")
+async def test(websocket: WebSocket):
+    route = await connect.websocket_manager.connect("test-response",websocket)
+    try:
+        s=await connect.websocket_manager.send_and_wait_for_response("test-response","test-response")
+        print(s)
+    except Exception as e:
+        print(e)
+
+
+@app.websocket("/role-play/{user_id}")
+async def role_play(user_id:int,websocket: WebSocket):
+    await connect.websocket_manager.connect("role-play",websocket)
+    recagent.convert_agent_to_role(user_id)
+    try:
+        async def receive():  
+            while True:
+                data = await websocket.receive_text()
+                connect.message_queue.append(data)
+                if data == "exit":  
+                    return
+        await receive()
+    except WebSocketDisconnect:
+        await connect.websocket_manager.connect("role-play",websocket)
+    finally:
+        await websocket.close()
+
+
+@app.get("/configs",response_model=dict)
+def get_configs():
+    return recagent.config
+
+@app.patch("/configs")
+def update_configs(config:dict):
+    recagent.config.update(config)
+
 @app.post("/start")
-async def start():
-    
+def start():
     play_thread = threading.Thread(target=recagent.start)
     play_thread.start()
+    return "Simulation start!"
 
 @app.post("/pause")
-async def pause():
+def pause():
     print("is_set",recagent.play_event.is_set())
     if recagent.play_event.is_set():
         recagent.pause()
     else:
         recagent.play()
     print("is_set",recagent.play_event.is_set())
-
+    return "Simulation pause!"
 
 @app.post("/reset")
-async def reset():
+def reset():
+
     log = recagent.reset()
+    init()
     return log
 
 
-# if __name__ == "__main__":
-#     uvicorn.run(app="backend:app", host="127.0.0.1", port=8001, reload=True)
+if __name__ == "__main__":
+    uvicorn.run(app="backend:app", host="0.0.0.0", port=18888, reload=False)

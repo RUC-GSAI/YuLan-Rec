@@ -66,6 +66,8 @@ class Data:
                     "name": title,
                     "genre": genre,
                     "description": description,
+                    "inter_cnt":0,
+                    "mention_cnt":0
                 }
 
     def load_users(self, file_path):
@@ -76,7 +78,7 @@ class Data:
             reader = csv.reader(file)
             next(reader)  # Skip the header line
             for row in reader:
-                user_id, name, gender, age, traits, status, interest,feature = row
+                user_id, name, gender, age, traits, status, interest, feature = row
                 self.users[int(user_id)] = {
                     "name": name,
                     "gender": gender,
@@ -86,7 +88,7 @@ class Data:
                     "interest": interest,
                     "feature": feature,
                 }
-                if self.get_user_num() == self.config["num_agents"]:
+                if self.get_user_num() == self.config["agent_num"]:
                     break
 
     def load_role(self, id, name, age, traits, status, interest,feature, relationships):
@@ -110,6 +112,24 @@ class Data:
 
     def get_full_items(self):
         return list(self.items.keys())
+    
+    def get_inter_popular_items(self):
+        ids=sorted(self.items.keys(),key=lambda x:self.items[x]["inter_cnt"],reverse=True)[:3]
+        return self.get_item_names(ids)
+    
+    def add_inter_cnt(self,item_names):
+        item_ids = self.get_item_ids(item_names)
+        for item_id in item_ids:
+            self.items[item_id]["inter_cnt"]+=1
+    
+    def add_mention_cnt(self,item_names):
+        item_ids = self.get_item_ids(item_names)
+        for item_id in item_ids:
+            self.items[item_id]["mention_cnt"]+=1
+
+    def get_mention_popular_items(self):
+        ids=sorted(self.items.keys(),key=lambda x:self.items[x]["mention_cnt"],reverse=True)[:3]
+        return self.get_item_names(ids)
 
     def get_item_names(self, item_ids):
         return ["<" + self.items[item_id]["name"] + ">" for item_id in item_ids]

@@ -20,30 +20,71 @@ from langchain.experimental.generative_agents import (
     GenerativeAgent,
     GenerativeAgentMemory,
 )
-from utils import utils
-
-from agents.recagent import RecAgent
-
+from utils import utils,connect
+import asyncio
+from .recagent import RecAgent
 
 class RoleAgent(RecAgent):
     """
     RoleAgent is an extension class for `RecAgent`, which mainly overwrites some methods, where we replace LLM with
     human inputs in them.
     """
-
-    def __init__(self, id, name, age, traits, status, memory_retriever, llm, memory):
+    run_location: str="web"
+    def __init__(self, id, name, age,gender, traits, status,interest,relationships,feature, memory_retriever, llm, memory,event,avatar_url):
         super(RoleAgent, self).__init__(
             id=id,
             name=name,
             age=age,
+            gender=gender,
             traits=traits,
             status=status,
+            interest=interest,
+            relationships=relationships,
+            feature=feature,
             memory_retriever=memory_retriever,
             llm=llm,
             memory=memory,
+            event=event,
+            avatar_url=avatar_url,
         )
+        self.role="user"
 
-    def take_action(self) -> Tuple[str, str]:
+    @classmethod
+    def from_recagent(cls, recagent_instance: RecAgent):
+        new_instance = cls(id=recagent_instance.id,
+            name=recagent_instance.name,
+            age=recagent_instance.age,
+            gender=recagent_instance.gender,
+            traits=recagent_instance.traits,
+            status=recagent_instance.status,
+            interest=recagent_instance.interest,
+            relationships=recagent_instance.relationships,
+            feature=recagent_instance.feature,
+            memory_retriever=recagent_instance.memory.longTermMemory.memory_retriever,
+            llm=recagent_instance.llm,
+            memory=recagent_instance.memory,
+            event=recagent_instance.event,
+            avatar_url=recagent_instance.avatar_url)
+        return new_instance
+
+    async def get_response(self,message:str)->str:
+        """
+        Get the response from the user.
+        :param message: the message from the user.
+        :return:
+        """
+        # if self.run_location=="location":
+        #     response=self.get_response(message)
+        # else:
+        
+        await connect.websocket_manager.send_personal_message("role-play",message)
+        while True:
+            if len(connect.message_queue) > 0:
+                response = connect.message_queue.pop()
+                return response
+
+
+    def take_action(self,now) -> Tuple[str, str]:
         """
         Require the user choose one action below by inputting:
         (1) Enter the Recommender.
@@ -54,22 +95,23 @@ class RoleAgent(RecAgent):
                      and '[NOTHING]'.
         result(str): integrate the choice and the reason into one sentence.
         """
-
-        order = input(
+        print("take_action")
+        order = asyncio.run( self.get_response(
+            f"It's {now}.\n"
             "Please choose one action below: \n"
             "(1) Enter the Recommender, please input 1. \n"
             "(2) Enter the Social Media, please input 2. \n"
             "(3) Do Nothing, please input 3. \n"
-        )
+        ))
         # If the input is not conforming to the prescribed form, we let the user input again.
         while order not in ["1", "2", "3"]:
-            order = input(
+            order = asyncio.run(self.get_response(
                 "Your input is wrong, please choose one action below: \n"
                 "(1) Enter the Recommender, please input 1. \n"
                 "(2) Enter the Social Media, please input 2. \n"
                 "(3) Do Nothing, please input 3. \n"
-            )
-        action = input("You can input some text to explain your choice. \n")
+            ))
+        action = asyncio.run(self.get_response("You can input some text to explain your choice. \n"))
 
         # Change the input number to the choice token.
         choice = {"1": "[RECOMMENDER]", "2": "[SOCIAL]", "3": "[NOTHING]"}[order]
@@ -80,7 +122,7 @@ class RoleAgent(RecAgent):
             "3": "do nothing",
         }[order]
         # Construct the sentence.
-        result = choice + ":: %s want to %s because %s" % (self.name, phase, action)
+        result = choice + ":: %s wants to %s because %s" % (self.name, phase, action)
 
         self.memory.save_context(
             {},
@@ -90,7 +132,7 @@ class RoleAgent(RecAgent):
         )
         return choice, result
 
-    def take_recommender_action(self, observation) -> Tuple[str, str]:
+    def take_recommender_action(self, observation,now) -> Tuple[str, str]:
         """
         Require the user choose one action below by inputting:
         (1) Buy movies among the recommended items.
@@ -102,37 +144,37 @@ class RoleAgent(RecAgent):
                      '[SEARCH]', and '[NOTHING]'.
         action(str): integrate the choice and the reason into one sentence.
         """
-        order = input(
+        order = asyncio.run(self.get_response(
             "Please choose one action below: \n"
             "(1) Buy movies among the recommended items, please input 1. \n"
             "(2) Next page, please input 2. \n"
             "(3) Search items, please input 3. \n"
             "(4) Leave the recommender system, input 4. \n"
-        )
+        ))
         # If the input is not conforming to the prescribed form, we let the user input again.
         while order not in ["1", "2", "3", "4"]:
-            order = input(
+            order = asyncio.run(self.get_response(
                 "Your input is wrong, please choose one action below: \n"
                 "(1) Buy movies among the recommended items, please input 1. \n"
                 "(2) Next page, please input 2. \n"
                 "(3) Search items, please input 3. \n"
                 "(4) Leave the recommender system, input 4. \n"
-            )
+            ))
 
         # Change the input number to the choice token.
         choice = {"1": "[BUY]", "2": "[NEXT]", "3": "[SEARCH]", "4": "[LEAVE]"}[order]
 
         if order == "1":
-            films = input(
+            films = asyncio.run(self.get_response(
                 "Please input movie names in the list returned by the recommender system, only movie names, separated by semicolons. \n"
-            )
+            ))
             # Construct the list of films with '<*>' format.
             film_list = ["<%s>" % film for film in films.split(",")]
             action = str(film_list)
         elif order == "2":
             action = self.name + "looks the next page"
         elif order == "3":
-            items = input("Please search single, specific item name want to search. \n")
+            items = asyncio.run(self.get_response("Please search single, specific item name want to search. \n"))
             # Construct the list of films with '<*>' format.
             item_list = ["<%s>" % item for item in items.split(",")]
             action = str(item_list)
@@ -151,14 +193,14 @@ class RoleAgent(RecAgent):
         )
         return choice, action
 
-    def generate_feelings(self, observation: str) -> str:
+    def generate_feeling(self, observation: str,now) -> str:
         """
         Feel about each item bought.
         """
 
-        feeling = input(
+        feeling = asyncio.run(self.get_response(
             "Please input your feelings, which should be split by semicolon: \n"
-        )
+        ))
 
         results = feeling.split(",")
         feelings = ""
@@ -172,12 +214,12 @@ class RoleAgent(RecAgent):
         )
         return feelings
 
-    def search_item(self, observation) -> str:
+    def search_item(self, observation,now) -> str:
         """
         Search item by the item name.
         """
 
-        search = input("Please input your search: \n")
+        search = asyncio.run(self.get_response("Please input your search: \n"))
 
         result = search
         self.memory.save_context(
@@ -188,7 +230,7 @@ class RoleAgent(RecAgent):
         )
         return result
 
-    def take_social_action(self, observation) -> Tuple[str, str]:
+    def take_social_action(self, observation,now) -> Tuple[str, str]:
         """
         Require the user choose one action below by inputting:
         (1) Chat with one acquaintance. [CHAT]:: TO [acquaintance]: what to say.
@@ -198,27 +240,27 @@ class RoleAgent(RecAgent):
         action(str): integrate the choice and the reason into one sentence.
         """
 
-        order = input(
+        order = asyncio.run(self.get_response(
             "Please choose one action below: \n"
             "(1) Chat with one acquaintance, input 1. \n"
             "(2) Publish posting to all acquaintances, input 2. \n"
-        )
+        ))
         # If the input is not conforming to the prescribed form, we let the user input again.
         while order not in ["1", "2"]:
-            order = input(
+            order = asyncio.run(self.get_response(
                 "Please choose one action below: \n"
                 "(1) Chat with one acquaintance, input 1. \n"
                 "(2) Publish posting to all acquaintances, input 2. \n"
-            )
+            ))
 
         # Change the input number to the choice token.
         choice = {"1": "[CHAT]", "2": "[POST]"}[order]
 
         if order == "1":
-            action = input("Please input one acquaintance to chat: \n")
+            action = asyncio.run(self.get_response("Please input one acquaintance to chat: \n"))
         elif order == "2":
             # Do not input here.
-            # action = input("Please input the text that you want to post: \n")
+            # action = self.get_response("Please input the text that you want to post: \n")
             action = " "
         else:
             raise "Never occur."
@@ -231,7 +273,7 @@ class RoleAgent(RecAgent):
                 self.memory.add_memory_key: f"{self.name} took action: {result}",
             },
         )
-        return choice, action
+        return choice, action,0
 
     def generate_role_dialogue(
         self, agent2, observation: str, now: Optional[datetime] = None
@@ -246,9 +288,9 @@ class RoleAgent(RecAgent):
         role_dia(str): the action description, including the name and the dialogue text.
         """
 
-        role_text = input(
+        role_text = asyncio.run(self.get_response(
             'Please input your chatting text (Input "goodbye" if you want to quit): \n'
-        )
+        ))
         role_dia = "%s said %s" % (self.name, role_text)
 
         # Obtain the response by agent(LLM).
@@ -260,14 +302,14 @@ class RoleAgent(RecAgent):
         return contin, result, role_dia
         # return full_result
 
-    def publish_posting(self, observation) -> str:
+    def publish_posting(self, observation,now) -> str:
         """
         Publish posting to all acquaintances.
         """
 
-        result = input(
+        result = asyncio.run(self.get_response(
             "Please input the text that you want to post to your acquaintances: \n"
-        )
+        ))
 
         self.memory.save_context(
             {},
@@ -289,9 +331,9 @@ class RoleAgent(RecAgent):
         """
 
         contin = True
-        role_text = input(
+        role_text = asyncio.run(self.get_response(
             'Please input your chatting text (Input "goodbye" if you want to quit): \n'
-        )
+        ))
         role_dia = "%s said %s" % (self.name, role_text)
 
         if role_text == "goodbye":

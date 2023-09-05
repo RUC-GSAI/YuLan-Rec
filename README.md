@@ -84,7 +84,7 @@ model: Random
 # number of epochs
 epoch: 1
 # number of agents, which cannot exceed the number of user in user.csv
-num_agents: 1
+agent_num: 1
 # number of items to be recommended in one page
 page_size: 5
 # temperature for LLM
@@ -99,7 +99,7 @@ api_keys:
   - xxxxx
 ```
 
-The first `num_agents` users in `user.csv` will be loaded. Note that the `num_agents` in `config.yaml` cannot exceed the total number of users in `user.csv`.
+The first `agent_num` users in `user.csv` will be loaded. Note that the `agent_num` in `config.yaml` cannot exceed the total number of users in `user.csv`.
 
 ### 1. Example
 
@@ -122,7 +122,7 @@ item_path: data/item.csv
 log_name: 82754
 max_token: 1500
 model: Random
-num_agents: 1
+agent_num: 1
 page_size: 5
 relationship_path: data/relationship.csv
 temperature: 0.8

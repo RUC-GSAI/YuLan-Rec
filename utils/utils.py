@@ -329,3 +329,12 @@ def get_feature_description(feature):
     # 为每个特性生成描述
     descriptions_list = [descriptions[feature] for feature in features if feature in descriptions]
     return ".".join(descriptions_list)
+
+def count_files_in_directory(target_directory:str):
+    """Count the number of files in the target directory"""
+    print(os.getcwd())
+    return len(os.listdir(target_directory))
+
+def get_avatar_url(id:int,gender:str):
+    target='/asset/img/'+gender+'/'
+    return target+str(id%10)+'.png'

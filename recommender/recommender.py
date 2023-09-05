@@ -16,7 +16,7 @@ class Recommender:
         self.config = config
         self.page_size = config["page_size"]
         module = importlib.import_module("recommender.model")
-        self.model = getattr(module, config["model"])(config)
+        self.model = getattr(module, config["rec_model"])(config)
         self.record = {}
         self.positive = {}
         self.inter_df = None

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from langchain import LLMChain
 from langchain.base_language import BaseLanguageModel
-from langchain.experimental.generative_agents.memory import GenerativeAgentMemory
+from langchain.experimental.generative_agents.memory import GenerativeAgentMemory,BaseMemory
 from langchain.prompts import PromptTemplate
 from langchain.experimental.generative_agents import (
     GenerativeAgent,
@@ -14,7 +14,7 @@ from langchain.experimental.generative_agents import (
 )
 from utils import utils
 from utils.event import Event
-
+from agents.recagent_memory import RecAgentMemory
 
 class RecAgent(GenerativeAgent):
     id: int
@@ -56,8 +56,31 @@ class RecAgent(GenerativeAgent):
     no_action_round: int = 0
     """The number of rounds that the agent has not taken action"""
 
+    memory: BaseMemory
+    """The memory module in RecAgent."""
+
     role: str = "agent"
 
+    avatar_url: str
+
+    @classmethod
+    def from_roleagent(cls, roleagent_instance: "RecAgent"):
+        # 使用RoleRecAgent实例的属性来创建一个RecAgent实例
+        new_instance = cls(id=roleagent_instance.id,
+            name=roleagent_instance.name,
+            age=roleagent_instance.age,
+            gender=roleagent_instance.gender,
+            traits=roleagent_instance.traits,
+            status=roleagent_instance.status,
+            interest=roleagent_instance.interest,
+            relationships=roleagent_instance.relationships,
+            feature=roleagent_instance.feature,
+            memory_retriever=roleagent_instance.memory_retriever,
+            llm=roleagent_instance.llm,
+            memory=roleagent_instance.memory,
+            event=roleagent_instance.event,
+            avatar_url=roleagent_instance.avatar_url)
+        return new_instance
 
     def __lt__(self, other: "RecAgent"):
         return self.event.end_time < other.event.end_time
@@ -310,14 +333,19 @@ class RecAgent(GenerativeAgent):
 
     def get_memories_until_limit(self, consumed_tokens: int) -> str:
         """Reduce the number of tokens in the documents."""
+        # print('TEST----',type(self.memory) == GenerativeAgentMemory,type(self.memory) == RecAgentMemory)
+        retriever = self.memory.longTermMemory.memory_retriever if type(self.memory) == RecAgentMemory else self.memory.memory_retriever
         result = []
-        for doc in self.memory.memory_retriever.memory_stream[::-1]:
+        for doc in retriever.memory_stream[::-1]:
             if consumed_tokens >= self.max_dialogue_token_limit:
                 break
             consumed_tokens += self.llm.get_num_tokens(doc.page_content)
             if consumed_tokens < self.max_dialogue_token_limit:
                 result.append(doc)
-        result = self.memory.format_memories_simple(result)
+        if type(self.memory) == RecAgentMemory:
+            result = self.memory.longTermMemory.format_memories_simple(result)
+        else:
+            result = self.memory.format_memories_simple(result)
         return result
 
     def generate_plan(
@@ -349,6 +377,7 @@ class RecAgent(GenerativeAgent):
         (2) Enter the Social Media.
         (3) Do Nothing.
         """
+        print("recagent take action")
         call_to_action_template = (
             "What action would {agent_name} like to take? Respond in one line."
             + "\nIf {agent_name} wants to enter the Recommender System, write:\n [RECOMMENDER]:: {agent_name} enters the Recommender System"
@@ -500,12 +529,16 @@ class RecAgent(GenerativeAgent):
         call_to_action_template = (
             "{agent_name} must take one of the two actions below:\n(1)Chat with one acquaintance about movies recently watched on recommender system: {watched_history}, or movies heared about on social media: {heared_history}.\n(2) Publish posting to all acquaintances about movies recently watched on recommender system: {watched_history}, or heared about on social media: {heared_history}."
             + "\nWhat action would {agent_name} like to take and how much time does the action cost?"
-            + "\nIf {agent_name} want to chat with one acquaintance, write:\n[CHAT]:: acquaintance's name\n[TIME]:: hours for chat. Select a number from 0.5, 1 and 2"
+            + "\nIf {agent_name} want to chat with one acquaintance, write:\n[CHAT]:: acquaintance's name\n[TIME]:: hours for chat. Select a number from 0.5, 1 and 2."
             + "\nIf {agent_name} want to publish posting to all acquaintances, write:\n[POST]:: what to post\n[TIME]:: 1"
             + "\n\n"
         )
         full_result = self._generate_reaction(observation, call_to_action_template, now)
-        result, duration = full_result.split("\n")
+        if len(full_result.split("\n")) == 1:
+            result=full_result
+            duration=1
+        else:
+            result, duration = full_result.split("\n")
         choice = result.split("::")[0]
         action = result.split("::")[1].strip()
         self.memory.save_context(
