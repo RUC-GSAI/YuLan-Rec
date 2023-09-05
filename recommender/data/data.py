@@ -63,9 +63,9 @@ class Data:
             for row in reader:
                 item_id, title, genre, description = row
                 self.items[int(item_id)] = {
-                    "name": title,
+                    "name": title.strip(),
                     "genre": genre,
-                    "description": description,
+                    "description": description.strip(),
                     "inter_cnt":0,
                     "mention_cnt":0
                 }
@@ -133,6 +133,7 @@ class Data:
 
     def get_item_names(self, item_ids):
         return ["<" + self.items[item_id]["name"] + ">" for item_id in item_ids]
+    
 
     def get_item_ids(self, item_names):
         item_ids = []
@@ -218,7 +219,10 @@ class Data:
             relatiobnships[self.users[id]["name"]] = self.users[user_id]["contact"][id]
         return relatiobnships
 
-    def get_item_descriptions(self, item_names):
+    def get_item_description_by_id(self, item_ids):
+        return [self.items[item_id]["description"] for item_id in item_ids]
+
+    def get_item_description_by_name(self, item_names):
         """
         Get description of items.
         """
@@ -226,7 +230,7 @@ class Data:
         for item in item_names:
             found = False
             for item_id, item_info in self.items.items():
-                if (item_info["name"] in item) or (item in item_info["name"]):
+                if item_info["name"]== item.strip(" <>"):
                     item_descriptions.append(item_info["description"])
                     found = True
                     break

@@ -1,5 +1,5 @@
 id,name,gender,age,traits,status,interest,feature
-0,David Smith,male,25,"compassionate, caring, ambitious, optimistic",photographer," sci-fi movies,  comedy movies",Watcher;Critic;Poster
+0,David Smith,male,25,"compassionate, caring, ambitious, optimistic",photographer," sci-fi movies,  comedy movies",Watcher;Critic;
 1,David Miller,female,39,"fun-loving, creative, practical, energetic, patient",writer," action movies,  sci-fi movies,  classic movies",Watcher;Explorer;Poster
 2,James Brown,male,70,"independent, creative, patient, empathetic",engineer," comedy movies,  family-friendly movies,  documentaries,  thriller movies",Watcher;Critic;Poster
 3,Sarah Miller,female,33,"independent, compassionate",farmer," romantic movies,  comedy movies,  classic movies,  family-friendly movies",Watcher;Critic;Poster

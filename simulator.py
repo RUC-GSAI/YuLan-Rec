@@ -122,10 +122,11 @@ class Simulator:
             relevance_score_fn=self.relevance_score_fn,
         )
 
+        # If choose RecAgentMemory, you must use RecAgentRetriever rather than TimeWeightedVectorStoreRetriever.
         RetrieverClass = RecAgentRetriever if self.config["recagent_memory"]=='recagent' else TimeWeightedVectorStoreRetriever
 
         return RetrieverClass(
-            vectorstore=vectorstore, other_score_keys=["importance"],now=self.now, k=15)
+            vectorstore=vectorstore, other_score_keys=["importance"],now=self.now, k=5)
 
     def check_active(self, index: int):
         # If agent's previous action is completed, reset the event
@@ -287,7 +288,7 @@ class Simulator:
                     )
                     agent.update_watched_history(item_names)
                     self.recsys.update_positive(agent_id, item_names)
-                    item_descriptions = self.data.get_item_descriptions(item_names)
+                    item_descriptions = self.data.get_item_description_by_name(item_names)
                     if len(item_descriptions) == 0:
                         self.logger.info(f"{name} leaves the recommender system.")
                         message.append(
@@ -309,7 +310,7 @@ class Simulator:
                     # observation=f"{name} has just finished watching"
 
                     for i in range(len(item_names)):
-                        observation = f"{name} has just finished watching {item_names[i]}:{item_descriptions[i]}."
+                        observation = f"{name} has just finished watching {item_names[i]};;{item_descriptions[i]}."
                         feelings = agent.generate_feeling(
                             observation, self.now + timedelta(hours=duration)
                         )
@@ -747,7 +748,7 @@ class Simulator:
             memory_retriever=self.create_new_memory_retriever(),
             now=self.now,
             verbose=False,
-            reflection_threshold=1,
+            reflection_threshold=10,
         )
         agent = RecAgent(
             id=i,
@@ -808,7 +809,7 @@ class Simulator:
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
             verbose=False,
-            reflection_threshold=8,
+            reflection_threshold=10,
         )
         agent = RoleAgent(
             id=id,
