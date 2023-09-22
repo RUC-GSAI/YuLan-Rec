@@ -114,10 +114,6 @@ class SensoryMemory():
             """
         )
         score = LLMChain(llm=self.llm, prompt=prompt).run(observation=observation).strip()
-        # print('---------score')
-        # print(LLMChain(llm=self.llm, prompt=prompt).prompt)
-        # print(score)
-        # print('---------end')
         match = re.search(r"^\D*(\d+)", score)
         if match:
             return (float(match.group(1)) / 10) * self.importance_weight
@@ -156,12 +152,6 @@ class SensoryMemory():
         result = [(self._score_memory_importance(text), text) for text in result]
         # Remove the short term memory whose importance score is lower than a threshold.
         result = [text for text in result if text[0] > 0.62]
-
-        # print('\n------------------------SSM(Before)-------------------------')
-        # print(self.buffer)
-        # print('------------------------SSM(After)-------------------------')
-        # print(result)
-        # print('------------------------END-------------------------\n')
 
         # Clear the buffer.
         self.clear()
@@ -750,7 +740,6 @@ class LongTermMemory(BaseMemory):
         """
         [Tool for Debug] Print the long term memories.
         """
-        print('----- Memories -----\n')
         for ind, mem in enumerate(self.memory_retriever.memory_stream):
             hours_passed = (self.now - mem.metadata['last_accessed_at']).total_seconds() / 3600
             recency = (1.0 - self.decay_rate) ** hours_passed

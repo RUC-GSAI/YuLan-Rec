@@ -102,7 +102,6 @@ class RoleAgent(RecAgent):
                      and '[NOTHING]'.
         result(str): integrate the choice and the reason into one sentence.
         """
-        print("take_action")
         order = asyncio.run( self.get_response(
             f"It's {now}.\n"
             "Please choose one action below: \n"

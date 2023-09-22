@@ -335,7 +335,6 @@ def get_feature_description(feature):
 
 def count_files_in_directory(target_directory:str):
     """Count the number of files in the target directory"""
-    print(os.getcwd())
     return len(os.listdir(target_directory))
 
 def get_avatar_url(id:int,gender:str,type:str="origin",role=False):

@@ -271,7 +271,6 @@ def get_rounds():
     return recagent.round_cnt
 
 
-
 @app.websocket("/role-play/{user_id}")
 async def role_play(user_id:int,websocket: WebSocket):
     await connect.websocket_manager.connect("role-play",websocket)
@@ -310,12 +309,10 @@ def start():
 
 @app.post("/pause")
 def pause():
-    print("is_set",recagent.play_event.is_set())
     if recagent.play_event.is_set():
         recagent.pause()
     else:
         recagent.play()
-    print("is_set",recagent.play_event.is_set())
     return "Simulation pause!"
 
 @app.post("/reset")

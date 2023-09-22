@@ -15,7 +15,7 @@ simulator_dir: data/simulator
 # simulator restoring name
 simulator_restore_file_name: 
 # recommender system model
-model: Random
+rec_model: Random
 # number of epochs
 epoch: 3
 # number of agents, which cannot exceed the number of user in user.csv
@@ -40,8 +40,9 @@ active_agent_threshold: 100
 active_method: random
 # propability for agent to be active
 active_prob: 1
+# implementation of agent memory, recagent or GenerativeAgentMemory
+agent_memory: recagent
 # list of api keys for LLM API
-recagent_memory: recagent
 api_keys:
   - xxxx
 
