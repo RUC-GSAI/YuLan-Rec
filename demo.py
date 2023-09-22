@@ -38,7 +38,7 @@ class Demo:
         self.init_round_info = '<div style="display: flex; font-family: 微软雅黑, sans-serif; font-size: 20px; color: #000000; font-weight: bold;">&nbsp;&nbsp; Waiting to start !  &nbsp;&nbsp;</div>'
 
     def init_background(self):
-        background = cv2.imread("./asset/img/background1.png")
+        background = cv2.imread("./asset/img/v_1/background1.png")
         back_h, back_w, _ = background.shape
 
         small_height_list = [
@@ -88,7 +88,7 @@ class Demo:
 
         small_coordinate = list(zip(small_height_list, small_weight_list))
         for id in range(20):
-            img = cv2.imread(f"./asset/img/s_{id}.png", cv2.IMREAD_UNCHANGED)
+            img = cv2.imread(f"./asset/img/v_1/s_{id}.png", cv2.IMREAD_UNCHANGED)
             img = cv2.resize(img, dsize=None, fx=0.063, fy=0.063)  # 0.063  0.1
             layout_img(background, img, small_coordinate[id])
 
@@ -227,22 +227,22 @@ class Demo:
 
         for idx in range(len(data)):
             img = cv2.imread(
-                "./asset/img/b_{}.png".format(data[idx]["agent_id"]),
+                "./asset/img/v_1/b_{}.png".format(data[idx]["agent_id"]),
                 cv2.IMREAD_UNCHANGED,
             )
             img = cv2.resize(img, dsize=None, fx=0.1, fy=0.1)
             layout_img(background, img, big_coordinate[data[idx]["agent_id"]])
 
             if data[idx]["action"] == "RECOMMENDER":
-                img = cv2.imread("./asset/img/recsys.png", cv2.IMREAD_UNCHANGED)
+                img = cv2.imread("./asset/img/v_1/recsys.png", cv2.IMREAD_UNCHANGED)
                 img = cv2.resize(img, dsize=None, fx=0.1, fy=0.1)
                 layout_img(background, img, icon_coordinate[data[idx]["agent_id"]])
             elif data[idx]["action"] == "POST":
-                img = cv2.imread("./asset/img/social.png", cv2.IMREAD_UNCHANGED)
+                img = cv2.imread("./asset/img/v_1/social.png", cv2.IMREAD_UNCHANGED)
                 img = cv2.resize(img, dsize=None, fx=0.1, fy=0.1)
                 layout_img(background, img, icon_coordinate[data[idx]["agent_id"]])
             elif data[idx]["action"] == "CHAT":
-                img = cv2.imread("./asset/img/chat.png", cv2.IMREAD_UNCHANGED)
+                img = cv2.imread("./asset/img/v_1/chat.png", cv2.IMREAD_UNCHANGED)
                 img = cv2.resize(img, dsize=None, fx=0.1, fy=0.1)
                 layout_img(background, img, icon_coordinate[data[idx]["agent_id"]])
 
@@ -305,6 +305,7 @@ class Demo:
 
     def execute_play(self):
         self.play = True
+        self.simulator.play()
         while self.play:
             for output in self.generate_output():
                 (
@@ -332,7 +333,7 @@ class Demo:
                         show_label=False,
                     )
                     relation_output = gr.Image(
-                        value="./asset/img/relations2.png",
+                        value="./asset/img/v_1/relations2.png",
                         label="Relations",
                         show_label=False,
                     )

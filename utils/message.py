@@ -31,3 +31,4 @@ class SocialStat(BaseModel):
     cur_chat_num: int
     post_num: int
     pop_items: list[str]
+    network_density: float

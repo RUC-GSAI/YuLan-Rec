@@ -170,3 +170,4 @@ config/develop.yaml
 .vscode/
 test.py
 interaction.csv
+.pkl

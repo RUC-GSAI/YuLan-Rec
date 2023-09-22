@@ -32,15 +32,17 @@ from recommender.recommender import Recommender
 from recommender.data.data import Data
 from agents import RecAgent
 from agents import RoleAgent
-from utils import utils,message
+from utils import utils, message
 from utils.message import Message
 from utils.event import Event, update_event, reset_event
 import utils.interval as interval
 import threading
-from agents.recagent_memory import RecAgentMemory,RecAgentRetriever
+from agents.recagent_memory import RecAgentMemory, RecAgentRetriever
 import heapq
 from fastapi.middleware.cors import CORSMiddleware
-lock=threading.Lock()
+
+lock = threading.Lock()
+
 
 class Simulator:
     """
@@ -51,24 +53,40 @@ class Simulator:
         self.config = config
         self.logger = logger
         self.round_cnt = 0
-        self.round_msg :list[Message]= []
-        self.active_agents: list[int] = [] #active agents in current round
+        self.round_msg: list[Message] = []
+        self.active_agents: list[int] = []  # active agents in current round
         self.active_agent_threshold = config["active_agent_threshold"]
         self.active_method = config["active_method"]
-        self.file_name_path:list[str] =[]
+        self.file_name_path: list[str] = []
         self.play_event = threading.Event()
-        self.working_agents: list[RecAgent]=[] #busy agents
+        self.working_agents: list[RecAgent] = []  # busy agents
         self.now = datetime.now().replace(hour=8, minute=0, second=0)
         self.interval = interval.parse_interval(config["interval"])
-        self.rec_stat=message.RecommenderStat(tot_user_num=0,cur_user_num=0,tot_item_num=0,inter_num=0,rec_model=config["rec_model"],pop_items=[])
-        self.social_stat=message.SocialStat(tot_user_num=0,cur_user_num=0,tot_link_num=0,chat_num=0,cur_chat_num=0,post_num=0,pop_items=[])
+        self.rec_stat = message.RecommenderStat(
+            tot_user_num=0,
+            cur_user_num=0,
+            tot_item_num=0,
+            inter_num=0,
+            rec_model=config["rec_model"],
+            pop_items=[],
+        )
+        self.social_stat = message.SocialStat(
+            tot_user_num=0,
+            cur_user_num=0,
+            tot_link_num=0,
+            chat_num=0,
+            cur_chat_num=0,
+            post_num=0,
+            pop_items=[],
+            network_density=0,
+        )
 
     def get_file_name_path(self):
         return self.file_name_path
 
     def load_simulator(self):
         """Load and initiate the simulator."""
-        self.round_cnt=0
+        self.round_cnt = 0
         self.data = Data(self.config)
         self.agents = self.agent_creation()
         self.recsys = Recommender(self.config, self.data)
@@ -123,15 +141,20 @@ class Simulator:
         )
 
         # If choose RecAgentMemory, you must use RecAgentRetriever rather than TimeWeightedVectorStoreRetriever.
-        RetrieverClass = RecAgentRetriever if self.config["recagent_memory"]=='recagent' else TimeWeightedVectorStoreRetriever
+        RetrieverClass = (
+            RecAgentRetriever
+            if self.config["recagent_memory"] == "recagent"
+            else TimeWeightedVectorStoreRetriever
+        )
 
         return RetrieverClass(
-            vectorstore=vectorstore, other_score_keys=["importance"],now=self.now, k=5)
+            vectorstore=vectorstore, other_score_keys=["importance"], now=self.now, k=5
+        )
 
     def check_active(self, index: int):
         # If agent's previous action is completed, reset the event
         agent = self.agents[index]
-        if isinstance(agent,RoleAgent):
+        if isinstance(agent, RoleAgent):
             return True
 
         if (
@@ -140,9 +163,13 @@ class Simulator:
         ):
             return False
         # If the movie does not end, the agent continues watching the movie.
-        if agent.event.action_type == "watch":
+        if agent.event.action_type == "watching":
             self.round_msg.append(
-                Message(agent_id=agent.id, action="WATCH", content=f"{agent.name} is watching movie.")
+                Message(
+                    agent_id=agent.id,
+                    action="WATCH",
+                    content=f"{agent.name} is watching movie.",
+                )
             )
             return False
 
@@ -160,48 +187,46 @@ class Simulator:
         self.play_event.set()
 
     def global_message(self, message: str):
-        for i,agent in self.agents.items():
+        for i, agent in self.agents.items():
             agent.memory.add_memory(message, self.now)
 
     def update_stat(self):
-        self.rec_stat.tot_user_num=len(self.agents)
-        self.social_stat.tot_user_num=len(self.agents)
-        self.rec_stat.cur_user_num=0
-        self.social_stat.cur_user_num=0
-        self.social_stat.cur_chat_num=0
+        self.rec_stat.tot_user_num = len(self.agents)
+        self.social_stat.tot_user_num = len(self.agents)
+        self.rec_stat.cur_user_num = 0
+        self.social_stat.cur_user_num = 0
+        self.social_stat.cur_chat_num = 0
         for agent in self.working_agents:
-            if isinstance(agent.event,dict):
-                print('*'*50)
+            if isinstance(agent.event, dict):
+                print("*" * 50)
+                print(agent.id)
                 print(agent.event)
-                print('*'*50)
+                print("*" * 50)
                 input()
-            if agent.event.action_type == "watch":
-                self.rec_stat.cur_user_num+=1
-            elif agent.event.action_type == "chat":
-                self.social_stat.cur_user_num+=1
-                self.social_stat.cur_chat_num+=len(agent.event.target_agent)
-        self.rec_stat.pop_items=self.data.get_inter_popular_items()
-        self.social_stat.pop_items=self.data.get_mention_popular_items()
+            if agent.event.action_type == "watching":
+                self.rec_stat.cur_user_num += 1
+            elif agent.event.action_type == "chatting":
+                self.social_stat.cur_user_num += 1
+                self.social_stat.cur_chat_num += len(agent.event.target_agent)
+        self.rec_stat.pop_items = self.data.get_inter_popular_items()
+        self.social_stat.pop_items = self.data.get_mention_popular_items()
         self.rec_stat.tot_item_num = self.data.get_item_num()
         self.rec_stat.inter_num = self.recsys.get_inter_num()
-        self.social_stat.tot_link_num = self.data.get_relationship_num()/2
-        self.social_stat.cur_chat_num/=2
-        #chat_num and post_num update in the one_step function
+        self.social_stat.tot_link_num = self.data.get_relationship_num() / 2
+        self.social_stat.cur_chat_num /= 2
+        self.social_stat.network_density = self.recsys.data.get_network_density()
+        # chat_num and post_num update in the one_step function
 
     def one_step(self, agent_id):
         """Run one step of an agent."""
-        print(agent_id)
         self.play_event.wait()
         if not self.check_active(agent_id):
-            return [Message(agent_id=agent_id, action="NO_ACTION", content="No action.")]
-        agent= self.agents[agent_id]
+            return [
+                Message(agent_id=agent_id, action="NO_ACTION", content="No action.")
+            ]
+        agent = self.agents[agent_id]
         name = agent.name
         message = []
-       
-        if agent.__class__.__name__!="RoleAgent":
-            print(agent.__class__.__name__)
-            print(self.agents[0])
-            print(agent_id)
         choice, observation = agent.take_action(self.now)
         with lock:
             heapq.heappush(self.working_agents, agent)
@@ -209,12 +234,16 @@ class Simulator:
             self.logger.info(f"{name} enters the recommender system.")
             message.append(
                 Message(
-                    agent_id=agent_id, action="RECOMMENDER", content=f"{name} enters the recommender system."
+                    agent_id=agent_id,
+                    action="RECOMMENDER",
+                    content=f"{name} enters the recommender system.",
                 )
             )
             self.round_msg.append(
                 Message(
-                    agent_id=agent_id, action="RECOMMENDER", content=f"{name} enters the recommender system."
+                    agent_id=agent_id,
+                    action="RECOMMENDER",
+                    content=f"{name} enters the recommender system.",
                 )
             )
             leave = False
@@ -261,7 +290,7 @@ class Simulator:
                     ],
                 )
 
-                if "BUY" in choice and agent.event.action_type == "none":
+                if "BUY" in choice and agent.event.action_type == "idle":
                     item_names = utils.extract_item_names(action)
                     duration = 2 * len(item_names)
                     agent.event = update_event(
@@ -269,7 +298,7 @@ class Simulator:
                         start_time=self.now,
                         duration=duration,
                         target_agent=None,
-                        action_type="watch",
+                        action_type="watching",
                     )
                     if len(item_names) == 0:
                         item_names = action.split(";")
@@ -278,17 +307,23 @@ class Simulator:
                     self.logger.info(f"{name} watches {item_names}")
                     message.append(
                         Message(
-                            agent_id=agent_id, action="RECOMMENDER", content=f"{name} watches {item_names}."
+                            agent_id=agent_id,
+                            action="RECOMMENDER",
+                            content=f"{name} watches {item_names}.",
                         )
                     )
                     self.round_msg.append(
                         Message(
-                            agent_id=agent_id, action="RECOMMENDER", content=f"{name} watches {item_names}."
+                            agent_id=agent_id,
+                            action="RECOMMENDER",
+                            content=f"{name} watches {item_names}.",
                         )
                     )
                     agent.update_watched_history(item_names)
                     self.recsys.update_positive(agent_id, item_names)
-                    item_descriptions = self.data.get_item_description_by_name(item_names)
+                    item_descriptions = self.data.get_item_description_by_name(
+                        item_names
+                    )
                     if len(item_descriptions) == 0:
                         self.logger.info(f"{name} leaves the recommender system.")
                         message.append(
@@ -317,10 +352,18 @@ class Simulator:
                         self.logger.info(f"{name} feels: {feelings}")
 
                     message.append(
-                        Message(agent_id=agent_id, action="RECOMMENDER", content=f"{name} feels: {feelings}")
+                        Message(
+                            agent_id=agent_id,
+                            action="RECOMMENDER",
+                            content=f"{name} feels: {feelings}",
+                        )
                     )
                     self.round_msg.append(
-                        Message(agent_id=agent_id, action="RECOMMENDER", content=f"{name} feels: {feelings}")
+                        Message(
+                            agent_id=agent_id,
+                            action="RECOMMENDER",
+                            content=f"{name} feels: {feelings}",
+                        )
                     )
                     searched_name = None
                     leave = True
@@ -328,10 +371,18 @@ class Simulator:
                 elif "NEXT" in choice:
                     self.logger.info(f"{name} looks next page.")
                     message.append(
-                        Message(agent_id=agent_id, action="RECOMMENDER", content=f"{name} looks next page.")
+                        Message(
+                            agent_id=agent_id,
+                            action="RECOMMENDER",
+                            content=f"{name} looks next page.",
+                        )
                     )
                     self.round_msg.append(
-                        Message(agent_id=agent_id, action="RECOMMENDER", content=f"{name} looks next page.")
+                        Message(
+                            agent_id=agent_id,
+                            action="RECOMMENDER",
+                            content=f"{name} looks next page.",
+                        )
                     )
                     if (page + 1) * self.recsys.page_size < len(rec_items):
                         page = page + 1
@@ -359,12 +410,16 @@ class Simulator:
                     self.logger.info(f"{name} searches {item_name}.")
                     message.append(
                         Message(
-                            agent_id=agent_id, action="RECOMMENDER", content=f"{name} searches {item_name}."
+                            agent_id=agent_id,
+                            action="RECOMMENDER",
+                            content=f"{name} searches {item_name}.",
                         )
                     )
                     self.round_msg.append(
                         Message(
-                            agent_id=agent_id, action="RECOMMENDER", content=f"{name} searches {item_name}."
+                            agent_id=agent_id,
+                            action="RECOMMENDER",
+                            content=f"{name} searches {item_name}.",
                         )
                     )
                     item_names = utils.extract_item_names(item_name)
@@ -470,28 +525,44 @@ class Simulator:
             if len(contacts) == 0:
                 self.logger.info(f"{name} has no acquaintance.")
                 message.append(
-                    Message(agent_id=agent_id, action="SOCIAL", content=f"{name} has no acquaintance.")
+                    Message(
+                        agent_id=agent_id,
+                        action="SOCIAL",
+                        content=f"{name} has no acquaintance.",
+                    )
                 )
                 self.round_msg.append(
-                    Message(agent_id=agent_id, action="SOCIAL", content=f"{name} has no acquaintance.")
+                    Message(
+                        agent_id=agent_id,
+                        action="SOCIAL",
+                        content=f"{name} has no acquaintance.",
+                    )
                 )
             else:
-                self.social_stat.cur_user_num+=1
+                self.social_stat.cur_user_num += 1
                 self.logger.info(f"{name} is going to social media.")
                 message.append(
-                    Message(agent_id=agent_id, action="SOCIAL", content=f"{name} is going to social media.")
+                    Message(
+                        agent_id=agent_id,
+                        action="SOCIAL",
+                        content=f"{name} is going to social media.",
+                    )
                 )
                 self.round_msg.append(
-                    Message(agent_id=agent_id, action="SOCIAL", content=f"{name} is going to social media.")
+                    Message(
+                        agent_id=agent_id,
+                        action="SOCIAL",
+                        content=f"{name} is going to social media.",
+                    )
                 )
-                social = f"{name} is going to social media. {name} and {contacts} are acquaintances. {name} can chat with acquaintances, or post to all acquaintances. What will {name} do?"
-                choice, action, duration = agent.take_social_action(social, self.now)
+                observation = f"{name} is going to social media. {name} and {contacts} are acquaintances. {name} can chat with acquaintances, or post to all acquaintances. What will {name} do?"
+                choice, action, duration = agent.take_social_action(observation, self.now)
                 if "CHAT" in choice:
                     agent_name2 = action.strip(" \t\n'\"")
                     agent_id2 = self.data.get_user_ids([agent_name2])[0]
-                    agent2 = self.agents[agent_id2]                
+                    agent2 = self.agents[agent_id2]
                     # If agent2 is watching moives, he cannot be interupted.
-                    if agent2.event.action_type == "watch":
+                    if agent2.event.action_type == "watching":
                         agent.memory.add_memory(
                             f"{agent.name} wants to chat with {agent_name2}, but {agent_name2} is watching. So {agent.name} does nothing.",
                             now=self.now,
@@ -538,25 +609,29 @@ class Simulator:
                         start_time=self.now,
                         duration=duration,
                         target_agent=agent_name2,
-                        action_type="chat",
+                        action_type="chatting",
                     )
                     agent2.event = update_event(
                         original_event=agent2.event,
                         start_time=self.now,
                         duration=duration,
                         target_agent=name,
-                        action_type="chat",
+                        action_type="chatting",
                     )
                     self.logger.info(f"{name} is chatting with {agent_name2}.")
-                    self.social_stat.chat_num+=1
+                    self.social_stat.chat_num += 1
                     message.append(
                         Message(
-                            agent_id=agent_id, action="CHAT", content=f"{name} is chatting with {agent_name2}."
+                            agent_id=agent_id,
+                            action="CHAT",
+                            content=f"{name} is chatting with {agent_name2}.",
                         )
                     )
                     self.round_msg.append(
                         Message(
-                            agent_id=agent_id, action="CHAT", content=f"{name} is chatting with {agent_name2}."
+                            agent_id=agent_id,
+                            action="CHAT",
+                            content=f"{name} is chatting with {agent_name2}.",
                         )
                     )
                     # If the system has a role, and it is her term now.
@@ -634,24 +709,49 @@ class Simulator:
                         self.data.add_mention_cnt(item_names)
                         if item_names != []:
                             self.agents[id2].update_heared_history(item_names)
-                        msgs.append(Message(agent_id=id, action="CHAT", content=f"{speaker} says:{content}"))
+                        msgs.append(
+                            Message(
+                                agent_id=id,
+                                action="CHAT",
+                                content=f"{speaker} says:{content}",
+                            )
+                        )
                         self.round_msg.append(
-                            Message(agent_id=id, action="CHAT", content=f"{speaker} says:{content}")
+                            Message(
+                                agent_id=id,
+                                action="CHAT",
+                                content=f"{speaker} says:{content}",
+                            )
                         )
                     message.extend(msgs)
 
                 else:
-                    self.social_stat.post_num+=1
+                    self.social_stat.post_num += 1
                     self.logger.info(f"{name} is posting.")
                     observation = f"{name} want to post for all acquaintances."
                     observation = agent.publish_posting(observation, self.now)
                     item_names = utils.extract_item_names(observation, "SOCIAL")
                     self.logger.info(agent.name + " posted: " + observation)
+                    agent.event = update_event(
+                        original_event=agent.event,
+                        start_time=self.now,
+                        duration=0.1,
+                        target_agent=None,
+                        action_type="posting",
+                    )
                     message.append(
-                        Message(agent_id=agent_id, action="POST", content=agent.name + " posts: " + observation)
+                        Message(
+                            agent_id=agent_id,
+                            action="POST",
+                            content=agent.name + " posts: " + observation,
+                        )
                     )
                     self.round_msg.append(
-                        Message(agent_id=agent_id, action="POST", content=agent.name + " posts: " + observation)
+                        Message(
+                            agent_id=agent_id,
+                            action="POST",
+                            content=agent.name + " posts: " + observation,
+                        )
                     )
                     for i in self.agents.keys():
                         if self.agents[i].name in contacts:
@@ -685,22 +785,30 @@ class Simulator:
                     self.logger.info(f"{contacts} get this post.")
         else:
             self.logger.info(f"{name} does nothing.")
-            message.append(Message(agent_id=agent_id, action="LEAVE", content=f"{name} does nothing."))
-            self.round_msg.append(Message(agent_id=agent_id, action="LEAVE", content=f"{name} does nothing."))
+            message.append(
+                Message(
+                    agent_id=agent_id, action="LEAVE", content=f"{name} does nothing."
+                )
+            )
+            self.round_msg.append(
+                Message(
+                    agent_id=agent_id, action="LEAVE", content=f"{name} does nothing."
+                )
+            )
         return message
 
     def update_working_agents(self):
         with lock:
-            agent:RecAgent=None
-            while len(self.working_agents)>0:
-                agent=heapq.heappop(self.working_agents)
-                if agent.event.end_time<=self.now:
+            agent: RecAgent = None
+            while len(self.working_agents) > 0:
+                agent = heapq.heappop(self.working_agents)
+                if agent.event.end_time <= self.now:
                     agent.event = reset_event(self.now)
                 else:
                     break
-            if agent is not None and agent.event.end_time>self.now:
+            if agent is not None and agent.event.end_time > self.now:
                 heapq.heappush(self.working_agents, agent)
-        
+
     def round(self):
         """
         Run one step for all agents.
@@ -729,19 +837,23 @@ class Simulator:
 
         for i, agent in self.agents.items():
             agent.memory.update_now(self.now)
-            
+
         self.update_working_agents()
         return messages
 
     def convert_agent_to_role(self, agent_id):
-        self.agents[agent_id]=RoleAgent.from_recagent(self.agents[agent_id])
+        self.agents[agent_id] = RoleAgent.from_recagent(self.agents[agent_id])
 
     def create_agent(self, i, api_key) -> RecAgent:
         """
         Create an agent with the given id.
         """
         LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
-        MemoryClass = RecAgentMemory if self.config["recagent_memory"]=='recagent' else GenerativeAgentMemory
+        MemoryClass = (
+            RecAgentMemory
+            if self.config["recagent_memory"] == "recagent"
+            else GenerativeAgentMemory
+        )
 
         agent_memory = MemoryClass(
             llm=LLM,
@@ -758,13 +870,27 @@ class Simulator:
             traits=self.data.users[i]["traits"],
             status=self.data.users[i]["status"],
             interest=self.data.users[i]["interest"],
-            relationships=self.data.get_relationships_with_name(i),
+            relationships=self.data.get_relationships_with_id(i),
             feature=utils.get_feature_description(self.data.users[i]["feature"]),
             memory_retriever=self.create_new_memory_retriever(),
             llm=LLM,
             memory=agent_memory,
             event=reset_event(self.now),
-            avatar_url=utils.get_avatar_url(id=i,gender=self.data.users[i]["gender"]),
+            avatar_url=utils.get_avatar_url(
+                id=i, gender=self.data.users[i]["gender"], type="origin"
+            ),
+            idle_url=utils.get_avatar_url(
+                id=i, gender=self.data.users[i]["gender"], type="idle"
+            ),
+            watching_url=utils.get_avatar_url(
+                id=i, gender=self.data.users[i]["gender"], type="watching"
+            ),
+            chatting_url=utils.get_avatar_url(
+                id=i, gender=self.data.users[i]["gender"], type="chatting"
+            ),
+            posting_url=utils.get_avatar_url(
+                id=i, gender=self.data.users[i]["gender"], type="posting"
+            ),
         )
         # observations = self.data.users[i]["observations"].strip(".").split(".")
         # for observation in observations:
@@ -788,28 +914,44 @@ class Simulator:
         # relations = input("Please input the relations by names-relation, split by comma. \n").strip(",").split(",")
 
         # The debug version.
-        name, age,gender, traits, status, interest,feature,event,avatar_url = (
+        name, gender, age, traits, status, interest, feature = (
             "Zeyu",
+            "male",
             23,
-            "male"
             "happy",
             "nice",
             "sci-fic",
             "Watcher",
-            
         )
-        relationships = f"{id} 0 friend,0 {id} friend,{id} 1 friend,1 {id} friend".strip(",").split(",")
-        relationships = [r.split(" ") for r in relationships]
-        event=reset_event(self.now),
-        avatar_url=utils.get_avatar_url(id=id,gender=gender),
+        # relationships = f"{id} 0 friend,0 {id} friend,{id} 1 friend,1 {id} friend".strip(",").split(",")
+        # relationships = [r.split(" ") for r in relationships]
+        relationships = {0: "friend", 1: "friend"}
+        event = reset_event(self.now)
+        avatar_url = utils.get_avatar_url(
+            id=id, gender=gender, type="origin", role=True
+        )
+        idle_url = utils.get_avatar_url(id=id, gender=gender, type="idle", role=True)
+        watching_url = utils.get_avatar_url(
+            id=id, gender=gender, type="watching", role=True
+        )
+        chatting_url = utils.get_avatar_url(
+            id=id, gender=gender, type="chatting", role=True
+        )
+        posting_url = utils.get_avatar_url(
+            id=id, gender=gender, type="posting", role=True
+        )
         LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
-        MemoryClass = RecAgentMemory if self.config["recagent_memory"]=='recagent' else GenerativeAgentMemory
-
+        MemoryClass = (
+            RecAgentMemory
+            if self.config["recagent_memory"] == "recagent"
+            else GenerativeAgentMemory
+        )
         agent_memory = MemoryClass(
             llm=LLM,
             memory_retriever=self.create_new_memory_retriever(),
             verbose=False,
             reflection_threshold=10,
+            now=self.now,
         )
         agent = RoleAgent(
             id=id,
@@ -826,11 +968,17 @@ class Simulator:
             memory=agent_memory,
             event=event,
             avatar_url=avatar_url,
+            idle_url=idle_url,
+            watching_url=watching_url,
+            chatting_url=chatting_url,
+            posting_url=posting_url,
         )
         # for observation in observations:
         #     agent.memory.add_memory(observation, now=self.now)
 
-        self.data.load_role(id, name, age, traits, status, interest,feature, relationships)
+        self.data.load_role(
+            id, name, gender, age, traits, status, interest, feature, relationships
+        )
 
         return agent
 
@@ -848,11 +996,12 @@ class Simulator:
             api_key = api_keys[role_id % len(api_keys)]
             agent = self.create_user_role(role_id, api_key)
             agents[role_id] = agent
+            self.data.role_id = role_id
         if self.active_method == "random":
             active_probs = [self.config["active_prob"]] * agent_num
         else:
-            active_probs = np.random.pareto(self.config["active_prob"]*10, agent_num)
-            active_probs=active_probs/active_probs.max()
+            active_probs = np.random.pareto(self.config["active_prob"] * 10, agent_num)
+            active_probs = active_probs / active_probs.max()
 
         if self.config["execution_mode"] == "parallel":
             futures = []
@@ -881,25 +1030,27 @@ class Simulator:
     def reset(self):
         # Reset the system
         self.pause()
-        self.round_cnt=0
+        self.round_cnt = 0
         log_string = ""
         self.load_simulator()
         log_string = "The system is reset, and the historic records are removed."
-        self.round_msg.append(Message(agent_id=-1,action="System",content=log_string))
+        self.round_msg.append(Message(agent_id=-1, action="System", content=log_string))
         return log_string
 
     def start(self):
         self.play()
-        messages=[]
-        for i in range(self.round_cnt + 1, self.config['epoch'] + 1):
-            self.round_cnt=self.round_cnt+1
+        messages = []
+        for i in range(self.round_cnt + 1, self.config["epoch"] + 1):
+            self.round_cnt = self.round_cnt + 1
             self.logger.info(f"Round {self.round_cnt}")
-            self.round_msg=self.round()
-            messages.append(self.round_msg)
-            with open(self.config['output_file'], "w") as file:
+            message=self.round()
+            #self.round_msg = self.round()
+            messages.append(message)
+            with open(self.config["output_file"], "w") as file:
                 json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
             self.recsys.save_interaction()
-            self.save(os.path.join(self.config['simulator_dir']))
+            self.save(os.path.join(self.config["simulator_dir"]))
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -923,11 +1074,7 @@ def parse_args():
         help="Add a user controllable role",
     )
     parser.add_argument(
-        "-m",
-        "--recagent_memory",
-        type=str,
-        default="recagent",
-        help="Memory mecanism"
+        "-m", "--recagent_memory", type=str, default="recagent", help="Memory mecanism"
     )
     parser.add_argument(
         "opts",
@@ -1033,7 +1180,6 @@ def inter_agent(recagent, logger):
     return log_string
 
 
-
 def system_status(recagent, logger):
     # Reset the system
     log = reset_system(recagent, logger)
@@ -1057,11 +1203,14 @@ def main():
     config = utils.add_variable_to_config(config, "log_file", args.log_file)
     config = utils.add_variable_to_config(config, "log_name", args.log_name)
     config = utils.add_variable_to_config(config, "play_role", args.play_role)
-    config = utils.add_variable_to_config(config, "recagent_memory", args.recagent_memory)
+    config = utils.add_variable_to_config(
+        config, "recagent_memory", args.recagent_memory
+    )
     config.merge_from_file(args.config_file)
     logger.info(f"\n{config}")
     os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
-
+    # if config["play_role"]:
+    #     config['agent_num']+=1
     # run
     if config["simulator_restore_file_name"]:
         restore_path = os.path.join(
@@ -1081,10 +1230,10 @@ def main():
         recagent.active_agents.clear()
         message = recagent.round()
         messages.append(message)
-        with open(config['output_file'], "w") as file:
+        with open(config["output_file"], "w") as file:
             json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
         recagent.recsys.save_interaction()
-        #recagent.save(os.path.join(config["simulator_dir"]))
+        # recagent.save(os.path.join(config["simulator_dir"]))
 
 
 if __name__ == "__main__":

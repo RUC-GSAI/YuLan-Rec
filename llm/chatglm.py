@@ -8,7 +8,7 @@ import json
 
 class ChatGLM(LLM):
     max_token: int
-    URL: str = "http://183.174.229.156:8080"
+    URL: str = "http://xxxxx"
     headers: dict = {"Content-Type": "application/json"}
     payload: dict = {"prompt": "", "history": []}
     logger: Any

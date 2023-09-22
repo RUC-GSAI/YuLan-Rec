@@ -28,6 +28,10 @@ class Agent(BaseModel):
     feature: str
     role: str
     avatar_url: str
+    idle_url:str
+    watching_url:str
+    chatting_url:str
+    posting_url:str
     event: Event
 
 
@@ -52,7 +56,11 @@ def convert_rec_agent_to_agent(rec_agent: RecAgent):
         "feature": rec_agent.feature,
         "role": rec_agent.role,  # Uncomment this line if 'role' is an attribute of rec_agent
         "avatar_url": rec_agent.avatar_url,
-        "event": rec_agent.event,
+        "idle_url": rec_agent.idle_url,
+        "watching_url": rec_agent.watching_url,
+        "chatting_url": rec_agent.chatting_url,
+        "posting_url": rec_agent.posting_url,
+        "event": rec_agent.event
     }
     return Agent(**data)
 
@@ -104,12 +112,16 @@ else:
     recagent = Simulator(config, logger)
     recagent.load_simulator()
 
-agents: list[Agent] = [None]*config["agent_num"]
+# if config["play_role"]:
+#     config['agent_num']+=1
+agents: list[Agent] = [None]*len(recagent.agents.keys())
 links: list[Link] = []
 def init():
     global agents,links
-    agents= [None]*config["agent_num"]
+    agents= [None]*len(recagent.agents.keys())
+    
     for k, v in recagent.agents.items():
+        print(k,v.id,v.name)
         agents[v.id]=convert_rec_agent_to_agent(v)
 
     # links
@@ -241,7 +253,10 @@ async def search(query: str):
 def get_messages():
     with lock:
         msgs=recagent.round_msg.copy()
+        
         recagent.round_msg=recagent.round_msg[len(msgs):]
+    print(recagent.round_msg)
+    print(msgs)
     return msgs
 
 
@@ -256,42 +271,16 @@ def get_rounds():
     return recagent.round_cnt
 
 
-@app.websocket("/test")
-async def test(websocket: WebSocket):
-    route = await connect.websocket_manager.connect("test",websocket)
-    i=0
-    try:
-        while True:
-            data = await websocket.receive_text()
-            s=await connect.websocket_manager.send_personal_message(f"test:{i}","test")
-            i+=1
-            if data == "exit":  # 你可以设置一些条件来断开连接
-                break
-           
-    except WebSocketDisconnect:
-        # 这里处理客户端断开连接的情况
-        pass
-    finally:
-        await websocket.close()
-
-@app.websocket("/test-response")
-async def test(websocket: WebSocket):
-    route = await connect.websocket_manager.connect("test-response",websocket)
-    try:
-        s=await connect.websocket_manager.send_and_wait_for_response("test-response","test-response")
-        print(s)
-    except Exception as e:
-        print(e)
-
 
 @app.websocket("/role-play/{user_id}")
 async def role_play(user_id:int,websocket: WebSocket):
     await connect.websocket_manager.connect("role-play",websocket)
-    recagent.convert_agent_to_role(user_id)
+    #recagent.convert_agent_to_role(user_id)
     try:
         async def receive():  
             while True:
                 data = await websocket.receive_text()
+                print(data)
                 connect.message_queue.append(data)
                 if data == "exit":  
                     return
@@ -301,6 +290,9 @@ async def role_play(user_id:int,websocket: WebSocket):
     finally:
         await websocket.close()
 
+@app.get("/role-play",response_model=int)
+def get_role_play_id():
+    return recagent.data.get_role_id()
 
 @app.get("/configs",response_model=dict)
 def get_configs():
@@ -334,5 +326,5 @@ def reset():
     return log
 
 
-if __name__ == "__main__":
-    uvicorn.run(app="backend:app", host="0.0.0.0", port=18888, reload=False)
+# if __name__ == "__main__":
+#     uvicorn.run(app="backend:app", host="0.0.0.0", port=18888, reload=False)

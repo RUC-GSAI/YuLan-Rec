@@ -14,6 +14,8 @@ class Data:
         self.users = {}
         self.db = None
         self.tot_relationship_num=0
+        self.netwerk_density=0.
+        self.role_id=-1
         self.load_items(config["item_path"])
         self.load_users(config["user_path"])
         self.load_relationship(config["relationship_path"])
@@ -91,7 +93,7 @@ class Data:
                 if self.get_user_num() == self.config["agent_num"]:
                     break
 
-    def load_role(self, id, name, age, traits, status, interest,feature, relationships):
+    def load_role(self, id, name, gender,age, traits, status, interest,feature, relationships):
         """
         @ Zeyu Zhang
         Load the role user into this `Data` object. Then other agents can interact with the role.
@@ -99,13 +101,14 @@ class Data:
         self.role_id = id
         self.users[id] = {
             "name": name,
+            "gender": gender,
             "age": int(age),
             "traits": traits,
             "status": status,
             "interest": interest,
             "feature": feature,
         }
-        for id,id2,rel_value in relationships:
+        for id2,rel_value in relationships.items():
             if "contact" not in self.users[id]:
                 self.users[id]["contact"] = dict()
             self.users[id]["contact"][id2]=rel_value 
@@ -177,6 +180,12 @@ class Data:
         """
         return self.tot_relationship_num
 
+    def get_role_id(self):
+        """
+        Return the number of relationships.
+        """
+        return self.role_id
+
     def search_items(self, item, k=5):
         """
         Search similar items from faiss db.
@@ -210,14 +219,19 @@ class Data:
             return dict()
         return self.users[user_id]["contact"]
     
-    def get_relationships_with_name(self, user_id):
+    def get_relationships_with_id(self, user_id):
         if "contact" not in self.users[user_id]:
             print(f"{user_id} has no contact.")
             return dict()
         relatiobnships = dict()
+        print(self.users[user_id]["contact"])
         for id in self.users[user_id]["contact"]:
             relatiobnships[self.users[id]["name"]] = self.users[user_id]["contact"][id]
         return relatiobnships
+    
+    def get_network_density(self):
+        self.network_density = round(self.tot_relationship_num*2/(self.get_user_num()*(self.get_user_num()-1)),2)
+        return self.network_density
 
     def get_item_description_by_id(self, item_ids):
         return [self.items[item_id]["description"] for item_id in item_ids]

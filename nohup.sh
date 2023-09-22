@@ -1,0 +1,1 @@
+nohup bash backend.sh >test.log 2>&1 &

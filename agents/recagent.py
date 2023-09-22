@@ -67,6 +67,14 @@ class RecAgent(GenerativeAgent):
 
     avatar_url: str
 
+    idle_url:str
+
+    watching_url:str
+
+    chatting_url:str
+
+    posting_url:str
+
     @classmethod
     def from_roleagent(cls, roleagent_instance: "RecAgent"):
         # 使用RoleRecAgent实例的属性来创建一个RecAgent实例
@@ -85,6 +93,10 @@ class RecAgent(GenerativeAgent):
             memory=roleagent_instance.memory,
             event=roleagent_instance.event,
             avatar_url=roleagent_instance.avatar_url,
+            idle_url=roleagent_instance.idle_url,
+            watching_url=roleagent_instance.watching_url,
+            chatting_ulr=roleagent_instance.chatting_url,
+            posting_url=roleagent_instance.posting_url
         )
         return new_instance
 
@@ -172,7 +184,7 @@ class RecAgent(GenerativeAgent):
             return False, f"{self.name} {reaction}"
         if "SAY:" in result:
             said_value = self._clean_response(result.split("SAY:")[-1])
-            return True, f"{self.name} said {said_value}"
+            return True, f"{said_value}"
         else:
             return False, result
 
@@ -389,7 +401,6 @@ class RecAgent(GenerativeAgent):
         (2) Enter the Social Media.
         (3) Do Nothing.
         """
-        print("recagent take action")
         call_to_action_template = (
             "What action would {agent_name} like to take? Respond in one line."
             + "\nIf {agent_name} wants to enter the Recommender System, write:\n [RECOMMENDER]:: {agent_name} enters the Recommender System"
@@ -439,7 +450,11 @@ class RecAgent(GenerativeAgent):
             if "BUY" in choice:    
                 pattern = r"<(.*?)>"
                 match = re.search(pattern, result)
-                action = match.group(0)
+                if match:
+                    action = match.group(0)
+                else:
+                    choice = "[LEAVE]"
+                    action = f"{self.name} leaves the recommender system."
         else:
             choice = "[LEAVE]"
             action = f"{self.name} leaves the recommender system."

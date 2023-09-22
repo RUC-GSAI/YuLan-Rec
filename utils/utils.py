@@ -164,7 +164,7 @@ def get_avatar1(idx):
     """
     Encode the image into a byte stream that can be displayed in a text box
     """
-    img = cv2.imread(f"./asset/img/{idx}.png")
+    img = cv2.imread(f"./asset/img/v_1/{idx}.png")
     base64_str = cv2.imencode(".png", img)[1].tostring()
     avatar = "data:image/png;base64," + base64.b64encode(base64_str).decode("utf-8")
     msg = f'<img src="{avatar}" style="width: 100%; height: 100%; margin-right: 50px;">'
@@ -172,7 +172,7 @@ def get_avatar1(idx):
 
 
 def get_avatar2(idx):
-    img = cv2.imread(f"./asset/img/{idx}.png")
+    img = cv2.imread(f"./asset/img/v_1/{idx}.png")
     base64_str = cv2.imencode(".png", img)[1].tostring()
     return "data:image/png;base64," + base64.b64encode(base64_str).decode("utf-8")
 
@@ -281,6 +281,7 @@ def get_llm(config, logger, api_key):
             temperature=config["temperature"],
             openai_api_key=api_key,
             model="gpt-4",
+            max_retries=config["max_retries"]
         )
     elif config["llm"] == "gpt-3.5-16k":
         LLM = ChatOpenAI(
@@ -288,6 +289,7 @@ def get_llm(config, logger, api_key):
             temperature=config["temperature"],
             openai_api_key=api_key,
             model="gpt-3.5-turbo-16k",
+            max_retries=config["max_retries"]
         )
     elif config["llm"] == "gpt-3.5":
         LLM = ChatOpenAI(
@@ -295,11 +297,12 @@ def get_llm(config, logger, api_key):
             temperature=config["temperature"],
             openai_api_key=api_key,
             model="gpt-3.5-turbo",
+            max_retries=config["max_retries"]
         )
     elif config["llm"] == "yulan":
-        LLM = YuLan(max_token=2048, logger=logger, URL=api_key)
+        LLM = YuLan(max_token=2048, logger=logger, URL=api_key,max_retries=config["max_retries"])
     elif config["llm"] == "chatglm":
-        LLM = ChatGLM(max_token=2048, logger=logger, URL=api_key)
+        LLM = ChatGLM(max_token=2048, logger=logger, URL=api_key,max_retries=config["max_retries"])
     return LLM
 
 
@@ -335,6 +338,9 @@ def count_files_in_directory(target_directory:str):
     print(os.getcwd())
     return len(os.listdir(target_directory))
 
-def get_avatar_url(id:int,gender:str):
-    target='/asset/img/'+gender+'/'
+def get_avatar_url(id:int,gender:str,type:str="origin",role=False):
+    if role:
+        target='/asset/img/avatar/role/'+gender+'/'
+        return target+str(id%10)+'.png'
+    target='/asset/img/avatar/'+type+"/"+gender+'/'
     return target+str(id%10)+'.png'

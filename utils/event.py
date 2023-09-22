@@ -10,7 +10,7 @@ class Event(BaseModel):
     target_agent: Optional[List[str]]
     # target agent for chatting.
     action_type: str
-    # ('watch' 'chat' or 'none').
+    # ('watching','chatting','posting' or 'idle').
     end_time: Optional[datetime]=None
     # action end time
 
@@ -21,12 +21,12 @@ class Event(BaseModel):
 
         
 def update_event(original_event, start_time, duration, target_agent, action_type):
-    if action_type == "watch":
+    if action_type == "watching" or action_type=="posting":
         result = Event(start_time=start_time, duration=duration, target_agent=None, action_type=action_type)
 
-    if action_type == "chat":
+    if action_type == "chatting":
         # If the agent is not chatting
-        if original_event.action_type == "none":
+        if original_event.action_type == "idle":
             result = Event(start_time=start_time, duration=duration, target_agent=[target_agent], action_type=action_type)
         # If the agent is chatting
         else:
@@ -47,4 +47,4 @@ def update_event(original_event, start_time, duration, target_agent, action_type
 
 
 def reset_event(start_time):
-    return Event(start_time=start_time, duration=0, target_agent=None, action_type='none')
+    return Event(start_time=start_time, duration=0, target_agent=None, action_type='idle')

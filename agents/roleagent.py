@@ -30,7 +30,7 @@ class RoleAgent(RecAgent):
     human inputs in them.
     """
     run_location: str="web"
-    def __init__(self, id, name, age,gender, traits, status,interest,relationships,feature, memory_retriever, llm, memory,event,avatar_url):
+    def __init__(self, id, name, age,gender, traits, status,interest,relationships,feature, memory_retriever, llm, memory,event,avatar_url,idle_url,watching_url,chatting_url,posting_url):
         super(RoleAgent, self).__init__(
             id=id,
             name=name,
@@ -46,6 +46,10 @@ class RoleAgent(RecAgent):
             memory=memory,
             event=event,
             avatar_url=avatar_url,
+            idle_url=idle_url,
+            watching_url=watching_url,
+            chatting_url=chatting_url,
+            posting_url=posting_url
         )
         self.role="user"
 
@@ -64,7 +68,10 @@ class RoleAgent(RecAgent):
             llm=recagent_instance.llm,
             memory=recagent_instance.memory,
             event=recagent_instance.event,
-            avatar_url=recagent_instance.avatar_url)
+            avatar_url=recagent_instance.avatar_url,
+            idle_url=recagent_instance.idle_url,
+            watching_url=recagent_instance.watching_url,
+            chatting_ulr=recagent_instance.chatting_url)
         return new_instance
 
     async def get_response(self,message:str)->str:
@@ -145,7 +152,8 @@ class RoleAgent(RecAgent):
         action(str): integrate the choice and the reason into one sentence.
         """
         order = asyncio.run(self.get_response(
-            "Please choose one action below: \n"
+            observation+
+            "\nPlease choose one action below: \n"
             "(1) Buy movies among the recommended items, please input 1. \n"
             "(2) Next page, please input 2. \n"
             "(3) Search items, please input 3. \n"
@@ -241,7 +249,8 @@ class RoleAgent(RecAgent):
         """
 
         order = asyncio.run(self.get_response(
-            "Please choose one action below: \n"
+            observation+
+            "\nPlease choose one action below: \n"
             "(1) Chat with one acquaintance, input 1. \n"
             "(2) Publish posting to all acquaintances, input 2. \n"
         ))
