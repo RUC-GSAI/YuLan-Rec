@@ -1,5 +1,5 @@
 <div align=center>
-<h1>RecAgent: A Novel Simulation Paradigm for Recommender Systems</h1>
+<h1>When Large Language Model based Agent Meets User Behavior Analysis: <br> A Novel User Simulation Paradigm</h1>
 <a href="https://pypi.org/project/recbole/">
         <img src="https://img.shields.io/pypi/v/recbole" alt="PyPi Latest Release">
     </a>
@@ -8,10 +8,9 @@
     </a>
     <img src="https://img.shields.io/badge/License-MIT-blue" alt="license">
     <img src="https://img.shields.io/github/stars/RUC-GSAI/YuLan-RecAgent" alt="license">
-
 </div>
 
-RecAgent is an LLM-based recommender simulator, which is expected to open a novel simulation based study paradigm in the recommendation domain. RecAgent is composed of two modules: (1) the user module and (2) the recommender module. The user module aims to simulate the real users, which can browse the recommendation website, communicate with the other users and broadcast messages on the social media. The recommender module is designed to provide the recommendation list to the users, and one can design different models to implement the recommender module. Each user maintains an individual memory, which can be automatically updated by the user behaviors. Different users take actions based on LLMs by retrieving their own memories, All the users can freely evolve in the simulator. RecAgent is highly flexible and customizable, where one can design different recommendation scenarios and algorithms. You can get the introduction video of RecAgent through the [Baidu Netdisk](https://pan.baidu.com/s/1ch8sinzFBi9XlEqp4xiYXQ?pwd=xsmq) or [Google Drive](https://drive.google.com/file/d/1IgsoWUipgZvnBnPSOUtbsZkm5yoyJskt/view?usp=sharing).
+User behavior analysis is crucial in human-centered AI applications. In this field, the collection of sufficient and high-quality user behavior data has always been a fundamental yet challenging problem. An intuitive idea to address this problem is automatically simulating the user behaviors. However, due to the subjective and complex nature of human cognitive processes, reliably simulating the user behavior is difficult. Recently, large language models (LLM) have obtained remarkable successes, showing great potential to achieve human-like intelligence. We argue that these models present significant opportunities for reliable user simulation, and have the potential to revolutionize traditional study paradigms in user behavior analysis. In this paper, we take recommender system as an example to explore the potential of using LLM for user simulation. Specifically, we regard each user as an LLM-based autonomous agent, and let different agents freely communicate, behave and evolve in a virtual simulator called RecAgent. For comprehensively simulation, we not only consider the behaviors within the recommender system (e.g., item browsing and clicking), but also accounts for external influential factors, such as, friend chatting and social advertisement. Our simulator contains at most 1000 agents, and each agent is composed of a profiling module, a memory module and an action module, enabling it to behave consistently, reasonably and reliably. In addition, to more flexibly operate our simulator, we also design two global functions including real-human playing and system intervention. To evaluate the effectiveness of our simulator, we conduct extensive experiments from both agent and system perspectives. You can get the introduction video of RecAgent through the [Baidu Netdisk](https://pan.baidu.com/s/1n2WeWsiKRiz0ZKZuB0LUZA)(Password: 8sjj) or [Google Drive](https://drive.google.com/file/d/1nTRH2Kvo-1K-s8pB5cl0WbQLt0wCLA0D/view?usp=sharing).
 
 <p align="center">
   <img src="asset/img/framework.png" alt="RecAgnet Framework" width="100%">
@@ -21,27 +20,15 @@ RecAgent is an LLM-based recommender simulator, which is expected to open a nove
 
 
 ## 🔥 News
-- [9/18/2023] The RecAgent `v2.0` is released on arXiv with following updates: 
-  - <details>
+- [9/18/2023] RecAgent `v2.0` is released on arXiv with following updates: 
 
-    <summary>Latest Updates</summary>
-
-    -  ****
-        - Added 31 new works until 9/1/2023, to enrich the literature support.
-
-    -  **📊 New Figures**
-        - **Figure 3:** Added a new chart illustrating the differences and similarities between various planning approaches. This helps in gaining a clearer understanding of the comparisons between different planning methods.
-        ![single-path and multi-path reasoning](assets/planning.png)
-        - **Figure 4:** Introduced a new chart that describes the evolutionary path of model capability acquisition from the "Machine Learning era" to the "Large Language Model era" and then to the "Agent era." Specifically, a new concept, "mechanism engineering," has been introduced, which, along with "parameter learning" and "prompt engineering," forms part of this evolutionary path.
-        ![Capabilities Acquisition](assets/capability.png)
-
-    -  **🔍 Optimized Classification System**
-        - Made appropriate modifications to the existing classification system to make it more logical and organized. This will assist in better organizing and presenting the content of the document.
-
-
-  </details>
-
-- [6/5/2023] The RecAgent `v1.0` is released on arXiv: [When Large Language Model based Agent Meets User Behavior Analysis: A Novel User Simulation Paradigm](https://arxiv.org/abs/2308.11432)
+    - 👥 More Agents: from 25 to at most 1000
+    - 🧠 Human-like Memory Mechanism
+    - 📖 Comprehensive Experiment
+    - 🕹 System-level and Agent-level Intervention
+    - 🙋‍♂️ Human Involved Simulation
+        
+- [6/5/2023] RecAgent `v1.0` is released on arXiv: [When Large Language Model based Agent Meets User Behavior Analysis: A Novel User Simulation Paradigm](https://arxiv.org/abs/2308.11432)
 
 
 ## Table of Contents
@@ -53,7 +40,6 @@ RecAgent is an LLM-based recommender simulator, which is expected to open a nove
   - [1. Example](#1-example)
   - [2. Website Demo](#2-website-demo)
 - [Data](#data)
-- [To-Do](#to-do)
 - [Maintainers](#maintainers)
 - [License](#license)
 - [Citation](#citation)
@@ -75,7 +61,7 @@ RecAgent is an LLM-based recommender simulator, which is expected to open a nove
 - **Flexible Intervention and Control:** RecAgent provides diverse means to intervene with Agents and monitor the results. An Agent's profile can be freely modified. Moreover, people can intervene with Agents through dialogue. RecAgent also supports saving checkpoints, facilitating retrospective analysis and counterfactual studies.
 
 
-## Installation
+## 🛠 Installation
 
 To install RecAgent, one can follow the following steps:
 
@@ -93,7 +79,7 @@ To install RecAgent, one can follow the following steps:
    Using `pip` to install `faiss` may report an error. One solution is to use `conda install faiss-cpu -c pytorch`.
 3. Set your OpenAI API key in the `config/config.yaml` file.
 
-## Usage
+## 📦 Usage
 
 To start using RecAgent, follow these steps:
 
@@ -210,58 +196,37 @@ INFO:1422158:Sarah Miller watches ['Casper']
 
 ### 2. Website Demo
 
-We also have a local website demo.
-Run the website demo script:
-
-```shell
-python -u run_demo.py --config_file config/config.yaml --output_file messages.json --log_file simulation.log
-```
-Then you can visit the demo at `http://127.0.0.1:7860`.
 <p align="center">
   <img src="asset/img/interface.GIF" alt="RecAgnet Interface" width="100%">
   <br>
   <b>Figure 2</b>: RecAgent Interface
 </p>
 
-Click the *Play* button to start the simulation. The simulation will run for `epoch` rounds. You can click the *Reset* button to reset the simulation. Currently, the demo only supports the serial running model.
+Click the *Start* button to start the simulation. The simulation will run for `epoch` rounds. You can click the *Pause* button to pause and the *Reset* button to reset the simulation. The demo supports both serial and parallel execution modes. The agent's profile, activity status, system data, and log information are all displayed in real-time on the interface.
 
-## Data
+## 📚 Data
 
-The item data used in the simulation is from the [MovieLens-1M](https://www.kaggle.com/datasets/odedgolden/movielens-1m-dataset).
+The item data used in the simulation is from [MovieLens-1M](https://www.kaggle.com/datasets/odedgolden/movielens-1m-dataset).
 User profiles and relationships between users are fabricated for simulation purposes. We provide the FAISS index of the item data in directory `faiss_index`.
 
-## To-Do
-
-- [ ] Add documentation
-- [x] ~~Large-scale user simulation~~
-- [x] ~~Combining Real and Virtual Data~~
-- [x] ~~Add support for various LLM~~
-- [ ] Support for more recommendation algorithms
-- [x] ~~Support for various LLM~~
-- [ ] ...
-
-
-## Maintainers
+## 💪 Maintainers
    
 <div>
     <a href="https://github.com/Paitesanshi">@Lei Wang</a>
     <a href="https://github.com/JingsenZhang">@Jingsen Zhang</a>
-    <a href="https://github.com/Paitesanshi">@Lei Wang</a>
-    <a href="https://github.com/JingsenZhang">@Jingsen Zhang</a>
-    <a href="https://github.com/Paitesanshi">@Lei Wang</a>
-    <a href="https://github.com/JingsenZhang">@Jingsen Zhang</a>
-    <a href="https://github.com/Paitesanshi">@Lei Wang</a>
-    <a href="https://github.com/JingsenZhang">@Jingsen Zhang</a>
-
+    <a href="https://github.com/peteryang1031">@Hao Yang</a>
+    <a href="https://github.com/zhiyuanc2001">@Zhi-Yuan Chen</a>
+    <a href="https://github.com/TangJiakai">@Jiakai Tang</a>
+    <a href="https://github.com/nuster1128">@Zeyu Zhang</a>
 </div>
 
 
 
-## License
+## 📖 License
 
 RecAgent uses [MIT License](./LICENSE). All data and code in this project can only be used for academic purposes.
 
-## Citation
+## 📄 Citation
 Please cite the following paper as the reference if you use our code. [![Paper](https://img.shields.io/badge/arxiv-PDF-red)](https://arxiv.org/abs/2306.02552.pdf)
 
 ```

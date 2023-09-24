@@ -4,6 +4,9 @@ import asyncio
 app = FastAPI()
 
 class WebSocketManager:
+    """
+    Manage WebSocket connections.
+    """
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
 

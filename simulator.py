@@ -197,12 +197,6 @@ class Simulator:
         self.social_stat.cur_user_num = 0
         self.social_stat.cur_chat_num = 0
         for agent in self.working_agents:
-            if isinstance(agent.event, dict):
-                print("*" * 50)
-                print(agent.id)
-                print(agent.event)
-                print("*" * 50)
-                input()
             if agent.event.action_type == "watching":
                 self.rec_stat.cur_user_num += 1
             elif agent.event.action_type == "chatting":
@@ -342,7 +336,6 @@ class Simulator:
                         )
                         leave = True
                         continue
-                    # observation=f"{name} has just finished watching"
 
                     for i in range(len(item_names)):
                         observation = f"{name} has just finished watching {item_names[i]};;{item_descriptions[i]}."
@@ -870,7 +863,7 @@ class Simulator:
             traits=self.data.users[i]["traits"],
             status=self.data.users[i]["status"],
             interest=self.data.users[i]["interest"],
-            relationships=self.data.get_relationships_with_id(i),
+            relationships=self.data.get_relationship_names(i),
             feature=utils.get_feature_description(self.data.users[i]["feature"]),
             memory_retriever=self.create_new_memory_retriever(),
             llm=LLM,
@@ -905,17 +898,8 @@ class Simulator:
         :param api_key: the API key of the role.
         :return: an object of `RoleAgent`.
         """
-        # The real version.
-        # name = input("Please input the name of role: \n")
-        # age = int(input("Please input the age of role: \n"))
-        # traits = input("Please input the traits of role: \n")
-        # status = input("Please input the status of role: \n")
-        # observations = input("Please input the observations of role: \n").strip(".").split(".")
-        # relations = input("Please input the relations by names-relation, split by comma. \n").strip(",").split(",")
-
-        # The debug version.
         name, gender, age, traits, status, interest, feature = (
-            "Zeyu",
+            "Tommy",
             "male",
             23,
             "happy",
@@ -923,8 +907,6 @@ class Simulator:
             "sci-fic",
             "Watcher",
         )
-        # relationships = f"{id} 0 friend,0 {id} friend,{id} 1 friend,1 {id} friend".strip(",").split(",")
-        # relationships = [r.split(" ") for r in relationships]
         relationships = {0: "friend", 1: "friend"}
         event = reset_event(self.now)
         avatar_url = utils.get_avatar_url(
@@ -973,8 +955,6 @@ class Simulator:
             chatting_url=chatting_url,
             posting_url=posting_url,
         )
-        # for observation in observations:
-        #     agent.memory.add_memory(observation, now=self.now)
 
         self.data.load_role(
             id, name, gender, age, traits, status, interest, feature, relationships
@@ -1209,9 +1189,7 @@ def main():
     config.merge_from_file(args.config_file)
     logger.info(f"\n{config}")
     os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
-    # if config["play_role"]:
-    #     config['agent_num']+=1
-    # run
+
     if config["simulator_restore_file_name"]:
         restore_path = os.path.join(
             config["simulator_dir"], config["simulator_restore_file_name"]
@@ -1228,12 +1206,13 @@ def main():
         recagent.round_cnt = recagent.round_cnt + 1
         recagent.logger.info(f"Round {recagent.round_cnt}")
         recagent.active_agents.clear()
+        #system_status(recagent, logger)
         message = recagent.round()
         messages.append(message)
         with open(config["output_file"], "w") as file:
             json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
         recagent.recsys.save_interaction()
-        # recagent.save(os.path.join(config["simulator_dir"]))
+        recagent.save(os.path.join(config["simulator_dir"]))
 
 
 if __name__ == "__main__":

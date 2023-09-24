@@ -112,8 +112,7 @@ else:
     recagent = Simulator(config, logger)
     recagent.load_simulator()
 
-# if config["play_role"]:
-#     config['agent_num']+=1
+
 agents: list[Agent] = [None]*len(recagent.agents.keys())
 links: list[Link] = []
 def init():
@@ -156,12 +155,9 @@ app = FastAPI()
 init()
 app.mount("/asset", StaticFiles(directory="asset"), name="asset")
 app.add_middleware(GZipMiddleware, minimum_size=1000)
-# @app.get("/agents",response_model=list[Agent])
-# def get_agents():
-#     return agents
+
 @app.get("/agents", response_model=List[Agent])
 async def get_agents(query: Optional[str] = None):
-    # 定义一个函数用于模糊搜索
     def fuzzy_search(keyword, lst):
         return [
             agent

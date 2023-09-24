@@ -3,6 +3,9 @@ import calendar
 
 
 class Interval:
+    """
+    Interval class for each round.
+    """
     def __init__(self, value, unit):
         self.value = value
         self.unit = unit

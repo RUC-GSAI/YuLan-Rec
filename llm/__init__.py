@@ -1,3 +1,3 @@
-from .chatglm import ChatGLM
+from .custom_llm import CustomLLM
 
-__all__ = ["ChatGLM"]
+__all__ = ["CustomLLM"]

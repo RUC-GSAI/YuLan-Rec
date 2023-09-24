@@ -1,13 +1,11 @@
 from pydantic import BaseModel
 class Message(BaseModel):
+    """
+    Message class for communication between backend and frontend.
+    """
     content: str
     agent_id: int
     action: str
-
-    # def __init__(self, agent_id: int, action: str, content: str):
-    #     self.content = content
-    #     self.agent_id = agent_id
-    #     self.action = action
 
     @classmethod
     def from_dict(cls, message_dict):

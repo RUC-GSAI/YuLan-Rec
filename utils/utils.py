@@ -149,9 +149,10 @@ def extract_item_names(observation: str, action: str = "RECOMMENDER") -> List[st
 def layout_img(background, img, place: Tuple[int, int]):
     """
     Place the image on a specific position on the background
-    background: background image
-    img: the specified image
-    place: [top, left]
+    Args:
+        background: background image
+        img: the specified image
+        place: [top, left]
     """
     back_h, back_w, _ = background.shape
     height, width, _ = img.shape
@@ -162,7 +163,9 @@ def layout_img(background, img, place: Tuple[int, int]):
 
 def get_avatar1(idx):
     """
-    Encode the image into a byte stream that can be displayed in a text box
+    Retrieve the avatar for the specified index and encode it as a byte stream suitable for display in a text box.
+    Args:
+        idx (int): The index of the avatar, used to determine the path to the avatar image.
     """
     img = cv2.imread(f"./asset/img/v_1/{idx}.png")
     base64_str = cv2.imencode(".png", img)[1].tostring()
@@ -172,12 +175,22 @@ def get_avatar1(idx):
 
 
 def get_avatar2(idx):
+    """
+    Retrieve the avatar for the specified index and encode it as a Base64 data URI.
+    Args:
+        idx (int): The index of the avatar, used to determine the path to the avatar image.
+    """
     img = cv2.imread(f"./asset/img/v_1/{idx}.png")
     base64_str = cv2.imencode(".png", img)[1].tostring()
     return "data:image/png;base64," + base64.b64encode(base64_str).decode("utf-8")
 
 
 def html_format(orig_content: str):
+    """
+    Convert the original content to HTML format.
+    Args:
+        orig_content (str): The original content.
+    """
     new_content = orig_content.replace("<", "")
     new_content = new_content.replace(">", "")
     for name in [
@@ -211,6 +224,11 @@ def html_format(orig_content: str):
 
 # border: 0;
 def chat_format(msg: Dict):
+    """
+    Convert the message to HTML format.
+    Args:
+        msg (Dict): The message.
+    """
     html_text = "<br>"
     avatar = get_avatar2(msg["agent_id"])
     html_text += (
@@ -224,6 +242,11 @@ def chat_format(msg: Dict):
 
 
 def rec_format(msg: Dict):
+    """
+    Convert the message to HTML format.
+    Args:
+        msg (Dict): The message.
+    """
     html_text = "<br>"
     avatar = get_avatar2(msg["agent_id"])
     html_text += (
@@ -237,6 +260,11 @@ def rec_format(msg: Dict):
 
 
 def social_format(msg: Dict):
+    """
+    Convert the message to HTML format.
+    Args:
+        msg (Dict): The message.
+    """
     html_text = "<br>"
     avatar = get_avatar2(msg["agent_id"])
     html_text += (
@@ -250,6 +278,12 @@ def social_format(msg: Dict):
 
 
 def round_format(round: int, agent_name: str):
+    """
+    Convert the round information to HTML format.
+    Args:
+        round (int): The round number.
+        agent_name (str): The agent name.
+    """
     round_info = ""
     round_info += f'<div style="display: flex; font-family: 微软雅黑, sans-serif; font-size: 20px; color: #000000; font-weight: bold;">'
     round_info += f"&nbsp;&nbsp; Round: {round}  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Actor: {agent_name}  &nbsp;&nbsp;"
@@ -258,7 +292,11 @@ def round_format(round: int, agent_name: str):
 
 
 def ensure_dir(dir_path):
-    """Make sure the directory exists, if it does not exist, create it"""
+    """
+    Make sure the directory exists, if it does not exist, create it
+    Args:
+        dir_path (str): The directory path.
+    """
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
@@ -275,6 +313,13 @@ def generate_id(dir_name):
 
 
 def get_llm(config, logger, api_key):
+    """
+    Get the large language model.
+    Args:
+        config (CfgNode): The config.
+        logger (Logger): The logger.
+        api_key (str): The API key.
+    """
     if config["llm"] == "gpt-4":
         LLM = ChatOpenAI(
             max_tokens=config["max_token"],
@@ -299,10 +344,8 @@ def get_llm(config, logger, api_key):
             model="gpt-3.5-turbo",
             max_retries=config["max_retries"]
         )
-    elif config["llm"] == "yulan":
-        LLM = YuLan(max_token=2048, logger=logger, URL=api_key,max_retries=config["max_retries"])
-    elif config["llm"] == "chatglm":
-        LLM = ChatGLM(max_token=2048, logger=logger, URL=api_key,max_retries=config["max_retries"])
+    elif config["llm"] == "custom":
+        LLM = CustomLLM(max_token=2048, logger=logger,max_retries=config["max_retries"])
     return LLM
 
 
@@ -318,6 +361,7 @@ def is_chatting(agent, agent2):
     )
 
 def get_feature_description(feature):
+    """Get description of given features."""
     descriptions = {
         "Watcher": "Choose movies, enjoy watching, and provide feedback and ratings to the recommendation system.",
         "Explorer": "Search for movies heard of before and expand movie experiences.",
@@ -325,11 +369,7 @@ def get_feature_description(feature):
         "Chatter": "Engage in private conversations, trust friends' recommendations.",
         "Poster": "Enjoy publicly posting on social media and sharing content and insights with more people."
     }
-
-    # 提取特性
     features = feature.split(";")
-
-    # 为每个特性生成描述
     descriptions_list = [descriptions[feature] for feature in features if feature in descriptions]
     return ".".join(descriptions_list)
 

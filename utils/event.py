@@ -2,7 +2,9 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 from pydantic import BaseModel
 class Event(BaseModel):
-
+    """
+    Event class for each agent.
+    """
     start_time: datetime
     # action start time
     duration: int

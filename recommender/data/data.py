@@ -117,6 +117,9 @@ class Data:
         return list(self.items.keys())
     
     def get_inter_popular_items(self):
+        """
+        Get the most popular items based on the number of interactions.
+        """
         ids=sorted(self.items.keys(),key=lambda x:self.items[x]["inter_cnt"],reverse=True)[:3]
         return self.get_item_names(ids)
     
@@ -131,6 +134,9 @@ class Data:
             self.items[item_id]["mention_cnt"]+=1
 
     def get_mention_popular_items(self):
+        """
+        Get the most popular items based on the number of mentions.
+        """
         ids=sorted(self.items.keys(),key=lambda x:self.items[x]["mention_cnt"],reverse=True)[:3]
         return self.get_item_names(ids)
 
@@ -219,26 +225,34 @@ class Data:
             return dict()
         return self.users[user_id]["contact"]
     
-    def get_relationships_with_id(self, user_id):
+    def get_relationship_names(self, user_id):
+        """
+        Get all relationship IDs of a user.
+        """
         if "contact" not in self.users[user_id]:
             print(f"{user_id} has no contact.")
             return dict()
         relatiobnships = dict()
-        print(self.users[user_id]["contact"])
         for id in self.users[user_id]["contact"]:
             relatiobnships[self.users[id]["name"]] = self.users[user_id]["contact"][id]
         return relatiobnships
     
     def get_network_density(self):
+        """
+        Get the network density of the social network.
+        """
         self.network_density = round(self.tot_relationship_num*2/(self.get_user_num()*(self.get_user_num()-1)),2)
         return self.network_density
 
     def get_item_description_by_id(self, item_ids):
+        """
+        Get description of items by item id.
+        """
         return [self.items[item_id]["description"] for item_id in item_ids]
 
     def get_item_description_by_name(self, item_names):
         """
-        Get description of items.
+        Get description of items by item name.
         """
         item_descriptions = []
         for item in item_names:
