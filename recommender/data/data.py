@@ -41,6 +41,8 @@ class Data:
             for row in reader:
                 user_1, user_2, relationship = row
                 user_ids = self.get_user_ids([user_1, user_2])
+                if user_ids[0] not in self.users or user_ids[1] not in self.users:
+                    continue
                 if "contact" not in self.users[user_ids[0]]:
                     self.users[user_ids[0]]["contact"] = []
                 self.users[user_ids[0]]["contact"].append(user_2)
