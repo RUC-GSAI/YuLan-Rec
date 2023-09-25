@@ -1,30 +1,49 @@
+# name of LLM model, 'custom' for custom model 
+llm: gpt-3.5
 # path for item data
 item_path: data/item.csv
 # path for user data
-user_path: data/user.csv
+user_path: data/user_1000.csv
 # path for relationship data
-relationship_path: data/relationship.csv
+relationship_path: data/relationship_1000.csv
 # path for save interaction records
 interaction_path: data/interaction.csv
 # directory name for faiss index
 index_name: data/faiss_index
+# simulator directory name for saving and restoring
+simulator_dir: data/simulator
+# simulator restoring name
+simulator_restore_file_name: 
 # recommender system model
-model: Random
+rec_model: Random
 # number of epochs
-epoch: 1
+epoch: 3
 # number of agents, which cannot exceed the number of user in user.csv
-num_agents: 1
+agent_num: 1
 # number of items to be recommended in one page
 page_size: 5
 # temperature for LLM
-temperature: 0.8
+temperature: 0
 # maximum number of tokens for LLM
 max_token: 1500
 # execution mode, serial or parallel
 execution_mode: serial
+# time interval for action of agents. The form is a number + a single letter, and the letter may be s, m, h, d, M, y
+interval: 5h
+# number of max retries for LLM API
+max_retries: 100
+# verbose mode
+verbose: True
+# threshold for agent num
+active_agent_threshold: 100
+# method for choose agent to be active, random, sample, or marginal
+active_method: random
+# propability for agent to be active
+active_prob: 1
+# implementation of agent memory, recagent or GenerativeAgentMemory
+agent_memory: recagent
 # list of api keys for LLM API
 api_keys:
-  - xxxxx
-  - xxxxx
+  - xxxx
 
 
