@@ -158,7 +158,7 @@ active_agent_threshold: 100
 active_method: random
 active_prob: 1
 agent_num: 10
-api_keys: ['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']
+api_keys: ['xxxxx']
 epoch: 30
 execution_mode: serial
 index_name: data/faiss_index
