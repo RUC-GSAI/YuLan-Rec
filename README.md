@@ -28,7 +28,7 @@ User behavior analysis is crucial in human-centered AI applications. In this fie
     - 🕹 System-level and Agent-level Intervention
     - 🙋‍♂️ Human Involved Simulation
         
-- [6/5/2023] RecAgent `v1.0` is released on arXiv: [When Large Language Model based Agent Meets User Behavior Analysis: A Novel User Simulation Paradigm](https://arxiv.org/abs/2308.11432)
+- [6/5/2023] RecAgent `v1.0` is released on arXiv: [When Large Language Model based Agent Meets User Behavior Analysis: A Novel User Simulation Paradigm](https://arxiv.org/abs/2306.02552)
 
 
 ## Table of Contents
