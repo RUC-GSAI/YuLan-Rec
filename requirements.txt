@@ -1,5 +1,5 @@
 gradio==3.39.0
-langchain==0.0.260
+langchain==0.0.187
 openai==0.27.8
 opencv-python==4.8.0.76
 pandas==2.0.3
