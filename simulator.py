@@ -284,7 +284,7 @@ class Simulator:
                     ],
                 )
 
-                if "BUY" in choice and agent.event.action_type == "idle":
+                if "BUY" in choice and (agent.event.action_type == "idle" or agent.event.action_type == "posting"):
                     item_names = utils.extract_item_names(action)
                     duration = 2 * len(item_names)
                     agent.event = update_event(
@@ -725,13 +725,14 @@ class Simulator:
                     observation = agent.publish_posting(observation, self.now)
                     item_names = utils.extract_item_names(observation, "SOCIAL")
                     self.logger.info(agent.name + " posted: " + observation)
-                    agent.event = update_event(
-                        original_event=agent.event,
-                        start_time=self.now,
-                        duration=0.1,
-                        target_agent=None,
-                        action_type="posting",
-                    )
+                    if agent.event.action_type == "idle":
+                        agent.event = update_event(
+                            original_event=agent.event,
+                            start_time=self.now,
+                            duration=0.1,
+                            target_agent=None,
+                            action_type="posting",
+                        )
                     message.append(
                         Message(
                             agent_id=agent_id,
