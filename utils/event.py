@@ -28,7 +28,7 @@ def update_event(original_event, start_time, duration, target_agent, action_type
 
     if action_type == "chatting":
         # If the agent is not chatting
-        if original_event.action_type == "idle":
+        if original_event.action_type == "idle" or original_event.action_type == "posting":
             result = Event(start_time=start_time, duration=duration, target_agent=[target_agent], action_type=action_type)
         # If the agent is chatting
         else:
