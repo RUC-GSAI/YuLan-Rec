@@ -6,7 +6,7 @@ import torch
 
 
 class Random(BaseModel):
-    def __init__(self, config):
+    def __init__(self, config, n_users, n_items):
         self.config = config
 
     def get_full_sort_items(self, users, items):

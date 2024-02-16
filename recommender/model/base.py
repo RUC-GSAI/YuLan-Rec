@@ -5,7 +5,7 @@ from typing import Union, List, Optional
 class BaseModel(object):
     """Base class for all models."""
 
-    def __init__(self, config):
+    def __init__(self, config, n_users, n_items):
         self.config = config
         self.items = None
 

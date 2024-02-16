@@ -8,6 +8,7 @@ import os
 import logging
 import argparse
 from yacs.config import CfgNode
+import csv
 from tqdm import tqdm
 import os
 import time
@@ -27,6 +28,8 @@ import re
 import dill
 import numpy as np
 import queue
+from typing import List
+
 
 from recommender.recommender import Recommender
 from recommender.data.data import Data
@@ -53,15 +56,17 @@ class Simulator:
         self.config = config
         self.logger = logger
         self.round_cnt = 0
-        self.round_msg: list[Message] = []
-        self.active_agents: list[int] = []  # active agents in current round
+        self.round_msg: List[Message] = []
+        self.active_agents: List[int] = []  # active agents in current round
         self.active_agent_threshold = config["active_agent_threshold"]
         self.active_method = config["active_method"]
-        self.file_name_path: list[str] = []
+        self.file_name_path: List[str] = []
         self.play_event = threading.Event()
-        self.working_agents: list[RecAgent] = []  # busy agents
+        self.working_agents: List[RecAgent] = []  # busy agents
         self.now = datetime.now().replace(hour=8, minute=0, second=0)
         self.interval = interval.parse_interval(config["interval"])
+        self.round_entropy = []
+        self.rec_cnt = [20] * config["agent_num"]
         self.rec_stat = message.RecommenderStat(
             tot_user_num=0,
             cur_user_num=0,
@@ -89,21 +94,26 @@ class Simulator:
         self.round_cnt = 0
         self.data = Data(self.config)
         self.agents = self.agent_creation()
-        self.recsys = Recommender(self.config, self.data)
+        self.recsys = Recommender(self.config, self.logger, self.data)
         self.logger.info("Simulator loaded.")
 
     def save(self, save_dir_name):
-        """Save the simulator status of current epoch"""
+        """Save the simulator status of current round"""
         utils.ensure_dir(save_dir_name)
         ID = utils.generate_id(self.config["simulator_dir"])
-        file_name = f"{ID}-Round[{self.round_cnt}]-AgentNum[{self.config['agent_num']}]-{datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}.pkl"
+        file_name = f"{ID}-Round[{self.round_cnt}]-AgentNum[{self.config['agent_num']}]-{datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}"
         self.file_name_path.append(file_name)
-        save_file_name = os.path.join(save_dir_name, file_name)
+        save_file_name = os.path.join(save_dir_name, file_name + ".pkl")
         with open(save_file_name, "wb") as f:
             dill.dump(self.__dict__, f)
         self.logger.info("Current simulator Save in: \n" + str(save_file_name) + "\n")
         self.logger.info(
             "Simulator File Path (root -> node): \n" + str(self.file_name_path) + "\n"
+        )
+        cpkt_path = os.path.join(self.config["ckpt_path"], file_name + ".pth")
+        self.recsys.save_model(cpkt_path)
+        self.logger.info(
+            "Current Recommender Model Save in: \n" + str(cpkt_path) + "\n"
         )
 
     @classmethod
@@ -225,6 +235,8 @@ class Simulator:
         with lock:
             heapq.heappush(self.working_agents, agent)
         if "RECOMMENDER" in choice:
+            ids = []
+            self.rec_cnt[agent_id] += 1
             self.logger.info(f"{name} enters the recommender system.")
             message.append(
                 Message(
@@ -241,7 +253,7 @@ class Simulator:
                 )
             )
             leave = False
-            rec_items = self.recsys.get_full_sort_items(agent_id)
+            item_ids, rec_items = self.recsys.get_full_sort_items(agent_id)
             page = 0
             cnt = 0
             searched_name = None
@@ -275,18 +287,29 @@ class Simulator:
                         + f" {name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}."
                     )
                 choice, action = agent.take_recommender_action(observation, self.now)
-                self.recsys.update_history(
+                self.recsys.update_history_by_id(
                     agent_id,
-                    rec_items[
+                    item_ids[
                         page
                         * self.recsys.page_size : (page + 1)
                         * self.recsys.page_size
                     ],
                 )
+                ids.extend(
+                    item_ids[
+                        page
+                        * self.recsys.page_size : (page + 1)
+                        * self.recsys.page_size
+                    ]
+                )
 
-                if "BUY" in choice and (agent.event.action_type == "idle" or agent.event.action_type == "posting"):
-                    item_names = utils.extract_item_names(action)
-                    duration = 2 * len(item_names)
+                if "BUY" in choice and (
+                    agent.event.action_type == "idle"
+                    or agent.event.action_type == "posting"
+                ):
+                    item_names = rec_items[page * self.recsys.page_size + action - 1]
+                    item_id = item_ids[page * self.recsys.page_size + action - 1]
+                    duration = 2
                     agent.event = update_event(
                         original_event=agent.event,
                         start_time=self.now,
@@ -294,9 +317,6 @@ class Simulator:
                         target_agent=None,
                         action_type="watching",
                     )
-                    if len(item_names) == 0:
-                        item_names = action.split(";")
-                        item_names = [s.strip(" \"'\t\n") for s in item_names]
 
                     self.logger.info(f"{name} watches {item_names}")
                     message.append(
@@ -314,9 +334,20 @@ class Simulator:
                         )
                     )
                     agent.update_watched_history(item_names)
-                    self.recsys.update_positive(agent_id, item_names)
+                    self.recsys.update_positive_by_id(agent_id, item_id)
+
+                    for i in range(self.recsys.page_size):
+                        if i == action - 1:
+                            self.recsys.add_train_data(
+                                agent_id, item_ids[page * self.recsys.page_size + i], 1
+                            )
+                        else:
+                            self.recsys.add_train_data(
+                                agent_id, item_ids[page * self.recsys.page_size + i], 0
+                            )
+
                     item_descriptions = self.data.get_item_description_by_name(
-                        item_names
+                        [item_names]
                     )
                     if len(item_descriptions) == 0:
                         self.logger.info(f"{name} leaves the recommender system.")
@@ -337,12 +368,11 @@ class Simulator:
                         leave = True
                         continue
 
-                    for i in range(len(item_names)):
-                        observation = f"{name} has just finished watching {item_names[i]};;{item_descriptions[i]}."
-                        feelings = agent.generate_feeling(
-                            observation, self.now + timedelta(hours=duration)
-                        )
-                        self.logger.info(f"{name} feels: {feelings}")
+                    observation = f"{name} has just finished watching {item_names};;{item_descriptions[0]}."
+                    feelings = agent.generate_feeling(
+                        observation, self.now + timedelta(hours=duration)
+                    )
+                    self.logger.info(f"{name} feels: {feelings}")
 
                     message.append(
                         Message(
@@ -363,6 +393,10 @@ class Simulator:
 
                 elif "NEXT" in choice:
                     self.logger.info(f"{name} looks next page.")
+                    for i in range(self.recsys.page_size):
+                        self.recsys.add_train_data(
+                            agent_id, item_ids[page * self.recsys.page_size + i], 0
+                        )
                     message.append(
                         Message(
                             agent_id=agent_id,
@@ -456,6 +490,7 @@ class Simulator:
                     )
                     if len(search_items) != 0:
                         rec_items = search_items
+                        item_ids = self.data.get_item_ids_exact(search_items)
                         page = 0
                         searched_name = item_name
                     else:
@@ -513,6 +548,10 @@ class Simulator:
                         )
                     )
                     leave = True
+            entropy = utils.get_entropy(ids, self.data)
+            self.round_entropy.append(entropy)
+            self.recsys.round_record[agent_id].append(ids)
+
         elif "SOCIAL" in choice:
             contacts = self.data.get_all_contacts(agent_id)
             if len(contacts) == 0:
@@ -549,7 +588,9 @@ class Simulator:
                     )
                 )
                 observation = f"{name} is going to social media. {name} and {contacts} are acquaintances. {name} can chat with acquaintances, or post to all acquaintances. What will {name} do?"
-                choice, action, duration = agent.take_social_action(observation, self.now)
+                choice, action, duration = agent.take_social_action(
+                    observation, self.now
+                )
                 if "CHAT" in choice:
                     agent_name2 = action.strip(" \t\n'\"")
                     agent_id2 = self.data.get_user_ids([agent_name2])[0]
@@ -777,6 +818,7 @@ class Simulator:
                             )
 
                     self.logger.info(f"{contacts} get this post.")
+
         else:
             self.logger.info(f"{name} does nothing.")
             message.append(
@@ -789,6 +831,7 @@ class Simulator:
                     agent_id=agent_id, action="LEAVE", content=f"{name} does nothing."
                 )
             )
+
         return message
 
     def update_working_agents(self):
@@ -1021,16 +1064,62 @@ class Simulator:
     def start(self):
         self.play()
         messages = []
-        for i in range(self.round_cnt + 1, self.config["epoch"] + 1):
+        for i in range(self.round_cnt + 1, self.config["round"] + 1):
             self.round_cnt = self.round_cnt + 1
             self.logger.info(f"Round {self.round_cnt}")
-            message=self.round()
-            #self.round_msg = self.round()
+            message = self.round()
             messages.append(message)
             with open(self.config["output_file"], "w") as file:
                 json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
             self.recsys.save_interaction()
             self.save(os.path.join(self.config["simulator_dir"]))
+
+    def clear_social(self):
+        for i in self.agents:
+            agent = self.agents[i]
+            agent.relationships = {}
+            self.data.users[agent.id]["contact"] = {}
+
+    def add_relation(self, user_1, user_2, relationship):
+        self.data.users[user_1]["contact"][user_2] = relationship
+        self.agents[user_1].relationships[self.agents[user_2].name] = relationship
+
+        self.data.users[user_2]["contact"][user_1] = relationship
+        self.agents[user_2].relationships[self.agents[user_1].name] = relationship
+        self.data.tot_relationship_num += 2
+
+    def add_social(self, num):
+        """
+        Add social relationship.
+        """
+        homo = False
+        if num < 0:
+            homo = True
+            num = -num
+
+        for i in range(len(self.agents)):
+            agent = self.agents[i]
+
+            for j in range(i + 1, len(self.agents)):
+                if len(agent.relationships) == num:
+                    break
+                if homo:
+                    if self.agents[j].interest == agent.interest:
+                        self.add_relation(i, j, "friend")
+                else:
+                    if self.agents[j].interest != agent.interest:
+                        self.add_relation(i, j, "friend")
+
+    def load_round_record(self):
+        self.recsys.round_record = {}
+
+        for i in range(len(self.agents)):
+            self.recsys.round_record[i] = []
+            for r in range(self.round_cnt):
+                self.recsys.round_record[i].append(
+                    self.recsys.record[i][r * 5 : (r + 1) * 5]
+                )
+
 
 
 def parse_args():
@@ -1197,17 +1286,20 @@ def main():
         )
         recagent = Simulator.restore(restore_path, config, logger)
         logger.info(f"Successfully Restore simulator from the file <{restore_path}>\n")
-        logger.info(f"Start from the epoch {recagent.round_cnt + 1}\n")
+        logger.info(f"Start from the round {recagent.round_cnt + 1}\n")
     else:
         recagent = Simulator(config, logger)
         recagent.load_simulator()
+    if recagent.config["social_random_k"] > 0:
+        recagent.clear_social()
+        recagent.add_social(recagent.config["social_random_k"])
+
     messages = []
     recagent.play()
-    for i in range(recagent.round_cnt + 1, config["epoch"] + 1):
+    for i in tqdm(range(recagent.round_cnt + 1, config["round"] + 1)):
         recagent.round_cnt = recagent.round_cnt + 1
         recagent.logger.info(f"Round {recagent.round_cnt}")
         recagent.active_agents.clear()
-        #system_status(recagent, logger)
         message = recagent.round()
         messages.append(message)
         with open(config["output_file"], "w") as file:

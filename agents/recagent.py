@@ -36,7 +36,7 @@ class RecAgent(GenerativeAgent):
     feature: str
     """The agent's action feature"""
 
-    relationships: dict[str, str] = {}
+    relationships: Dict[str, str] = {}
     """The agent's relationship with other agents"""
 
     watched_history: List[str] = []
@@ -67,13 +67,13 @@ class RecAgent(GenerativeAgent):
 
     avatar_url: str
 
-    idle_url:str
+    idle_url: str
 
-    watching_url:str
+    watching_url: str
 
-    chatting_url:str
+    chatting_url: str
 
-    posting_url:str
+    posting_url: str
 
     @classmethod
     def from_roleagent(cls, roleagent_instance: "RecAgent"):
@@ -96,7 +96,7 @@ class RecAgent(GenerativeAgent):
             idle_url=roleagent_instance.idle_url,
             watching_url=roleagent_instance.watching_url,
             chatting_ulr=roleagent_instance.chatting_url,
-            posting_url=roleagent_instance.posting_url
+            posting_url=roleagent_instance.posting_url,
         )
         return new_instance
 
@@ -239,7 +239,9 @@ class RecAgent(GenerativeAgent):
         )
         result = self.chain(prompt=prompt).run(**kwargs).strip()
         age = self.age if self.age is not None else "N/A"
-        return f"Name: {self.name} (age: {age})" + f"\n{result}"
+        return (
+            f"Name: {self.name} (age: {age}) Interest: {self.interest}" + f"\n{result}"
+        )
 
     def _generate_reaction(
         self, observation: str, suffix: str, now: Optional[datetime] = None
@@ -269,12 +271,12 @@ class RecAgent(GenerativeAgent):
             current_time=current_time_str,
             agent_name=self.name,
             observation=observation,
-            watched_history=self.watched_history
-            if len(self.watched_history) > 0
-            else "nothing",
-            heared_history=self.heared_history
-            if len(self.heared_history) > 0
-            else "nothing",
+            watched_history=(
+                self.watched_history if len(self.watched_history) > 0 else "nothing"
+            ),
+            heared_history=(
+                self.heared_history if len(self.heared_history) > 0 else "nothing"
+            ),
         )
         consumed_tokens = self.llm.get_num_tokens(
             prompt.format(most_recent_memories="", **kwargs)
@@ -298,9 +300,11 @@ class RecAgent(GenerativeAgent):
             + "\n{agent_name} recently heared {heared_history} on social media."
             + "\n{agent_name} recently watched {watched_history} on recommender system."
             + "\nOther than that {agent_name} doesn't know any movies."
+            + "\n{agent_name} would only mention the movies had recently watched, but not any other movies."
             + "\n{agent_name2} recently heared {heared_history2} on social media."
             + "\n{agent_name2} recently watched {watched_history2} on recommender system."
             + "\nOther than that {agent_name2} doesn't know any movies."
+            + "\n{agent_name} would only mention the movies had recently watched, but not any other movies."
             + "\nMost recent observations of {agent_name}: {most_recent_memories}"
             + "\nMost recent observations of {agent_name2}: {most_recent_memories2}"
             + "\nObservation: {observation}"
@@ -323,28 +327,34 @@ class RecAgent(GenerativeAgent):
             current_time=current_time_str,
             agent_name=self.name,
             observation=observation,
-            watched_history=self.watched_history
-            if len(self.watched_history) > 0
-            else "nothing",
-            heared_history=self.heared_history
-            if len(self.heared_history) > 0
-            else "nothing",
+            watched_history=(
+                self.watched_history if len(self.watched_history) > 0 else "nothing"
+            ),
+            heared_history=(
+                self.heared_history if len(self.heared_history) > 0 else "nothing"
+            ),
             agent_summary_description2=agent_summary_description2,
             agent_name2=agent2.name,
-            watched_history2=agent2.watched_history
-            if len(agent2.watched_history) > 0
-            else "nothing",
-            heared_history2=agent2.heared_history
-            if len(agent2.heared_history) > 0
-            else "nothing",
+            watched_history2=(
+                agent2.watched_history if len(agent2.watched_history) > 0 else "nothing"
+            ),
+            heared_history2=(
+                agent2.heared_history if len(agent2.heared_history) > 0 else "nothing"
+            ),
         )
 
-        result_memories2, memories_tuple = agent2.memory.longTermMemory.fetch_memories_with_list(
-            observation, agent2.memory.shortTermMemory
-        )
-        result_memories2 = [memory[1] for memory in result_memories2]
-        most_recent_memories2 = '; '.join(result_memories2)
-        agent2.memory.save_context_after_retrieval(memories_tuple)
+        try:
+            (
+                result_memories2,
+                memories_tuple,
+            ) = agent2.memory.longTermMemory.fetch_memories_with_list(
+                observation, agent2.memory.shortTermMemory
+            )
+            result_memories2 = [memory[1] for memory in result_memories2]
+            most_recent_memories2 = '; '.join(result_memories2)
+            agent2.memory.save_context_after_retrieval(memories_tuple)
+        except:
+            most_recent_memories2 = ""
 
         kwargs["most_recent_memories2"] = most_recent_memories2
         consumed_tokens = self.llm.get_num_tokens(
@@ -436,8 +446,8 @@ class RecAgent(GenerativeAgent):
             "(2) See the next page.\n"
             "(3) Search for a specific item.\n"
             "(4) Leave the recommender system."
-            + "\nIf {agent_name} has recently heard about a particular movie on social media, {agent_name} might want to search for that movie on the recommender system."
-            + "\nTo watch a movie from the recommended list, write:\n[BUY]:: ONLY ONE movie name;;description"
+            + "\nIf {agent_name} has recently heard about a particular movie on social media, {agent_name} usually want to search for that movie on the recommender system."
+            + "\nTo watch a movie from the recommended list that match {agent_name}'s interests, write:\n[BUY]:: Index of the movie starting from 1 (e.g., [BUY]:: 3)"
             + "\nTo see the next page, write:\n[NEXT]:: {agent_name} views the next page."
             + "\nTo search for a specific item, write:\n[SEARCH]:: single, specific movie name to search for."
             + "\nTo leave the recommender system, write:\n[LEAVE]:: {agent_name} leaves the recommender system."
@@ -447,14 +457,16 @@ class RecAgent(GenerativeAgent):
         result = full_result.strip()
         if result.find("::") != -1:
             choice, action = result.split("::")
-            if "BUY" in choice:    
-                pattern = r"<(.*?)>"
-                match = re.search(pattern, result)
-                if match:
-                    action = match.group(0)
+            choice = choice.strip()
+            match = re.search(r'(\d+)', action)
+
+            if match:
+                num = int(match.group(1))
+                if 1 <= num <= 5:
+                    action = num
                 else:
-                    choice = "[LEAVE]"
-                    action = f"{self.name} leaves the recommender system."
+                    action = 1
+
         else:
             choice = "[LEAVE]"
             action = f"{self.name} leaves the recommender system."
@@ -472,7 +484,7 @@ class RecAgent(GenerativeAgent):
         """Feel about each item bought."""
         call_to_action_template = (
             "{agent_name}, how did you feel about the movie you just watched? Describe your feelings in one line."
-            +"NOTE: Please answer in the first-person perspective."
+            + "NOTE: Please answer in the first-person perspective."
             + "\n\n"
         )
 
@@ -497,6 +509,28 @@ class RecAgent(GenerativeAgent):
             },
         )
         return feelings
+
+    def generate_rec_list_rating(self, observation: str, now) -> str:
+        """Generate rating for the recommended movie list."""
+        call_to_action_template = "Assuming you are {agent_name}. Very Critically consider each movie in the recommended list and evaluate how well it's genre aligns with your personal interests. For every movie that does not match your interests, the overall rating should be reduced accordingly and obviously. After this thorough assessment, provide an overall rating for the entire list on a scale from 1 to 10, where 1 indicates a poor overall match and 10 indicates an excellent overall match. Your response should be a single integer, reflecting a meticulous evaluation of how each movie fits with your interests. Your response should be a single integer, representing a rigorous and sensitive evaluation of the recommendation quality, with no additional commentary."
+        full_result = self._generate_reaction(observation, call_to_action_template, now)
+        match = re.search(r'\d+', full_result)
+        rating = 0
+        if match:
+            rating = int(match.group())
+        return rating
+
+    def generate_rec_rating(self, observation: str, now) -> str:
+        """Generate rating for a movie."""
+        call_to_action_template = "Assuming you are {agent_name}. Based on your liking for similar types of movies and your historical ratings, please Very Critically rate this movie on a scale from 1 to 5, where 1 means you really dislike it and 5 means you really like it. Consider that if this movie does not align well with your historical interests, your rating might be lower. Please provide your rating in the following format: 'Rating: [Your Score]'."
+        full_result = self._generate_reaction(observation, call_to_action_template, now)
+        rating_regex = r"Rating: (\d)"
+        extracted_rating = re.search(rating_regex, full_result)
+        rating = 0
+        if extracted_rating:
+            rating = extracted_rating.group(1)
+            print(f"Extracted Rating: {rating}")
+        return rating
 
     def search_item(self, observation, now) -> str:
         """Search item by the item name."""
@@ -525,16 +559,16 @@ class RecAgent(GenerativeAgent):
         call_to_action_template = (
             "{agent_name} must take one of the two actions below:\n(1)Chat with one acquaintance about movies recently watched on recommender system: {watched_history}, or movies heared about on social media: {heared_history}.\n(2) Publish posting to all acquaintances about movies recently watched on recommender system: {watched_history}, or heared about on social media: {heared_history}."
             + "\nWhat action would {agent_name} like to take and how much time does the action cost?"
-            + "\nIf {agent_name} want to chat with one acquaintance, write:\n[CHAT]:: acquaintance's name\n[TIME]:: hours for chat. Select a number from 0.5, 1 and 2."
+            + "\n{agent_name} should chat with more different people. If {agent_name} want to chat with one acquaintance, write:\n[CHAT]:: acquaintance's name\n[TIME]:: hours for chat. Select a number from 0.5, 1 and 2."
             + "\nIf {agent_name} want to publish posting to all acquaintances, write:\n[POST]:: what to post\n[TIME]:: 1"
             + "\n\n"
         )
         full_result = self._generate_reaction(observation, call_to_action_template, now)
-        if len(full_result.split("\n")) == 1:
+        try:
+            result, duration = full_result.split("\n")
+        except:
             result = full_result
             duration = 1
-        else:
-            result, duration = full_result.split("\n")
         choice = result.split("::")[0]
         action = result.split("::")[1].strip()
         self.memory.save_context(
@@ -624,8 +658,14 @@ class RecAgent(GenerativeAgent):
 
     def publish_posting(self, observation, now) -> str:
         """Publish posting to all acquaintances."""
+        # call_to_action_template = (
+        #     "Posts should be related to recent watched movies on recommender systems."
+        #     "{agent_name} should not say anything about movies that have not watched or heard about."
+        #     + "\nIf you were {agent_name}, what will you post? Respond in one line."
+        #     + "\n\n"
+        # )
         call_to_action_template = (
-            "Posts should be related to recent watched movies on recommender systems."
+            "Posts should be related to {observation} on recommender systems. "
             "{agent_name} should not say anything about movies that have not watched or heard about."
             + "\nIf you were {agent_name}, what will you post? Respond in one line."
             + "\n\n"

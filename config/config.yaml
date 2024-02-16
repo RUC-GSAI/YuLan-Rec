@@ -1,4 +1,4 @@
-# name of LLM model, 'custom' for custom model 
+# name of LLM model, 'custom' for custom model
 llm: gpt-3.5
 # path for item data
 item_path: data/item.csv
@@ -9,17 +9,28 @@ relationship_path: data/relationship_1000.csv
 # path for save interaction records
 interaction_path: data/interaction.csv
 # directory name for faiss index
+ckpt_path: data/ckpt
 index_name: data/faiss_index
 # simulator directory name for saving and restoring
 simulator_dir: data/simulator
 # simulator restoring name
-simulator_restore_file_name: 
+simulator_restore_file_name:
+# random seed
+seed: 2023
 # recommender system model
-rec_model: Random
+rec_model: MF
+# train epoch number for recommender system model
+epoch_num: 10
+# batch size for recommender system model
+batch_size: 64
+# embedding size for recommender system model
+embedding_size: 64
+# learning rate for recommender system model
+lr: 0.001
 # number of epochs
-epoch: 3
+round: 50
 # number of agents, which cannot exceed the number of user in user.csv
-agent_num: 1
+agent_num: 5
 # number of items to be recommended in one page
 page_size: 5
 # temperature for LLM
@@ -27,7 +38,7 @@ temperature: 0
 # maximum number of tokens for LLM
 max_token: 1500
 # execution mode, serial or parallel
-execution_mode: serial
+execution_mode: parallel
 # time interval for action of agents. The form is a number + a single letter, and the letter may be s, m, h, d, M, y
 interval: 5h
 # number of max retries for LLM API
@@ -44,6 +55,8 @@ active_prob: 1
 agent_memory: recagent
 # list of api keys for LLM API
 api_keys:
-  - xxxx
-
-
+  - xxx
+# ratio of random recommendation, 1,3,5
+rec_random_k: 0
+# ratio of random friends, 1,3,5
+social_random_k: 0
