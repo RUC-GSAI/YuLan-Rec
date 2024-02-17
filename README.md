@@ -9,9 +9,9 @@
     <img src="https://img.shields.io/badge/License-MIT-blue" alt="license">
     <img src="https://img.shields.io/github/stars/RUC-GSAI/YuLan-RecAgent" alt="license">
 </div>
+
 Simulating high quality user behavior data has always been a fundamental problem in human-centered applications, where the major difficulty originates from the intricate mechanism of human decision process. Recently, substantial evidence have suggested that by learning huge amounts of web knowledge, large language models (LLMs) can achieve human-like intelligence. We believe these models can provide significant opportunities to more believable user behavior simulation. To inspire such direction, we propose an LLM-based agent framework and design a sandbox environment to simulate real user behaviors. Based on extensive experiments, we
 find that the simulated behaviors of our method are very close to the ones of real humans. Concerning potential applications, we simulate and study two social phenomenons including (1) information cocoons and (2) user conformity behaviors. This research provides novel simulation paradigms for human-centered applications. The introduction video of RecAgent can be accessed through the [Baidu Netdisk](https://pan.baidu.com/s/1n2WeWsiKRiz0ZKZuB0LUZA)(Password: 8sjj) or [Google Drive](https://drive.google.com/file/d/1nTRH2Kvo-1K-s8pB5cl0WbQLt0wCLA0D/view?usp=sharing).
-
 
 <p align="center">
   <img src="asset/img/framework.png" alt="RecAgnet Framework" width="100%">
