@@ -239,15 +239,19 @@ User profiles and relationships between users are fabricated for simulation purp
 
 ## Awesome LLM-based Agent for Simulation
 
-| Paper                                                | Date  | Description                                                                                                                                                         |
-| ---------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Generative Agent](https://arxiv.org/abs/2304.03442) | 04/23 | Constructed a virtual town comprised of 25 autonomous agents                                                                                                        |
-| [RecAgent](https://arxiv.org/abs/2306.02552)         | 06/23 | Developed a recommendation system simulation environment, where Agents can interact with the recommendation system or engage with other Agents on a social platform |
-| [S^3](https://arxiv.org/abs/2307.14984)              | 07/23 | Created a news event-driven simulation social network, integrating real-world data                                                                                  |
-| [Agent4Rec](https://arxiv.org/abs/2307.14984)        | 10/23 | Built a recommendation system simulator based on the MovieLens dataset                                                                                              |
-| [Li et al.](https://arxiv.org/abs/2310.10436)        | 10/23 | Introduced a novel LLM-based approach for macroeconomic simulations with human-like decision-making agents,                                                         |
-| [WarAgent](https://arxiv.org/abs/2311.17227)         | 11/23 | Utilize LLM-based agent to simulate historical international conflicts                                                                                              |
-| [UGI](https://arxiv.org/abs/2312.11813)              | 12/23 | Introduced UGI using LLMs and CityGPT to simulate and address urban complexities through intelligent agent interactions                                             |
+| Paper                                                                  | Date  | Description                                                                                                                                                       |
+| ---------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Social Simulacra](https://dl.acm.org/doi/abs/10.1145/3526113.3545616) | 08/22 | Introduce Social simulacra to generate and explore realistic social interactions within thousands of community members                                            |
+| [Generative Agent](https://arxiv.org/abs/2304.03442)                   | 04/23 | Construct a virtual town comprised of 25 autonomous agents                                                                                                        |
+| [RecAgent](https://arxiv.org/abs/2306.02552)                           | 06/23 | Develop a recommendation system simulation environment, where Agents can interact with the recommendation system or engage with other Agents on a social platform |
+| [S^3](https://arxiv.org/abs/2307.14984)                                | 07/23 | Create a news event-driven simulation social network, integrating real-world data                                                                                 |
+| [Williams et al.](https://arxiv.org/abs/2307.04986)                    | 07/23 | Use generative agent to simulate realistic human behavior in epidemics.                                                                                           |
+| [Agent4Rec](https://arxiv.org/abs/2307.14984)                          | 10/23 | Build a recommendation system simulator based on the MovieLens dataset                                                                                            |
+| [Li et al.](https://arxiv.org/abs/2310.10436)                          | 10/23 | Introduce a LLM-based approach for macroeconomic simulations with human-like decision-making agents                                                               |
+| [CompeteAI](https://arxiv.org/abs/2310.17512)                          | 10/23 | Investigate competition between restaurant and customer agents in a GPT-4 simulated environment                                                                   |
+| [AUCARENA](https://arxiv.org/abs/2310.05746)                           | 10/23 | Evaluate LLM-based agent in auction simulations, highlighting their strategic and resource management skills                                                      |
+| [WarAgent](https://arxiv.org/abs/2311.17227)                           | 11/23 | Utilize LLM-based agent to simulate historical international conflicts                                                                                            |
+| [UGI](https://arxiv.org/abs/2312.11813)                                | 12/23 | Introduce UGI using LLMs and CityGPT to simulate and address urban complexities through intelligent agent interactions                                            |
 
 ## 💪 Maintainers
    
