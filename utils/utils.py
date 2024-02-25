@@ -10,7 +10,7 @@ from llm import *
 from yacs.config import CfgNode
 import os
 from langchain.chat_models import ChatOpenAI
-
+import math
 
 # logger
 def set_logger(log_file, name="default"):
@@ -383,3 +383,27 @@ def get_avatar_url(id:int,gender:str,type:str="origin",role=False):
         return target+str(id%10)+'.png'
     target='/asset/img/avatar/'+type+"/"+gender+'/'
     return target+str(id%10)+'.png'
+
+
+def calculate_entropy(movie_types):
+    type_freq = {}
+    for movie_type in movie_types:
+        if movie_type in type_freq:
+            type_freq[movie_type] += 1
+        else:
+            type_freq[movie_type] = 1
+
+    total_movies = len(movie_types)
+
+    entropy = 0
+    for key in type_freq:
+        prob = type_freq[key] / total_movies
+        entropy -= prob * math.log2(prob)
+
+    return entropy
+
+
+def get_entropy(inters, data):
+    genres = data.get_genres_by_id(inters)
+    entropy = calculate_entropy(genres)
+    return entropy
