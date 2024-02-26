@@ -271,11 +271,11 @@ User profiles and relationships between users are fabricated for simulation purp
 RecAgent uses [MIT License](./LICENSE). All data and code in this project can only be used for academic purposes.
 
 ## 📄 Citation
-Please cite the following paper as the reference if you use our code. [![Paper](https://img.shields.io/badge/arxiv-PDF-red)](https://arxiv.org/abs/2306.02552.pdf)
+Welcome to cite our paper if you find it helpful. [![Paper](https://img.shields.io/badge/arxiv-PDF-red)](https://arxiv.org/abs/2306.02552.pdf)
 
 ```
 @misc{wang2024user,
-      title={User Behavior Simulation with Large Language Model based Agents}, 
+      title={User Behavior Simulation with Large Language Model-based Agents}, 
       author={Lei Wang and Jingsen Zhang and Hao Yang and Zhiyuan Chen and Jiakai Tang and Zeyu Zhang and Xu Chen and Yankai Lin and Ruihua Song and Wayne Xin Zhao and Jun Xu and Zhicheng Dou and Jun Wang and Ji-Rong Wen},
       year={2024},
       eprint={2306.02552},
