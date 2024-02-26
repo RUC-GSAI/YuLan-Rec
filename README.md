@@ -21,12 +21,12 @@ find that the simulated behaviors of our method are very close to the ones of re
 
 
 ## 🔥 News
-- [15/2/2024] RecAgent `v3.0` is released on arXiv with following updates: 
+- [15/2/2024] RecAgent `v3.0` is released on arXiv with the following updates: 
   - 🧠 More comprehensive experiments to validate RecAgent's believablity in simulating real humans
   - 🔬 More experiments on the potential of RecAgent for studying social phenomena (e.g., **information cocoons** and **user conformity behavior**)
-  - 📖 New insights on RecAgent and updated paper writting
+  - 📖 New insights on RecAgent and updated paper writing
   
-- [9/18/2023] RecAgent `v2.0` is released on arXiv with following updates: 
+- [9/18/2023] RecAgent `v2.0` is released on arXiv with the following updates: 
 
     -  More Agents: from 25 to at most 1000
     -  Human-like Memory Mechanism
@@ -34,7 +34,7 @@ find that the simulated behaviors of our method are very close to the ones of re
     -  System-level and Agent-level Intervention
     -  Human Involved Simulation
         
-- [6/5/2023] RecAgent `v1.0` is released on arXiv: [When Large Language Model based Agent Meets User Behavior Analysis: A Novel User Simulation Paradigm](https://arxiv.org/abs/2306.02552)
+- [6/5/2023] RecAgent `v1.0` is released on arXiv: [When Large Language Model-based Agent Meets User Behavior Analysis: A Novel User Simulation Paradigm](https://arxiv.org/abs/2306.02552)
 
 
 ## Table of Contents
