@@ -34,7 +34,7 @@ find that the simulated behaviors of our method are very close to the ones of re
     -  System-level and Agent-level Intervention
     -  Human Involved Simulation
         
-- [6/5/2023] RecAgent `v1.0` is released on arXiv: [When Large Language Model-based Agent Meets User Behavior Analysis: A Novel User Simulation Paradigm](https://arxiv.org/abs/2306.02552)
+- [6/5/2023] RecAgent `v1.0` is released on arXiv: [User Behavior Simulation with Large Language Model based Agents](https://arxiv.org/abs/2306.02552)
 
 
 ## Table of Contents
