@@ -22,7 +22,7 @@ find that the simulated behaviors of our method are very close to the ones of re
 
 ## 🔥 News
 - [15/2/2024] RecAgent `v3.0` is released on arXiv with the following updates: 
-  - 🧠 More comprehensive experiments to validate RecAgent's believablity in simulating real humans
+  - 🧠 More comprehensive experiments to validate RecAgent's believablity in simulating real human behaviors
   - 🔬 More experiments on the potential of RecAgent for studying social phenomena (e.g., **information cocoons** and **user conformity behavior**)
   - 📖 New insights on RecAgent and updated paper writing
   
