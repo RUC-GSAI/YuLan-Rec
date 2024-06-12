@@ -10,6 +10,7 @@ from llm import *
 from yacs.config import CfgNode
 import os
 from langchain.chat_models import ChatOpenAI
+from langchain.embeddings import HuggingFaceEmbeddings
 import math
 
 # logger
@@ -345,7 +346,9 @@ def get_llm(config, logger, api_key):
             max_retries=config["max_retries"]
         )
     elif config["llm"] == "custom":
-        LLM = CustomLLM(max_token=2048, logger=logger,max_retries=config["max_retries"])
+        LLM = CustomLLM(max_token=2048, logger=logger)
+    else:
+        raise ValueError(f"Invalid llm: {config['llm']}")
     return LLM
 
 
@@ -407,3 +410,10 @@ def get_entropy(inters, data):
     genres = data.get_genres_by_id(inters)
     entropy = calculate_entropy(genres)
     return entropy
+
+
+def get_embedding_model():
+    model_name = "sentence-transformers/all-mpnet-base-v2"
+    model_kwargs = {'device': 'cpu'}
+    embeddings_model = HuggingFaceEmbeddings(model_name=model_name, model_kwargs=model_kwargs)
+    return 768, embeddings_model

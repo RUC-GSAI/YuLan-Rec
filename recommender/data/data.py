@@ -1,6 +1,6 @@
 import csv
 from langchain.vectorstores import FAISS
-from langchain.embeddings import OpenAIEmbeddings
+from utils import utils
 
 
 class Data:
@@ -26,7 +26,7 @@ class Data:
         Load faiss db from local if exists, otherwise create a new one.
 
         """
-        embeddings = OpenAIEmbeddings()
+        _,embeddings =utils.get_embedding_model()
         try:
             self.db = FAISS.load_local(index_name, embeddings)
             print("Load faiss db from local")

@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List
 class Message(BaseModel):
     """
     Message class for communication between backend and frontend.
@@ -19,7 +20,7 @@ class RecommenderStat(BaseModel):
     tot_item_num: int
     inter_num: int
     rec_model: str
-    pop_items: list[str]
+    pop_items: List[str]
 
 class SocialStat(BaseModel):
     tot_user_num: int
@@ -28,5 +29,5 @@ class SocialStat(BaseModel):
     chat_num: int
     cur_chat_num: int
     post_num: int
-    pop_items: list[str]
+    pop_items: List[str]
     network_density: float

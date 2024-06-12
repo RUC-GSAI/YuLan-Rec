@@ -16,16 +16,15 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 from random import random
 from pydantic import BaseModel, Field
-from langchain.embeddings import OpenAIEmbeddings
 from langchain import LLMChain
 from langchain.base_language import BaseLanguageModel
 from langchain.prompts import PromptTemplate
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
 from langchain.schema import BaseMemory, Document
-from langchain.utils import mock_now
-
 from langchain.experimental.generative_agents.memory import GenerativeAgentMemory
 from langchain.schema import BaseOutputParser
+
+from utils import utils
 
 logger = logging.getLogger(__name__)
 
@@ -210,6 +209,9 @@ class ShortTermMemory():
         self.enhance_threshold: int = 3
         """Summary the short-term memory with enhanced count larger or equal than the threshold"""
 
+        _,self.embeddings_model=utils.get_embedding_model()
+        """The embeddings model"""
+
     @staticmethod
     def _parse_list(text: str) -> List[str]:
         """Parse a newline-separated string into a list of strings."""
@@ -343,8 +345,7 @@ class ShortTermMemory():
         """
         const = 0.1
         # compute the vector similarities between observation and the existing short-term memories
-        embeddings_model = OpenAIEmbeddings()
-        observation_embedding = embeddings_model.embed_query(observation)
+        observation_embedding = self.embeddings_model.embed_query(observation)
         for idx, memory_embedding in enumerate(self.short_embeddings):
             similarity = self.cosine_similarity(observation_embedding, memory_embedding)
             # primacy effect
@@ -399,6 +400,9 @@ class LongTermMemory(BaseMemory):
 
     importance_weight: float = 0.15
     """How much weight to assign the memory importance."""
+
+    _,embeddings_model=utils.get_embedding_model()
+    """The embeddings model"""
 
     def chain(self, prompt: PromptTemplate) -> LLMChain:
         return LLMChain(llm=self.llm, prompt=prompt, verbose=self.verbose)
@@ -476,30 +480,31 @@ class LongTermMemory(BaseMemory):
                 (List[Document]) the retrieved memory documents
                 (Tuple(List[str], List[float], List[str])) memories_tuple: contains the short-term memories, importances and the insights.
         """
-        with mock_now(now):
-            # reflection do not enhance the short-term memories
-            retrieved_list = self.memory_retriever.get_relevant_documents(observation)
-            if stm is None:
-                return retrieved_list
-            # retrieval enhance the short-term memories
-            else:
-                ltm_memory_list, ltm_importance_scores = [], []
-                insight_memory_list = []
-                for document in retrieved_list:
-                    memory_content, memory_importance, insight_content = \
-                        stm.add_stm_memory(document.page_content, document.metadata['importance'], op='Retrieval')
-                    ltm_memory_list.extend(memory_content)
-                    ltm_importance_scores.extend(memory_importance)
-                    insight_memory_list.extend(insight_content)
+        if now is None:
+            now = self.now
+        # reflection do not enhance the short-term memories
+        retrieved_list = self.memory_retriever.get_relevant_documents(observation)
+        if stm is None:
+            return retrieved_list
+        # retrieval enhance the short-term memories
+        else:
+            ltm_memory_list, ltm_importance_scores = [], []
+            insight_memory_list = []
+            for document in retrieved_list:
+                memory_content, memory_importance, insight_content = \
+                    stm.add_stm_memory(document.page_content, document.metadata['importance'], op='Retrieval')
+                ltm_memory_list.extend(memory_content)
+                ltm_importance_scores.extend(memory_importance)
+                insight_memory_list.extend(insight_content)
 
-                for idx in range(len(stm.short_memories)):
-                    short_term_document = Document(
-                        page_content=stm.short_memories[idx],
-                        metadata={"importance": stm.memory_importance[idx]}
-                    )
-                    retrieved_list.append(short_term_document)
+            for idx in range(len(stm.short_memories)):
+                short_term_document = Document(
+                    page_content=stm.short_memories[idx],
+                    metadata={"importance": stm.memory_importance[idx]}
+                )
+                retrieved_list.append(short_term_document)
 
-                return retrieved_list, (ltm_memory_list, ltm_importance_scores, insight_memory_list)
+            return retrieved_list, (ltm_memory_list, ltm_importance_scores, insight_memory_list)
 
     def format_memories_detail(self, relevant_memories: List[Document]) -> str:
         content_strs = set()
@@ -591,15 +596,15 @@ class LongTermMemory(BaseMemory):
 
         pattern = r"(?<=\[)\d+(?=\])"
         indexes = []
-        embeddings_model = OpenAIEmbeddings()
-        embedding_1 = embeddings_model.embed_query(result_insight[0][0])
+        
+        embedding_1 = self.embeddings_model.embed_query(result_insight[0][0])
         for memory_id in statements_id:
             if memory_id < 0 or memory_id >= len(self.memory_retriever.memory_stream):
                 continue
             memory = self.memory_retriever.memory_stream[memory_id].page_content
             if memory == '[MERGE]' or memory == '[FORGET]':
                 continue
-            memory_embedding = embeddings_model.embed_query(memory)
+            memory_embedding = self.embeddings_model.embed_query(memory)
             similarity = self.cosine_similarity(embedding_1, memory_embedding)
             # Sigmoid function
             value = 1 / (1 + np.exp(-similarity))

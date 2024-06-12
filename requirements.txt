@@ -9,4 +9,6 @@ tiktoken==0.4.0
 torch==2.0.1
 tqdm==4.66.0
 yacs==0.1.8
-faiss==1.7.2
+dill
+sentence_transformers
+# faiss==1.7.2
