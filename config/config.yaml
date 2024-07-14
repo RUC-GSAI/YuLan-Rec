@@ -53,7 +53,7 @@ active_method: random
 active_prob: 1
 # implementation of agent memory, recagent or GenerativeAgentMemory
 agent_memory: recagent
-# list of api keys for LLM API
+# list of api keys for LLM API or model path of open-sourced LLM running locally
 api_keys:
   - xxx
 # ratio of random recommendation, 1,3,5

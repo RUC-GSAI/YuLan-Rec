@@ -4,7 +4,8 @@ from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.base import LLM
 import requests
 import json
-
+from openai import OpenAI
+client = OpenAI(api_key="")
 
 class CustomLLM(LLM):
     max_token: int
@@ -12,7 +13,8 @@ class CustomLLM(LLM):
     headers: dict = {"Content-Type": "application/json"}
     payload: dict = {"prompt": "", "history": []}
     logger: Any
-
+    model: str
+    
     @property
     def _llm_type(self) -> str:
         return "CustomLLM"
@@ -24,17 +26,19 @@ class CustomLLM(LLM):
         history: Optional[List[str]] = None,
         run_manager: Optional[CallbackManagerForLLMRun] = None,
     ) -> str:
-        self.payload["prompt"] = prompt
-        response = requests.post(
-            self.URL, headers=self.headers, data=json.dumps(self.payload)
-        )
-
-        if response.status_code == 200:
-            result = response.json()
-            return result["response"]
-        else:
-            self.logger.error("CustomLLM error occurred with status code:", response.text)
-        return response.text
+        try:
+            client.base_url = self.URL
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                stop=stop,
+                n=1,
+                max_tokens=self.max_token  # 你可以根据需要调整这个值
+            )
+            return response.choices[0].text.strip()
+        except Exception as e:
+            self.logger.error(f"CustomLLM error occurred: {e}")
+            return str(e)
 
     @property
     def _identifying_params(self) -> Mapping[str, Any]:

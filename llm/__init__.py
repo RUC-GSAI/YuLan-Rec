@@ -1,3 +1,4 @@
 from .custom_llm import CustomLLM
-
-__all__ = ["CustomLLM"]
+from .local_llm import LocalLLM
+from .local_llm import SingletonLocalLLM
+__all__ = ["CustomLLM","LocalLLM","SingletonLocalLLM"]

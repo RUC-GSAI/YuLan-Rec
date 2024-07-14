@@ -345,10 +345,13 @@ def get_llm(config, logger, api_key):
             model="gpt-3.5-turbo",
             max_retries=config["max_retries"]
         )
-    elif config["llm"] == "custom":
-        LLM = CustomLLM(max_token=2048, logger=logger)
-    else:
-        raise ValueError(f"Invalid llm: {config['llm']}")
+    elif "http" not in api_key:
+        LLM = SingletonLocalLLM.get_instance(
+            config=config,
+            api_key=api_key,
+            logger=logger)
+    else :
+        LLM = CustomLLM(model=config['llm'],max_token=config['max_token'], logger=logger, URL=api_key)
     return LLM
 
 
@@ -413,7 +416,8 @@ def get_entropy(inters, data):
 
 
 def get_embedding_model():
-    model_name = "sentence-transformers/all-mpnet-base-v2"
+    #model_name = "sentence-transformers/all-mpnet-base-v2"
+    model_name="/data/pretrain_dir/all-mpnet-base-v2"
     model_kwargs = {'device': 'cpu'}
     embeddings_model = HuggingFaceEmbeddings(model_name=model_name, model_kwargs=model_kwargs)
     return 768, embeddings_model

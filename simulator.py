@@ -17,7 +17,7 @@ import json
 from langchain.docstore import InMemoryDocstore
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
 from langchain.vectorstores import FAISS
-from langchain.experimental.generative_agents import (
+from langchain_experimental.generative_agents import (
     GenerativeAgent,
     GenerativeAgentMemory,
 )

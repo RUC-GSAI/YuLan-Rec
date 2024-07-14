@@ -6,12 +6,12 @@ from pydantic import BaseModel, Field
 
 from langchain import LLMChain
 from langchain.base_language import BaseLanguageModel
-from langchain.experimental.generative_agents.memory import (
+from langchain_experimental.generative_agents.memory import (
     GenerativeAgentMemory,
     BaseMemory,
 )
 from langchain.prompts import PromptTemplate
-from langchain.experimental.generative_agents import (
+from langchain_experimental.generative_agents import (
     GenerativeAgent,
     GenerativeAgentMemory,
 )
