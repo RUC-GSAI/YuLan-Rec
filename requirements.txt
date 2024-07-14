@@ -1,7 +1,7 @@
 gradio==3.39.0
 langchain==0.1.11
 langchain-experimental==0.0.53
-openai==0.27.8
+openai==1.35.10
 opencv-python==4.7.0.72
 pandas==2.0.3
 pydantic==1.10.12
