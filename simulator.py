@@ -932,6 +932,10 @@ class Simulator:
         # observations = self.data.users[i]["observations"].strip(".").split(".")
         # for observation in observations:
         #     agent.memory.add_memory(observation, now=self.now)
+
+        # 创建好的agent填写问卷
+        agent.fill_questionnaire()
+
         return agent
 
     def create_user_role(self, id, api_key):
