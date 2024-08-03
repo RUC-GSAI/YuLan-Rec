@@ -1,0 +1,200 @@
+{'id': 0, 'name': 'Mary Smith', 'gender': 'female', 'age': 22, 'traits': '', 'status': "Year 1 Master's Student", 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.', 'Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 1, 'name': 'James Davis', 'gender': 'male', 'age': 27, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.', 'Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 2, 'name': 'Sarah Miller', 'gender': 'male', 'age': 21, 'traits': '', 'status': 'Year 4 Undergraduate', 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 3, 'name': 'James Davis', 'gender': 'female', 'age': 18, 'traits': '', 'status': 'Year 1 Undergraduate', 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.']}
+
+{'id': 4, 'name': 'Michael Garcia', 'gender': 'male', 'age': 21, 'traits': '', 'status': 'Year 4 Undergraduate', 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 5, 'name': 'Michael Brown', 'gender': 'male', 'age': 23, 'traits': '', 'status': "Year 2 Master's Student", 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.', 'Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 6, 'name': 'James Taylor', 'gender': 'male', 'age': 18, 'traits': '', 'status': 'Year 1 Undergraduate', 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.', 'Social Butterfly,Always on the move, attending various social events, with a large group of friends.']}
+
+{'id': 7, 'name': 'Linda Taylor', 'gender': 'male', 'age': 23, 'traits': '', 'status': "Year 2 Master's Student", 'interest': '', 'feature': ['Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.', 'Social Butterfly,Always on the move, attending various social events, with a large group of friends.']}
+
+{'id': 8, 'name': 'Jane Martinez', 'gender': 'female', 'age': 23, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.', 'Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 9, 'name': 'Sarah Miller', 'gender': 'female', 'age': 19, 'traits': '', 'status': 'Year 3 Undergraduate', 'interest': '', 'feature': ['Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 10, 'name': 'John Garcia', 'gender': 'male', 'age': 19, 'traits': '', 'status': 'Year 3 Undergraduate', 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.', 'Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 11, 'name': 'Michael Miller', 'gender': 'male', 'age': 21, 'traits': '', 'status': 'Year 3 Undergraduate', 'interest': '', 'feature': ['Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.', 'Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 12, 'name': 'James Jones', 'gender': 'male', 'age': 21, 'traits': '', 'status': 'Year 4 Undergraduate', 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 13, 'name': 'John Jones', 'gender': 'male', 'age': 26, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.']}
+
+{'id': 14, 'name': 'James Brown', 'gender': 'female', 'age': 19, 'traits': '', 'status': 'Year 3 Undergraduate', 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.', 'Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 15, 'name': 'John Martinez', 'gender': 'male', 'age': 21, 'traits': '', 'status': 'Year 3 Undergraduate', 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 16, 'name': 'John Smith', 'gender': 'male', 'age': 24, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.']}
+
+{'id': 17, 'name': 'Emily Taylor', 'gender': 'female', 'age': 18, 'traits': '', 'status': 'Year 2 Undergraduate', 'interest': '', 'feature': ['Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.', 'Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 18, 'name': 'Linda Martinez', 'gender': 'female', 'age': 23, 'traits': '', 'status': "Year 2 Master's Student", 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.', 'Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 19, 'name': 'John Davis', 'gender': 'male', 'age': 26, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 20, 'name': 'Sarah Miller', 'gender': 'male', 'age': 26, 'traits': '', 'status': 'Year 1 PhD Student', 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.', 'Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 21, 'name': 'Mary Johnson', 'gender': 'female', 'age': 25, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.', 'Social Butterfly,Always on the move, attending various social events, with a large group of friends.']}
+
+{'id': 22, 'name': 'Jane Martinez', 'gender': 'male', 'age': 20, 'traits': '', 'status': 'Year 4 Undergraduate', 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.', 'Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 23, 'name': 'Robert Williams', 'gender': 'male', 'age': 22, 'traits': '', 'status': "Year 1 Master's Student", 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 24, 'name': 'James Williams', 'gender': 'female', 'age': 26, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.', 'Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 25, 'name': 'Emily Taylor', 'gender': 'male', 'age': 22, 'traits': '', 'status': "Year 1 Master's Student", 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.', 'Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 26, 'name': 'David Smith', 'gender': 'female', 'age': 18, 'traits': '', 'status': 'Year 1 Undergraduate', 'interest': '', 'feature': ['Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.', 'Social Butterfly,Always on the move, attending various social events, with a large group of friends.']}
+
+{'id': 27, 'name': 'Sarah Williams', 'gender': 'male', 'age': 25, 'traits': '', 'status': 'Year 1 PhD Student', 'interest': '', 'feature': ['Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.', 'Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 28, 'name': 'Robert Miller', 'gender': 'female', 'age': 19, 'traits': '', 'status': 'Year 2 Undergraduate', 'interest': '', 'feature': ['Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.', 'Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 29, 'name': 'David Jones', 'gender': 'male', 'age': 22, 'traits': '', 'status': "Year 1 Master's Student", 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.', 'Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 30, 'name': 'John Taylor', 'gender': 'female', 'age': 26, 'traits': '', 'status': 'Year 1 PhD Student', 'interest': '', 'feature': ['Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 31, 'name': 'Linda Smith', 'gender': 'male', 'age': 23, 'traits': '', 'status': "Year 2 Master's Student", 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 32, 'name': 'Linda Miller', 'gender': 'male', 'age': 24, 'traits': '', 'status': 'Year 1 PhD Student', 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 33, 'name': 'Michael Davis', 'gender': 'male', 'age': 18, 'traits': '', 'status': 'Year 1 Undergraduate', 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.', 'Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 34, 'name': 'Mary Martinez', 'gender': 'male', 'age': 26, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.', 'Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 35, 'name': 'Emily Davis', 'gender': 'female', 'age': 19, 'traits': '', 'status': 'Year 2 Undergraduate', 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 36, 'name': 'John Garcia', 'gender': 'male', 'age': 19, 'traits': '', 'status': 'Year 2 Undergraduate', 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.']}
+
+{'id': 37, 'name': 'Emily Smith', 'gender': 'male', 'age': 23, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.']}
+
+{'id': 38, 'name': 'Michael Miller', 'gender': 'male', 'age': 17, 'traits': '', 'status': 'Year 1 Undergraduate', 'interest': '', 'feature': ['Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.', 'Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.']}
+
+{'id': 39, 'name': 'John Brown', 'gender': 'female', 'age': 22, 'traits': '', 'status': 'Year 4 Undergraduate', 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.', 'Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 40, 'name': 'Michael Martinez', 'gender': 'male', 'age': 24, 'traits': '', 'status': "Year 2 Master's Student", 'interest': '', 'feature': ['Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.', 'Social Butterfly,Always on the move, attending various social events, with a large group of friends.']}
+
+{'id': 41, 'name': 'David Williams', 'gender': 'male', 'age': 23, 'traits': '', 'status': "Year 1 Master's Student", 'interest': '', 'feature': ['Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.', 'Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.']}
+
+{'id': 42, 'name': 'Mary Smith', 'gender': 'female', 'age': 18, 'traits': '', 'status': 'Year 2 Undergraduate', 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.', 'Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 43, 'name': 'Robert Davis', 'gender': 'male', 'age': 25, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.', 'Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 44, 'name': 'Robert Johnson', 'gender': 'female', 'age': 23, 'traits': '', 'status': "Year 2 Master's Student", 'interest': '', 'feature': ['Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.', 'Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.']}
+
+{'id': 45, 'name': 'John Taylor', 'gender': 'female', 'age': 18, 'traits': '', 'status': 'Year 1 Undergraduate', 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.', 'Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 46, 'name': 'Sarah Miller', 'gender': 'male', 'age': 26, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.', 'Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 47, 'name': 'Mary Brown', 'gender': 'male', 'age': 19, 'traits': '', 'status': 'Year 2 Undergraduate', 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.', 'Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 48, 'name': 'Mary Williams', 'gender': 'male', 'age': 24, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.', 'Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 49, 'name': 'Sarah Miller', 'gender': 'female', 'age': 24, 'traits': '', 'status': "Year 2 Master's Student", 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 50, 'name': 'Jane Taylor', 'gender': 'female', 'age': 20, 'traits': '', 'status': 'Year 2 Undergraduate', 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.']}
+
+{'id': 51, 'name': 'James Garcia', 'gender': 'female', 'age': 26, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 52, 'name': 'James Jones', 'gender': 'male', 'age': 25, 'traits': '', 'status': 'Year 1 PhD Student', 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.']}
+
+{'id': 53, 'name': 'James Williams', 'gender': 'male', 'age': 24, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.']}
+
+{'id': 54, 'name': 'James Smith', 'gender': 'female', 'age': 26, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 55, 'name': 'Emily Miller', 'gender': 'male', 'age': 24, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.', 'Social Butterfly,Always on the move, attending various social events, with a large group of friends.']}
+
+{'id': 56, 'name': 'Emily Miller', 'gender': 'female', 'age': 24, 'traits': '', 'status': "Year 2 Master's Student", 'interest': '', 'feature': ['Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 57, 'name': 'David Smith', 'gender': 'female', 'age': 24, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 58, 'name': 'Sarah Jones', 'gender': 'female', 'age': 23, 'traits': '', 'status': "Year 2 Master's Student", 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.', 'Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 59, 'name': 'Emily Williams', 'gender': 'male', 'age': 20, 'traits': '', 'status': 'Year 3 Undergraduate', 'interest': '', 'feature': ['Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.', 'Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 60, 'name': 'Michael Martinez', 'gender': 'male', 'age': 24, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.', 'Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.']}
+
+{'id': 61, 'name': 'Robert Garcia', 'gender': 'female', 'age': 24, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.', 'Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 62, 'name': 'David Johnson', 'gender': 'male', 'age': 26, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 63, 'name': 'James Brown', 'gender': 'female', 'age': 20, 'traits': '', 'status': 'Year 3 Undergraduate', 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.', 'Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 64, 'name': 'Emily Miller', 'gender': 'male', 'age': 24, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 65, 'name': 'Emily Smith', 'gender': 'male', 'age': 21, 'traits': '', 'status': "Year 1 Master's Student", 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.']}
+
+{'id': 66, 'name': 'Mary Taylor', 'gender': 'male', 'age': 25, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 67, 'name': 'Mary Davis', 'gender': 'male', 'age': 22, 'traits': '', 'status': "Year 1 Master's Student", 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 68, 'name': 'Emily Smith', 'gender': 'female', 'age': 20, 'traits': '', 'status': 'Year 3 Undergraduate', 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 69, 'name': 'David Miller', 'gender': 'female', 'age': 22, 'traits': '', 'status': "Year 1 Master's Student", 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 70, 'name': 'John Martinez', 'gender': 'male', 'age': 26, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.', 'Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 71, 'name': 'David Davis', 'gender': 'male', 'age': 26, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 72, 'name': 'David Garcia', 'gender': 'male', 'age': 18, 'traits': '', 'status': 'Year 1 Undergraduate', 'interest': '', 'feature': ['Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.', 'Social Butterfly,Always on the move, attending various social events, with a large group of friends.']}
+
+{'id': 73, 'name': 'Michael Miller', 'gender': 'male', 'age': 19, 'traits': '', 'status': 'Year 2 Undergraduate', 'interest': '', 'feature': ['Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.', 'Social Butterfly,Always on the move, attending various social events, with a large group of friends.']}
+
+{'id': 74, 'name': 'David Johnson', 'gender': 'female', 'age': 23, 'traits': '', 'status': "Year 2 Master's Student", 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.', 'Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 75, 'name': 'Sarah Davis', 'gender': 'female', 'age': 25, 'traits': '', 'status': 'Year 1 PhD Student', 'interest': '', 'feature': ['Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 76, 'name': 'Emily Brown', 'gender': 'female', 'age': 20, 'traits': '', 'status': 'Year 2 Undergraduate', 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.', 'Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 77, 'name': 'Emily Taylor', 'gender': 'female', 'age': 25, 'traits': '', 'status': 'Year 1 PhD Student', 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 78, 'name': 'Linda Jones', 'gender': 'female', 'age': 22, 'traits': '', 'status': 'Year 4 Undergraduate', 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 79, 'name': 'Michael Johnson', 'gender': 'male', 'age': 22, 'traits': '', 'status': "Year 2 Master's Student", 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.', 'Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 80, 'name': 'James Williams', 'gender': 'male', 'age': 20, 'traits': '', 'status': 'Year 2 Undergraduate', 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.', 'Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 81, 'name': 'Sarah Brown', 'gender': 'female', 'age': 24, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.', 'Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 82, 'name': 'Michael Miller', 'gender': 'male', 'age': 21, 'traits': '', 'status': 'Year 4 Undergraduate', 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 83, 'name': 'Jane Jones', 'gender': 'female', 'age': 23, 'traits': '', 'status': "Year 2 Master's Student", 'interest': '', 'feature': ['Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.', 'Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 84, 'name': 'David Jones', 'gender': 'female', 'age': 23, 'traits': '', 'status': "Year 1 Master's Student", 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.', 'Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 85, 'name': 'Robert Smith', 'gender': 'female', 'age': 21, 'traits': '', 'status': 'Year 3 Undergraduate', 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 86, 'name': 'Michael Brown', 'gender': 'male', 'age': 20, 'traits': '', 'status': 'Year 3 Undergraduate', 'interest': '', 'feature': ['Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 87, 'name': 'Emily Williams', 'gender': 'female', 'age': 21, 'traits': '', 'status': 'Year 4 Undergraduate', 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.', 'Studious,Constantly engrossed in books and academic work, often found in the library.']}
+
+{'id': 88, 'name': 'Jane Brown', 'gender': 'female', 'age': 21, 'traits': '', 'status': 'Year 4 Undergraduate', 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.']}
+
+{'id': 89, 'name': 'John Taylor', 'gender': 'female', 'age': 25, 'traits': '', 'status': 'Year 1 PhD Student', 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 90, 'name': 'James Brown', 'gender': 'male', 'age': 26, 'traits': '', 'status': 'Year 2 PhD Student', 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.', 'Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
+{'id': 91, 'name': 'James Johnson', 'gender': 'male', 'age': 21, 'traits': '', 'status': 'Year 4 Undergraduate', 'interest': '', 'feature': ['Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 92, 'name': 'Linda Miller', 'gender': 'female', 'age': 22, 'traits': '', 'status': "Year 1 Master's Student", 'interest': '', 'feature': ['Social Butterfly,Always on the move, attending various social events, with a large group of friends.', 'Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.']}
+
+{'id': 93, 'name': 'Emily Jones', 'gender': 'male', 'age': 25, 'traits': '', 'status': 'Year 1 PhD Student', 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.', 'Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 94, 'name': 'Robert Jones', 'gender': 'male', 'age': 19, 'traits': '', 'status': 'Year 2 Undergraduate', 'interest': '', 'feature': ['Casual Student,Easygoing, not easily stressed by exams or assignments, takes things as they come.', 'Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.']}
+
+{'id': 95, 'name': 'John Martinez', 'gender': 'female', 'age': 19, 'traits': '', 'status': 'Year 2 Undergraduate', 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.', 'Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 96, 'name': 'Jane Miller', 'gender': 'male', 'age': 23, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.', 'Gifted Individual,Naturally talented in one or more areas, often achieving high levels of success with minimal effort.']}
+
+{'id': 97, 'name': 'Emily Garcia', 'gender': 'female', 'age': 23, 'traits': '', 'status': "Year 3 Master's Student", 'interest': '', 'feature': ['Competitive Spirit,Always striving for the top, may sometimes be perceived as aggressive towards peers.']}
+
+{'id': 98, 'name': 'James Brown', 'gender': 'male', 'age': 25, 'traits': '', 'status': 'Year 1 PhD Student', 'interest': '', 'feature': ['Studious,Constantly engrossed in books and academic work, often found in the library.', 'Perfectionist,Demanding the best, can be tough on themselves and others when expectations are not met.']}
+
+{'id': 99, 'name': 'Mary Garcia', 'gender': 'male', 'age': 23, 'traits': '', 'status': "Year 2 Master's Student", 'interest': '', 'feature': ['Procrastinator,Often delays tasks until the last minute, struggles with meeting deadlines.', 'Independent Learner,Preferring to work alone, not interested in group projects, focused on personal growth.']}
+
