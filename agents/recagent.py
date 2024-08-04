@@ -106,48 +106,6 @@ class RecAgent(GenerativeAgent):
     def __lt__(self, other: "RecAgent"):
         return self.event.end_time < other.event.end_time
 
-    def fill_questionnaire(self):
-        # 这里我就不用统一的调模型的方法了，麻烦尔含姐换成统一的调用模型的方法
-        # 我这里先用普通的调chatgpt的方法
-        # 基础配置,这里面的包我都没有导入
-        api_key = 'sk-9IUffWqrMUSOLoLk1f209d0c2745408aBcDf541784Eb71C3'  # 这里替换为你的 API 密钥
-        os.environ["OPENAI_API_KEY"] = api_key
-        os.environ["OPENAI_BASE_URL"] = "https://burn.hair/v1"
-
-        client = OpenAI()
-        prompt_agent_character_set = ''
-        promt_fill = '''你是一个对内卷感到十分困扰的大二学生，你不想把时间浪费在无意义的竞争之中，但是周围的同学都在拼命竞争拿奖，你为了不被拉开差距，也不得不努力去拿奖。现在我想请你填写一个问卷，我将给你18句话，请你根据自身情况对每一句话填写一个1-5的分数，分数越高，代表自身越认同这句话，1代表完全不认同，5代表全完认同。
-1. 在学习/工作中我感到充满精力。
-2. 在学习/工作中我认为我在做自己真正喜欢的事情。
-3. 学习/工作使我情绪低落。
-4. 在学习/工作中我感到挫败。
-5. 在学习/工作中我感觉到神经紧张或“快被压垮”。
-6. 周围大多数人即使完成了最低任务要求, 还是会继续做出更多的工作量。
-7. 周围大多数人已经习惯超额完成工作/学习任务。
-8. 学习和工作中仅完成最低标准任务量是不够的, 大多数人会继续努力做得更9. 周围大多数人通过付出比别人更多且过度的努力来表现自己对工作/学习的态度
-10. 我周围的人通过竞争变得杰出。
-11. 我周围的人通过竞争可以获得良好的社会地位。
-12. 我周围的人通过竞争得到了他人的认可。
-13. 我周围的人通过竞争得到了多方面的锻炼。
-14. 我周围的人都会努力争取每次竞争的胜利。
-15. 我所处环境中的有限资源给我的人际关系带来了不利影响。
-16. 我所处环境中的资源太少以至于我无法获得我应得到的回报。
-17. 由于环境中可利用的资源不够, 我无法妥善处理重要的事情。
-18. 与我所做的努力和付出相比, 我的生活本应该比现在更好。
-请你按顺序直接依次给出18个1-5之间的整数，每一行给一个分数。除此之外不要给出任何别的内容。
-        '''
-        prompt = prompt_agent_character_set + promt_fill
-        completion = client.chat.completions.create(model="gpt-4-turbo",
-                                                    messages=[
-                                                        {"role": "user", "content": prompt}
-                                                    ]
-                                                    )
-        scores_str = completion.choices[0].message.content
-        scores_list = [int(score.strip()) for score in scores_str.split() if score.strip()]
-        self.questionnaire_result = scores_list
-
-
-
     def get_active_prob(self, method) -> float:
         if method == "marginal":
             return self.active_prob * (self.no_action_round + 1)

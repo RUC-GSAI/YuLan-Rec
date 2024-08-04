@@ -17,7 +17,7 @@ import json
 from langchain.docstore import InMemoryDocstore
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
 from langchain.vectorstores import FAISS
-from langchain_experimental.generative_agents import (
+from langchain.experimental.generative_agents import (
     GenerativeAgent,
     GenerativeAgentMemory,
 )
@@ -28,7 +28,6 @@ import dill
 import numpy as np
 import queue
 from typing import List
-
 
 from recommender.recommender import Recommender
 from recommender.data.data import Data
@@ -42,8 +41,188 @@ import threading
 from agents.recagent_memory import RecAgentMemory, RecAgentRetriever
 import heapq
 from fastapi.middleware.cors import CORSMiddleware
+import asyncio
 
 lock = threading.Lock()
+
+
+class OurAgent(RecAgent):
+    def __init__(self, id, name, age, gender, traits, status, interest, relationships, feature, memory_retriever, llm,
+                 memory, event, avatar_url, idle_url, watching_url, chatting_url, posting_url):
+        super(OurAgent, self).__init__(
+            id=id,
+            name=name,
+            age=age,
+            gender=gender,
+            traits=traits,
+            status=status,
+            interest=interest,
+            relationships=relationships,
+            feature=feature,
+            memory_retriever=memory_retriever,
+            llm=llm,
+            memory=memory,
+            event=event,
+            avatar_url=avatar_url,
+            idle_url=idle_url,
+            watching_url=watching_url,
+            chatting_url=chatting_url,
+            posting_url=posting_url
+        )
+
+        """人设信息"""
+        self.profile = f'''
+Name: {name}
+Age: {age}
+Gender:{gender}
+Traits: {traits}
+Status: {status}
+Interest: {interest}
+Feature: {feature}
+Interpersonal Relationships: {relationships}
+        '''
+
+        """agent填写的问卷结果"""
+        self.questionnaire_result: List[List[int]] = []
+
+
+    def take_action1(self, now):
+        history = now
+        # 大学生
+        prompt = f"""角色：\"\"\"
+            你是一位大学生，你的人设是{self.profile}
+
+            任务：\"\"\"
+            你的任务是和出色的心理咨询师进行多轮对话，请描述你的心理现状
+            \"\"\"
+
+            你们的对话历史记录是：\"\"\"
+            {history}
+            \"\"\"
+
+            响应格式：\"\"\"
+            你应该遵循以下JSON格式，填写{{}}中的内容，确保其符合Python的json.loads解析标准。
+            {{
+                "回答": "{{回答内容}}"
+            }}
+            \"\"\"
+            """
+        print(f"the prompt is {prompt}")
+
+        conversation = asyncio.run(self.get_response(prompt
+                                                     ))
+        # # 目前好像用不上self.memory.save_context，所以可以先空着？？
+        # self.memory.save_context(
+        #     {},
+        #     {
+        #         self.memory.add_memory_key: f"{self.name} take action: " f"{conversation}",
+        #     },
+        # )
+        return conversation
+
+    def take_action2(self, now):
+        history = now
+        # 咨询师
+        prompt = f"""角色：\"\"\"
+            你是一位出色的心理咨询师，你的人设是{self.profile}
+
+            任务：\"\"\"
+            你的任务是和一位大学生进行多轮对话，并分析他的心理现状
+            \"\"\"
+
+            你们的对话历史记录是：\"\"\"
+            {history}
+            \"\"\"
+
+            响应格式：\"\"\"
+            你应该遵循以下JSON格式，填写{{}}中的内容，确保其符合Python的json.loads解析标准。
+            {{
+                "回答": "{{回答内容}}"
+            }}
+            \"\"\"
+            """
+        print(f"the prompt is {prompt}")
+
+        conversation = asyncio.run(self.get_response(prompt
+                                                     ))
+        # # 目前好像用不上self.memory.save_context，所以可以先空着？？
+        # self.memory.save_context(
+        #     {},
+        #     {
+        #         self.memory.add_memory_key: f"{self.name} take action: " f"{conversation}",
+        #     },
+        # )
+        return conversation
+
+    # def take_action3(self,now):
+    #     pass
+    def fill_questionnaire(self, now):
+        history = now
+        questionnaire_text = """
+            1. 在学习/工作中我感到充满精力。
+            2. 在学习/工作中我认为我在做自己真正喜欢的事情。
+            3. 学习/工作使我情绪低落。
+            4. 在学习/工作中我感到挫败。
+            5. 在学习/工作中我感觉到神经紧张或“快被压垮”。
+            6. 周围大多数人即使完成了最低任务要求, 还是会继续做出更多的工作量。
+            7. 周围大多数人已经习惯超额完成工作/学习任务。
+            8. 学习和工作中仅完成最低标准任务量是不够的, 大多数人会继续努力做得更多。
+            9. 周围大多数人通过付出比别人更多且过度的努力来表现自己对工作/学习的态度
+            10. 我周围的人通过竞争变得杰出。
+            11. 我周围的人通过竞争可以获得良好的社会地位。
+            12. 我周围的人通过竞争得到了他人的认可。
+            13. 我周围的人通过竞争得到了多方面的锻炼。
+            14. 我周围的人都会努力争取每次竞争的胜利。
+            15. 我所处环境中的有限资源给我的人际关系带来了不利影响。
+            16. 我所处环境中的资源太少以至于我无法获得我应得到的回报。
+            17. 由于环境中可利用的资源不够, 我无法妥善处理重要的事情。
+            18. 与我所做的努力和付出相比, 我的生活本应该比现在更好。
+        """
+        # 历史记录为空，初始评分
+        if history == '':
+            prompt = f"""角色：\"\"\"
+                你是一位大学生，你的人设是{self.profile}。
+
+                任务：\"\"\"
+                你的任务是根据你的心理现状完成以下量表，你将得到18句有关个人心理状态的描述，请你根据自身情况对每一句话填写一个1-5的分数，分数越高，代表自身越认同这句话，1代表完全不认同，5代表全完认同。
+                \"\"\"
+
+                量表：\"\"\"
+                {questionnaire_text}
+                \"\"\"
+
+                响应格式：\"\"\"
+                请你按顺序直接依次给出18个1-5之间的整数，每一行给一个分数。除此之外不要给出任何别的内容。
+                \"\"\"
+                """
+            print(f"the prompt is {prompt}")
+
+        # 历史记录非空，交流后评分
+        else:
+            prompt = f"""角色：\"\"\"
+                你是一位大学生，你的人设是{self.profile}。
+                你已经和心理咨询师进行过交流，心理咨询师对你进行了开导，交流对话的历史记录为：\"\"\"
+                {history}
+                \"\"\"
+
+                任务：\"\"\"
+                你的任务是根据和心理咨询师交流后的心理状态完成以下量表，你将得到18句有关个人心理状态的描述，请你根据自身情况对每一句话填写一个1-5的分数，分数越高，代表自身越认同这句话，1代表完全不认同，5代表全完认同。
+                \"\"\"
+
+                量表：\"\"\"
+                {questionnaire_text}
+                \"\"\"
+
+                响应格式：\"\"\"
+                请你按顺序直接依次给出18个1-5之间的整数，每一行给一个分数。除此之外不要给出任何别的内容。
+                \"\"\"
+                """
+            print(f"the prompt is {prompt}")
+
+        conversation = asyncio.run(self.get_response(prompt))
+        scores_list = [int(score.strip()) for score in conversation.split() if score.strip()]
+        self.questionnaire_result.append(scores_list)
+        return scores_list
 
 
 class Simulator:
@@ -138,7 +317,7 @@ class Simulator:
     def create_new_memory_retriever(self):
         """Create a new vector store retriever unique to the agent."""
         # Define your embedding model
-        embedding_size,embeddings_model=utils.get_embedding_model()
+        embedding_size, embeddings_model = utils.get_embedding_model()
         # Initialize the vectorstore as empty
         index = faiss.IndexFlatL2(embedding_size)
         vectorstore = FAISS(
@@ -167,8 +346,8 @@ class Simulator:
             return True
 
         if (
-            self.active_agent_threshold
-            and len(self.active_agents) >= self.active_agent_threshold
+                self.active_agent_threshold
+                and len(self.active_agents) >= self.active_agent_threshold
         ):
             return False
         # If the movie does not end, the agent continues watching the movie.
@@ -221,618 +400,52 @@ class Simulator:
         # chat_num and post_num update in the one_step function
 
     def one_step(self, agent_id):
-        """Run one step of an agent."""
-        self.play_event.wait()
-        if not self.check_active(agent_id):
-            return [
-                Message(agent_id=agent_id, action="NO_ACTION", content="No action.")
-            ]
         agent = self.agents[agent_id]
-        name = agent.name
+
+        # return message
         message = []
-        choice, observation = agent.take_action(self.now)
-        with lock:
-            heapq.heappush(self.working_agents, agent)
-        if "RECOMMENDER" in choice:
-            ids = []
-            self.rec_cnt[agent_id] += 1
-            self.logger.info(f"{name} enters the recommender system.")
-            message.append(
-                Message(
-                    agent_id=agent_id,
-                    action="RECOMMENDER",
-                    content=f"{name} enters the recommender system.",
-                )
-            )
-            self.round_msg.append(
-                Message(
-                    agent_id=agent_id,
-                    action="RECOMMENDER",
-                    content=f"{name} enters the recommender system.",
-                )
-            )
-            leave = False
-            item_ids, rec_items = self.recsys.get_full_sort_items(agent_id)
-            page = 0
-            cnt = 0
-            searched_name = None
-            while not leave:
-                self.logger.info(
-                    f"{name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}."
-                )
+        history = ''  # history记录两人的对话
+
+        # 前测
+        init_score = agent.fill_questionnaire(history)
+
+        # 写个for循环，交流5次
+        for i in range(5):  # 5可以随便改，是俩人对话的轮数
+            if i % 2 == 0:
+                # 奇数，大学生先提问
+                observation = agent.take_action1(history)  # take_action1函数里的prompt对应给大学生准备的，history作为变量拼接入prompt
+                self.logger.info(f"大学生说：{observation}")  # 记录大学生说的话，并放在observation中
+                history += f"大学生说：{observation}"
+
+                # message的格式比较随意，是最后输出的格式，想要记录什么信息就存到里面
                 message.append(
                     Message(
                         agent_id=agent_id,
-                        action="RECOMMENDER",
-                        content=f"{name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}.",
+                        role="大学生",
+                        content=f"{observation}",
                     )
                 )
-                self.round_msg.append(
-                    Message(
-                        agent_id=agent_id,
-                        action="RECOMMENDER",
-                        content=f"{name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}.",
-                    )
-                )
-                observation = f"{name} is browsing the recommender system."
-                if searched_name is not None:
-                    observation = (
-                        observation
-                        + f" {name} has searched for {searched_name} in recommender system and recommender system returns item list:{rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]} as search results."
-                    )
-                else:
-                    observation = (
-                        observation
-                        + f" {name} is recommended {rec_items[page*self.recsys.page_size:(page+1)*self.recsys.page_size]}."
-                    )
-                choice, action = agent.take_recommender_action(observation, self.now)
-                self.recsys.update_history_by_id(
-                    agent_id,
-                    item_ids[
-                        page
-                        * self.recsys.page_size : (page + 1)
-                        * self.recsys.page_size
-                    ],
-                )
-                ids.extend(
-                    item_ids[
-                        page
-                        * self.recsys.page_size : (page + 1)
-                        * self.recsys.page_size
-                    ]
-                )
 
-                if "BUY" in choice and (
-                    agent.event.action_type == "idle"
-                    or agent.event.action_type == "posting"
-                ):
-                    item_names = rec_items[page * self.recsys.page_size + action - 1]
-                    item_id = item_ids[page * self.recsys.page_size + action - 1]
-                    duration = 2
-                    agent.event = update_event(
-                        original_event=agent.event,
-                        start_time=self.now,
-                        duration=duration,
-                        target_agent=None,
-                        action_type="watching",
-                    )
+            if i % 2 == 1:
+                # 偶数，咨询师回答
+                observation = agent.take_action2(self.now)  # take_action2函数里的prompt对应给咨询师准备的，history作为变量拼接入prompt
+                self.logger.info(f"咨询师说：{observation}")  # 记录咨询师说的话，并放在observation中
+                history += f"咨询师说：{observation}"
 
-                    self.logger.info(f"{name} watches {item_names}")
-                    message.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"{name} watches {item_names}.",
-                        )
-                    )
-                    self.round_msg.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"{name} watches {item_names}.",
-                        )
-                    )
-                    agent.update_watched_history(item_names)
-                    self.recsys.update_positive_by_id(agent_id, item_id)
-
-                    for i in range(self.recsys.page_size):
-                        if i == action - 1:
-                            self.recsys.add_train_data(
-                                agent_id, item_ids[page * self.recsys.page_size + i], 1
-                            )
-                        else:
-                            self.recsys.add_train_data(
-                                agent_id, item_ids[page * self.recsys.page_size + i], 0
-                            )
-
-                    item_descriptions = self.data.get_item_description_by_name(
-                        [item_names]
-                    )
-                    if len(item_descriptions) == 0:
-                        self.logger.info(f"{name} leaves the recommender system.")
-                        message.append(
-                            Message(
-                                agent_id=agent_id,
-                                action="RECOMMENDER",
-                                content=f"{name} leaves the recommender system.",
-                            )
-                        )
-                        self.round_msg.append(
-                            Message(
-                                agent_id=agent_id,
-                                action="RECOMMENDER",
-                                content=f"{name} leaves the recommender system.",
-                            )
-                        )
-                        leave = True
-                        continue
-
-                    observation = f"{name} has just finished watching {item_names};;{item_descriptions[0]}."
-                    feelings = agent.generate_feeling(
-                        observation, self.now + timedelta(hours=duration)
-                    )
-                    self.logger.info(f"{name} feels: {feelings}")
-
-                    message.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"{name} feels: {feelings}",
-                        )
-                    )
-                    self.round_msg.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"{name} feels: {feelings}",
-                        )
-                    )
-                    searched_name = None
-                    leave = True
-
-                elif "NEXT" in choice:
-                    self.logger.info(f"{name} looks next page.")
-                    for i in range(self.recsys.page_size):
-                        self.recsys.add_train_data(
-                            agent_id, item_ids[page * self.recsys.page_size + i], 0
-                        )
-                    message.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"{name} looks next page.",
-                        )
-                    )
-                    self.round_msg.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"{name} looks next page.",
-                        )
-                    )
-                    if (page + 1) * self.recsys.page_size < len(rec_items):
-                        page = page + 1
-                    else:
-                        self.logger.info("No more items.")
-                        self.logger.info(f"{name} leaves the recommender system.")
-                        message.append(
-                            Message(
-                                agent_id=agent_id,
-                                action="RECOMMENDER",
-                                content=f"No more items. {name} leaves the recommender system.",
-                            )
-                        )
-                        self.round_msg.append(
-                            Message(
-                                agent_id=agent_id,
-                                action="RECOMMENDER",
-                                content=f"No more items. {name} leaves the recommender system.",
-                            )
-                        )
-                        leave = True
-                elif "SEARCH" in choice:
-                    observation = f"{name} is searching in recommender system."
-                    item_name = agent.search_item(observation, self.now)
-                    self.logger.info(f"{name} searches {item_name}.")
-                    message.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"{name} searches {item_name}.",
-                        )
-                    )
-                    self.round_msg.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"{name} searches {item_name}.",
-                        )
-                    )
-                    item_names = utils.extract_item_names(item_name)
-                    if item_names == []:
-                        agent.memory.add_memory(
-                            f"There are no items related in the system.", now=self.now
-                        )
-                        self.logger.info("There are no related items in the system.")
-                        message.append(
-                            Message(
-                                agent_id=agent_id,
-                                action="RECOMMENDER",
-                                content=f"There are no related products in the system.",
-                            )
-                        )
-                        self.round_msg.append(
-                            Message(
-                                agent_id=agent_id,
-                                action="RECOMMENDER",
-                                content=f"There are no related products in the system.",
-                            )
-                        )
-                        leave = True
-                        continue
-                    item_name = item_names[0]
-                    search_items = self.recsys.get_search_items(item_name)
-                    self.logger.info(f"Recommender returned {search_items}.")
-                    message.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"Recommender returned {search_items}.",
-                        )
-                    )
-                    self.round_msg.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"Recommender returned {search_items}.",
-                        )
-                    )
-                    if len(search_items) != 0:
-                        rec_items = search_items
-                        item_ids = self.data.get_item_ids_exact(search_items)
-                        page = 0
-                        searched_name = item_name
-                    else:
-                        agent.memory.add_memory(
-                            f"There are no items related to {item_name} in the system.",
-                            now=self.now,
-                        )
-                        self.logger.info("There are no related items in the system.")
-                        message.append(
-                            Message(
-                                agent_id=agent_id,
-                                action="RECOMMENDER",
-                                content=f"There are no related products in the system.",
-                            )
-                        )
-                        self.round_msg.append(
-                            Message(
-                                agent_id=agent_id,
-                                action="RECOMMENDER",
-                                content=f"There are no related products in the system.",
-                            )
-                        )
-                else:
-                    self.logger.info(f"{name} leaves the recommender system.")
-                    message.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"{name} leaves the recommender system.",
-                        )
-                    )
-                    self.round_msg.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"{name} leaves the recommender system.",
-                        )
-                    )
-                    leave = True
-                cnt += 1
-                if cnt == 5:
-                    self.logger.info(f"{name} leaves the recommender system.")
-                    message.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"{name} leaves the recommender system.",
-                        )
-                    )
-                    self.round_msg.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="RECOMMENDER",
-                            content=f"{name} leaves the recommender system.",
-                        )
-                    )
-                    leave = True
-            entropy = utils.get_entropy(ids, self.data)
-            self.round_entropy.append(entropy)
-            self.recsys.round_record[agent_id].append(ids)
-
-        elif "SOCIAL" in choice:
-            contacts = self.data.get_all_contacts(agent_id)
-            if len(contacts) == 0:
-                self.logger.info(f"{name} has no acquaintance.")
+                # message的格式比较随意，是最后输出的格式，想要记录什么信息就存到里面
                 message.append(
                     Message(
                         agent_id=agent_id,
-                        action="SOCIAL",
-                        content=f"{name} has no acquaintance.",
+                        role="咨询师",
+                        content=f"{observation}",
                     )
                 )
-                self.round_msg.append(
-                    Message(
-                        agent_id=agent_id,
-                        action="SOCIAL",
-                        content=f"{name} has no acquaintance.",
-                    )
-                )
-            else:
-                self.social_stat.cur_user_num += 1
-                self.logger.info(f"{name} is going to social media.")
-                message.append(
-                    Message(
-                        agent_id=agent_id,
-                        action="SOCIAL",
-                        content=f"{name} is going to social media.",
-                    )
-                )
-                self.round_msg.append(
-                    Message(
-                        agent_id=agent_id,
-                        action="SOCIAL",
-                        content=f"{name} is going to social media.",
-                    )
-                )
-                observation = f"{name} is going to social media. {name} and {contacts} are acquaintances. {name} can chat with acquaintances, or post to all acquaintances. What will {name} do?"
-                choice, action, duration = agent.take_social_action(
-                    observation, self.now
-                )
-                if "CHAT" in choice:
-                    agent_name2 = action.strip(" \t\n'\"")
-                    agent_id2 = self.data.get_user_ids([agent_name2])[0]
-                    if agent_id2 <len(self.agents):
-                        agent2 = self.agents[agent_id2]
-                        # If agent2 is watching moives, he cannot be interupted.
-                        if agent2.event.action_type == "watching":
-                            agent.memory.add_memory(
-                                f"{agent.name} wants to chat with {agent_name2}, but {agent_name2} is watching. So {agent.name} does nothing.",
-                                now=self.now,
-                            )
-                            self.logger.info(
-                                f"{name} wants to chat with {agent_name2}, but {agent_name2} is watching. So {name} does nothing."
-                            )
-                            message.append(
-                                Message(
-                                    agent_id=agent_id,
-                                    action="LEAVE",
-                                    content=f"{name} wants to chat with {agent_name2}, but {agent_name2} is watching. So {name} does nothing.",
-                                )
-                            )
-                            self.round_msg.append(
-                                Message(
-                                    agent_id=agent_id,
-                                    action="LEAVE",
-                                    content=f"{name} wants to chat with {agent_name2}, but {agent_name2} is watching. So {name} does nothing.",
-                                )
-                            )
-                            return message
 
-                        #  If agent2 is chatting with agent1, skipping this round
-                        if utils.is_chatting(agent, agent2):
-                            self.logger.info(f"{name} is chatting with {agent_name2}")
-                            message.append(
-                                Message(
-                                    agent_id=agent_id,
-                                    action="CHAT",
-                                    content=f"{name} is chatting with {agent_name2}",
-                                )
-                            )
-                            self.round_msg.append(
-                                Message(
-                                    agent_id=agent_id,
-                                    action="CHAT",
-                                    content=f"{name} is chatting with {agent_name2}.",
-                                )
-                            )
-                            return message
-                        agent.event = update_event(
-                            original_event=agent.event,
-                            start_time=self.now,
-                            duration=duration,
-                            target_agent=agent_name2,
-                            action_type="chatting",
-                        )
-                        agent2.event = update_event(
-                            original_event=agent2.event,
-                            start_time=self.now,
-                            duration=duration,
-                            target_agent=name,
-                            action_type="chatting",
-                        )
-                        self.logger.info(f"{name} is chatting with {agent_name2}.")
-                        self.social_stat.chat_num += 1
-                        message.append(
-                            Message(
-                                agent_id=agent_id,
-                                action="CHAT",
-                                content=f"{name} is chatting with {agent_name2}.",
-                            )
-                        )
-                        self.round_msg.append(
-                            Message(
-                                agent_id=agent_id,
-                                action="CHAT",
-                                content=f"{name} is chatting with {agent_name2}.",
-                            )
-                        )
-                        # If the system has a role, and it is her term now.
-                        if self.config["play_role"] and self.data.role_id == agent_id:
-                            conversation = ""
-                            observation = f"{name} is going to chat with {agent2.name}."
-                            # Obtain the response from the role.
-                            contin, result, role_dia = agent.generate_role_dialogue(
-                                agent2, observation
-                            )
-                            conversation += role_dia + result
-                            self.logger.info(role_dia)
-                            self.logger.info(result)
-                            # If both of them do not stop, an extra round will be held.
-                            while contin:
-                                contin, result, role_dia = agent.generate_role_dialogue(
-                                    agent2, observation, conversation
-                                )
-                                conversation += role_dia + result
-                                self.logger.info(role_dia)
-                                self.logger.info(result)
-                        else:
-                            observation = f"{name} is going to chat with {agent2.name}."
-                            # If an agent wants to chat with the role.
-                            if self.config["play_role"] and agent_id2 == self.data.role_id:
-                                conversation = ""
-                                observation = f"{name} is going to chat with {agent2.name}."
-                                # Obtain the response from the agent(LLM).
-                                contin, result = agent.generate_dialogue_response(
-                                    observation
-                                )
-                                agent_dia = "%s %s" % (agent.name, result)
-                                self.logger.info(agent_dia)
-                                # Obtain the response from the role.
-                                role_contin, role_dia = agent2.generate_dialogue_response(
-                                    observation
-                                )
-                                self.logger.info(role_dia)
-                                contin = contin and role_contin
-                                conversation += agent_dia + role_dia
-                                # If both of them do not stop, an extra round will be held.
-                                while contin:
-                                    observation = (
-                                        f"{name} is going to chat with {agent2.name}."
-                                    )
-                                    contin, result = agent.generate_dialogue_response(
-                                        observation
-                                    )
-                                    agent_dia = "%s %s" % (agent.name, result)
-                                    self.logger.info(agent_dia)
-                                    (
-                                        role_contin,
-                                        role_dia,
-                                    ) = agent2.generate_dialogue_response(observation)
-                                    self.logger.info(role_dia)
-                                    contin = contin and role_contin
-                                    conversation += agent_dia + role_dia
-                            else:
-                                # Otherwise, two agents(LLM) will generate dialogues.
-                                conversation = agent.generate_dialogue(agent2, observation)
-                            self.logger.info(conversation)
+        # 后测
+        final_score = agent.fill_questionnaire(history)
 
-                        msgs = []
-                        matches = re.findall(r"\[([^]]+)\]:\s*(.*)", conversation)
-                        for match in matches:
-                            speaker = match[0]
-                            content = match[1]
-                            if speaker == agent.name:
-                                id = agent_id
-                                id2 = agent_id2
-                            else:
-                                id = agent_id2
-                                id2 = agent_id
-                            item_names = utils.extract_item_names(content, "SOCIAL")
-                            self.data.add_mention_cnt(item_names)
-                            if item_names != []:
-                                self.agents[id2].update_heared_history(item_names)
-                            msgs.append(
-                                Message(
-                                    agent_id=id,
-                                    action="CHAT",
-                                    content=f"{speaker} says:{content}",
-                                )
-                            )
-                            self.round_msg.append(
-                                Message(
-                                    agent_id=id,
-                                    action="CHAT",
-                                    content=f"{speaker} says:{content}",
-                                )
-                            )
-                        message.extend(msgs)
-
-                else:
-                    self.social_stat.post_num += 1
-                    self.logger.info(f"{name} is posting.")
-                    observation = f"{name} want to post for all acquaintances."
-                    observation = agent.publish_posting(observation, self.now)
-                    item_names = utils.extract_item_names(observation, "SOCIAL")
-                    self.logger.info(agent.name + " posted: " + observation)
-                    if agent.event.action_type == "idle":
-                        agent.event = update_event(
-                            original_event=agent.event,
-                            start_time=self.now,
-                            duration=0.1,
-                            target_agent=None,
-                            action_type="posting",
-                        )
-                    message.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="POST",
-                            content=agent.name + " posts: " + observation,
-                        )
-                    )
-                    self.round_msg.append(
-                        Message(
-                            agent_id=agent_id,
-                            action="POST",
-                            content=agent.name + " posts: " + observation,
-                        )
-                    )
-                    for i in self.agents.keys():
-                        if self.agents[i].name in contacts:
-                            self.agents[i].memory.add_memory(
-                                agent.name + " posts: " + observation, now=self.now
-                            )
-                            self.agents[i].update_heared_history(item_names)
-                            message.append(
-                                Message(
-                                    agent_id=self.agents[i].id,
-                                    action="POST",
-                                    content=self.agents[i].name
-                                    + " observes that"
-                                    + agent.name
-                                    + " posts: "
-                                    + observation,
-                                )
-                            )
-                            self.round_msg.append(
-                                Message(
-                                    agent_id=self.agents[i].id,
-                                    action="POST",
-                                    content=self.agents[i].name
-                                    + " observes that"
-                                    + agent.name
-                                    + " posts: "
-                                    + observation,
-                                )
-                            )
-
-                    self.logger.info(f"{contacts} get this post.")
-
-        else:
-            self.logger.info(f"{name} does nothing.")
-            message.append(
-                Message(
-                    agent_id=agent_id, action="LEAVE", content=f"{name} does nothing."
-                )
-            )
-            self.round_msg.append(
-                Message(
-                    agent_id=agent_id, action="LEAVE", content=f"{name} does nothing."
-                )
-            )
-
-        return message
+        print(f"init score: {init_score}")
+        print(f"final_score:{final_score}")
 
     def update_working_agents(self):
         with lock:
@@ -899,7 +512,9 @@ class Simulator:
             verbose=False,
             reflection_threshold=10,
         )
-        agent = RecAgent(
+
+        ### Modified! ###
+        agent = OurAgent(
             id=i,
             name=self.data.users[i]["name"],
             age=self.data.users[i]["age"],
@@ -932,10 +547,6 @@ class Simulator:
         # observations = self.data.users[i]["observations"].strip(".").split(".")
         # for observation in observations:
         #     agent.memory.add_memory(observation, now=self.now)
-
-        # 创建好的agent填写问卷
-        agent.fill_questionnaire()
-
         return agent
 
     def create_user_role(self, id, api_key):
@@ -1044,7 +655,7 @@ class Simulator:
                     agents[agent.id] = agent
             end_time = time.time()
             self.logger.info(
-                f"Time for creating {agent_num} agents: {end_time-start_time}"
+                f"Time for creating {agent_num} agents: {end_time - start_time}"
             )
         else:
             for i in tqdm(range(agent_num)):
@@ -1121,9 +732,8 @@ class Simulator:
             self.recsys.round_record[i] = []
             for r in range(self.round_cnt):
                 self.recsys.round_record[i].append(
-                    self.recsys.record[i][r * 5 : (r + 1) * 5]
+                    self.recsys.record[i][r * 5: (r + 1) * 5]
                 )
-
 
 
 def parse_args():
@@ -1304,8 +914,8 @@ def main():
         recagent.round_cnt = recagent.round_cnt + 1
         recagent.logger.info(f"Round {recagent.round_cnt}")
         recagent.active_agents.clear()
-        message = recagent.round()
-        messages.append(message)
+        recagent.round()
+        # messages.append(message)
         with open(config["output_file"], "w") as file:
             json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
         recagent.recsys.save_interaction()
