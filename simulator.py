@@ -17,10 +17,10 @@ import json
 from langchain.docstore import InMemoryDocstore
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
 from langchain.vectorstores import FAISS
-from langchain.experimental.generative_agents import (
-    GenerativeAgent,
-    GenerativeAgentMemory,
-)
+# from langchain.experimental.generative_agents import (
+#     GenerativeAgent,
+#     GenerativeAgentMemory,
+# )
 import math
 import faiss
 import re
@@ -84,7 +84,6 @@ Interpersonal Relationships: {relationships}
 
         """agent填写的问卷结果"""
         self.questionnaire_result: List[List[int]] = []
-
 
     def take_action1(self, now):
         history = now
@@ -501,8 +500,8 @@ class Simulator:
         LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
         MemoryClass = (
             RecAgentMemory
-            if self.config["recagent_memory"] == "recagent"
-            else GenerativeAgentMemory
+            # if self.config["recagent_memory"] == "recagent"
+            # else GenerativeAgentMemory
         )
 
         agent_memory = MemoryClass(
@@ -584,8 +583,8 @@ class Simulator:
         LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
         MemoryClass = (
             RecAgentMemory
-            if self.config["recagent_memory"] == "recagent"
-            else GenerativeAgentMemory
+            # if self.config["recagent_memory"] == "recagent"
+            # else GenerativeAgentMemory
         )
         agent_memory = MemoryClass(
             llm=LLM,
