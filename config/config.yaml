@@ -30,7 +30,7 @@ lr: 0.001
 # number of epochs
 round: 1
 # number of agents, which cannot exceed the number of user in user.csv
-agent_num: 3
+agent_num: 1
 # number of items to be recommended in one page
 page_size: 5
 # temperature for LLM

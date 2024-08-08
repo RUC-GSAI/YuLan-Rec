@@ -416,8 +416,8 @@ def get_entropy(inters, data):
 
 
 def get_embedding_model():
-    #model_name = "sentence-transformers/all-mpnet-base-v2"
-    model_name="/data/pretrain_dir/all-mpnet-base-v2"
+    model_name = "sentence-transformers/all-mpnet-base-v2"
+    # model_name="/data/pretrain_dir/all-mpnet-base-v2"
     model_kwargs = {'device': 'cpu'}
     embeddings_model = HuggingFaceEmbeddings(model_name=model_name, model_kwargs=model_kwargs)
     return 768, embeddings_model

@@ -63,9 +63,6 @@ class RecAgent(GenerativeAgent):
     memory: BaseMemory
     """The memory module in RecAgent."""
 
-    questionnaire_result: List[int] = []
-    """agent填写的问卷结果"""
-
     role: str = "agent"
 
     avatar_url: str
@@ -240,6 +237,7 @@ class RecAgent(GenerativeAgent):
             agent_feature=self.feature,
             agent_relationships=self.relationships,
         )
+        # 这里
         result = self.chain(prompt=prompt).run(**kwargs).strip()
         age = self.age if self.age is not None else "N/A"
         return (
