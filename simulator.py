@@ -50,7 +50,7 @@ lock = threading.Lock()
 
 api_key = 'sk-'  # 这里替换为你的 API 密钥
 os.environ["OPENAI_API_KEY"] = api_key
-os.environ["OPENAI_BASE_URL"] = "https://burn.hair/v1"
+# os.environ["OPENAI_BASE_URL"] = "https://burn.hair/v1"
 
 client = OpenAI()
 
