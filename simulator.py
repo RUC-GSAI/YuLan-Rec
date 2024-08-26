@@ -62,57 +62,20 @@ class OurAgent(RecAgent):
     questionnaire_results: List[List[str]] = Field(...)
     """多次填写问卷的结果"""
 
-    # def __init__(self, id, name, age, gender, traits, status, interest, relationships, feature, memory_retriever, llm,
-    #              memory, event, avatar_url, idle_url, watching_url, chatting_url, posting_url, profile, questionnaire_results):
-    #     super(OurAgent, self).__init__(
-    #         id=id,
-    #         name=name,
-    #         age=age,
-    #         gender=gender,
-    #         traits=traits,
-    #         status=status,
-    #         interest=interest,
-    #         relationships=relationships,
-    #         feature=feature,
-    #         memory_retriever=memory_retriever,
-    #         llm=llm,
-    #         memory=memory,
-    #         event=event,
-    #         avatar_url=avatar_url,
-    #         idle_url=idle_url,
-    #         watching_url=watching_url,
-    #         chatting_url=chatting_url,
-    #         posting_url=posting_url
-    #     )
-    #     self.profile = profile
-    #     self.questionnaire_results = questionnaire_results
-
-    def take_action1(self, now):
+    def introduce(self, now):
         history = now
         # 大学生
-        prompt = f"""角色：\"\"\"
-            你是一位大学生，你的人设是{self.profile}
+        prompt = f"""你是一位中国大学生，你的人设是{self.profile}
+你在学习生活中遇到了一些烦心事，或者对学习生活有一些迷茫，现在你来到了心理咨询室。
+请你首先做个自我介绍，然后详细讲述一件让你感到烦心或者迷茫或者任何让你感到心理不舒服的事情，请你详细讲述事件的起因、经过和结果，并坦诚地说出三个阶段中你情绪的变化。
 
-            任务：\"\"\"
-            你的任务是和出色的心理咨询师进行多轮对话，请描述你的心理现状
-            \"\"\"
-
-            你们的对话历史记录是：\"\"\"
-            {history}
-            \"\"\"
-
-            响应格式：\"\"\"
-            你应该遵循以下JSON格式，填写{{}}中的内容，确保其符合Python的json.loads解析标准。
-            {{
-                "回答": "{{回答内容}}"
-            }}
-            \"\"\"
+请你直接输出对应回答，除此之外不要生成任何别的东西
+\"\"\"
             """
-        print(f"the prompt is {prompt}")
+        # print(f"the prompt is {prompt}")
 
         completion = client.chat.completions.create(model="gpt-3.5-turbo",
                                                           messages=[
-                                                              # {"role": "system", "content": "You are a helpful assistant."},
                                                               {"role": "user", "content": prompt}
                                                           ]
                                                           )
@@ -124,35 +87,51 @@ class OurAgent(RecAgent):
         #         self.memory.add_memory_key: f"{self.name} take action: " f"{conversation}",
         #     },
         # )
-        print("take_action1中的结果是：" + response + '\n')
+        # print("introduce中的结果是：" + response + '\n')
         return response
 
-    def take_action2(self, now):
+    def student_continue_with_doctor(self, now):
         history = now
         # 咨询师
-        prompt = f"""角色：\"\"\"
-你是一位出色的心理咨询师，你的人设是{self.profile}
-
-任务：\"\"\"
-你的任务是和一位大学生进行多轮对话，并分析他的心理现状
-\"\"\"
-
-你们的对话历史记录是：\"\"\"
+        prompt = f"""你是一位中国大学生，你的人设是{self.profile}
+此刻你正在心理咨询室和心理咨询师进行交谈，你们之间的谈话记录是
 {history}
-\"\"\"
-
-响应格式：\"\"\"
-你应该遵循以下JSON格式，填写{{}}中的内容，确保其符合Python的json.loads解析标准。
-{{
-    "回答": "{{回答内容}}"
-}}
-\"\"\"
-"""
+请你根据谈话记录，结合自身的情况和心理咨询师的言语，做出自己的回答。你可以认同、反驳心理咨询师，也可以对她提出新的疑问，不过尽量都要详细。
+请你直接输出对应回答，除此之外不要生成任何别的东西。
+        """
         print(f"the prompt is {prompt}")
 
         completion = client.chat.completions.create(model="gpt-3.5-turbo",
+                                                    messages=[
+                                                        {"role": "user", "content": prompt}
+                                                    ]
+                                                    )
+        response = completion.choices[0].message.content
+        # # 目前好像用不上self.memory.save_context，所以可以先空着？？
+        # self.memory.save_context(
+        #     {},
+        #     {
+        #         self.memory.add_memory_key: f"{self.name} take action: " f"{conversation}",
+        #     },
+        # )
+        # print("student_continue_with_doctor中的结果是：" + response + '\n')
+        return response
+    
+    
+
+    def doctor_response_to_student(self, now):
+        history = now
+        # 咨询师
+        prompt = f"""你是一名经验丰富的优秀的心理咨询师，你对大学生的心理问题非常了解并且知道如何解决他们的心理问题
+现在有一个学生来找你进行心里咨询，你们的对话历史记录是：
+{history}
+请你根据对话，分析这个学生的心理状态，并且做出合理的回应来疏导这名学生。你可以对这个学生表示同情、理解，可以给这个学生提出具体的意见，可以对这个学生进行适当的教育，也可以做出任何有利于改善这个学生心理状态的回应。
+请你直接输出对应回答，除此之外不要生成任何别的东西。
+"""
+        # print(f"the prompt is {prompt}")
+
+        completion = client.chat.completions.create(model="gpt-3.5-turbo",
                                                           messages=[
-                                                              # {"role": "system", "content": "You are a helpful assistant."},
                                                               {"role": "user", "content": prompt}
                                                           ]
                                                           )
@@ -164,7 +143,7 @@ class OurAgent(RecAgent):
         #         self.memory.add_memory_key: f"{self.name} take action: " f"{conversation}",
         #     },
         # )
-        print("take_action2中的结果是：" + response + '\n')
+        # print("doctor_response_to_student中的结果是：" + response + '\n')
         return response
 
     # def take_action3(self,now):
@@ -437,13 +416,14 @@ class Simulator:
         init_score = agent.fill_questionnaire(history)
 
         # 写个for循环，交流5次
-        for i in range(2):  # 5可以随便改，是俩人对话的轮数
+        for i in range(5):  # 5可以随便改，是俩人对话的轮数
             if i % 2 == 0:
-                # 奇数，大学生先提问
-                observation = agent.take_action1(history)  # take_action1函数里的prompt对应给大学生准备的，history作为变量拼接入prompt
-                self.logger.info(f"大学生说：{observation}")  # 记录大学生说的话，并放在observation中
-                history += f"大学生说：{observation}"
-
+                if i == 0:
+                    observation = agent.introduce(history)
+                    history += f"大学生说：{observation}\n"
+                else:
+                    observation = agent.student_continue_with_doctor(history)  # introduce函数里的prompt对应给大学生准备的，history作为变量拼接入prompt
+                    history += f"大学生说：{observation}\n"
                 # message的格式比较随意，是最后输出的格式，想要记录什么信息就存到里面
                 # message.append(
                 #     Message(
@@ -455,9 +435,8 @@ class Simulator:
 
             if i % 2 == 1:
                 # 偶数，咨询师回答
-                observation = agent.take_action2(self.now)  # take_action2函数里的prompt对应给咨询师准备的，history作为变量拼接入prompt
-                self.logger.info(f"咨询师说：{observation}")  # 记录咨询师说的话，并放在observation中
-                history += f"咨询师说：{observation}"
+                observation = agent.doctor_response_to_student(history)  # doctor_response_to_student函数里的prompt对应给咨询师准备的，history作为变量拼接入prompt
+                history += f"咨询师说：{observation}\n"
 
                 # message的格式比较随意，是最后输出的格式，想要记录什么信息就存到里面
                 # message.append(
@@ -471,8 +450,10 @@ class Simulator:
         # 后测
         final_score = agent.fill_questionnaire(history)
 
-        print(f"init score: {init_score}")
-        print(f"final_score:{final_score}")
+        print(f"init score: {init_score}\n")
+        print(f"final_score:{final_score}\n")
+        print("history最终是\n")
+        print(history)
 
     def update_working_agents(self):
         with lock:
