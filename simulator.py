@@ -55,6 +55,146 @@ os.environ["OPENAI_API_KEY"] = api_key
 client = OpenAI()
 
 
+atmosphere = """
+任务：\"\"\"
+你的任务是根据你感知到的环境和心理状态完成以下量表。你将得到6句有关学业内卷氛围的描述，请你为每一句给出一个1-5的分数，从1到5代表符合程度逐渐增强（1=完全不符合，2=比较不符合，3=不确定，4=比较符合，5=完全符合）
+\"\"\"
+相应格式：\"\"\"
+请你按顺序直接依次给出18个1-5之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
+\"\"\"
+量表：\"\"\"
+1. 我感到大多数同学在学业上进行激烈的竞争。
+2. 我感到大多数同学在学业上付出了过度的努力。
+3. 我感到大多数同学都在努力增加课程论文、实验报告等的字数以取得高分。
+4. 我感到大多数同学为了在课程中取得高分有意在老师面前努力表现。
+5. 为了取得高分，我感到大大多数同学时常超出课程要求完成任务。
+6. 为了取得高分，我周围大多数同学没有上限地投入精力。
+\"\"\"
+"""
+
+GAD_7 = """
+任务：\"\"\"
+你的任务是根据你目前的心理状态完成以下量表。你将得到7句有关症状的描述，请你为每一句给出一个0-3的分数，从0到3依次代表过去两周里你生活中出现以下症状的频率：0=完全没有，1=有几天，2=超过一半，3=几乎每天。
+\"\"\"
+相应格式：\"\"\"
+请你按顺序直接依次给出7个0-3之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
+\"\"\"
+量表：\"\"\"
+1. 感到不安、担心及烦躁。
+2. 不能停止或无法控制担心。
+3. 对很多不同的事情担忧。
+4. 很紧张，很难放松下来。
+5. 非常焦躁，以至无法静坐。
+6. 变得容易烦恼或易被激怒。
+7. 感到好像有什么可怕的事会发生。
+\"\"\"
+"""
+
+PHQ_9 = """
+任务：\"\"\"
+你的任务是根据你目前的心理状态完成以下量表。你将得到9句有关症状的描述，请你为每一句给出一个0-3的分数，从0到3依次代表过去两周里你生活中出现以下症状的频率：0=完全没有，1=有几天，2=超过一半，3=几乎每天。
+\"\"\"
+相应格式：\"\"\"
+请你按顺序直接依次给出9个0-3之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
+\"\"\"
+量表：\"\"\"
+1. 对任何事情都提不起兴趣/感受不到兴趣。
+2. 感觉沮丧的，忧郁的，或绝望的。
+3. 无法入睡，无法保持睡眠，或睡眠时间过多。
+4. 感觉乏力和没有精力。
+5. 没有胃口或过量进食。
+6. 对自己感到不满(感觉自己是个失败者)，或感觉让自己或家人失望。
+7. 无法集中注意力，比如在读报或看电视时。
+8. 行动或说话缓慢，以至于引起旁人注意。相反，或因为烦躁而坐立不安。
+9. 认为死亡或以某种途径伤害自己是解决方式。
+\"\"\"
+"""
+
+PSS = """
+任务：\"\"\"
+你的任务是根据你目前的心理状态完成以下量表。你将得到14句有关心理状况的描述，请你为每一句给出一个1-5的分数，从1到5代表状况发生的频率逐渐增强（1=从不，2=偶尔，3=有时，4=常常，5=总是）
+\"\"\"
+相应格式：\"\"\"
+请你按顺序直接依次给出14个1-5之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
+\"\"\"
+量表：\"\"\"
+1. 一些无法预期的事情发生而感到心烦意乱。
+2. 感觉无法控制自己生活中重要的事情。
+3. 感到紧张不安和压力。
+4. 成功地处理恼人的生活麻烦。
+5. 感到自己是有效地处理生活中所发生的重要改变。
+6. 对于自己有能力处理自己私人的问题感到很有信心。
+7. 感到事情顺心如意。
+8. 发现自己无法处理所有自己必须做的事情。
+9. 有办法控制生活中恼人的事情。
+10. 常觉得自己是驾驭事情的主人。
+11. 常生气，因为很多事情的发生是超出自己所能控制的。
+12. 经常想到有些事情是自己必须完成的。
+13. 常能掌握时间安排方式。
+14. 常感到困难的事情堆积如山，自己无法克服它们。
+\"\"\"
+"""
+
+relation = """
+任务：\"\"\"
+你的任务是根据你目前的人际关系状态完成以下量表。你将得到28句有关人际关系的描述，请你为每一句给出一个0或者1的分数，0=否，1=是。
+\"\"\"
+相应格式：\"\"\"
+请你按顺序直接依次给出28个0或者1的数字，每一行给一个整数。除此之外不要给出任何别的内容。
+\"\"\"
+量表：\"\"\"
+1. 关于自己的烦恼有口难言。
+2. 和生人见面感觉不自然。
+3. 过分地羡慕和妒忌别人。
+4. 与异性交往太少。
+5. 对连续不断地会谈感到困难。
+6. 在社交场合，感到紧张。
+7. 时常伤害别人。
+8. 与异性来往感觉不自然。
+9. 与一大群朋友在一起，常感到孤寂或失落。
+10. 极易受窘。
+11. 与别人不能和睦相处。
+12. 不知道与异性相处如何适可而止。
+13. 当不熟悉的人对自己倾诉他的生平遭遇以求同情时，自己常感到不自在。
+14. 担心别人对自己有什么坏印象。
+15. 总是尽力是别人赏识自己。
+16. 暗自思慕异性。
+17. 时常避免表达自己的感受。
+18. 对自己的仪表（容貌）缺乏信心。
+19. 讨厌某人或被某人所讨厌。
+20. 瞧不起异性。
+21. 不能专注地倾听。
+22. 自己的烦恼无人可倾诉。
+23. 受别人排斥与冷漠。
+24. 被异性瞧不起。
+25. 不能广泛地听取各种各样意见、看法。
+26. 自己常因受伤害而暗自伤心。
+27. 常被别人谈论、愚弄。
+28. 与异性交往不知如何更好相处。
+\"\"\"
+"""
+
+personal = """
+任务：\"\"\"
+你的任务是根据你个人的心理状态完成以下量表。你将得到6句有关个人学业内卷情况的描述，请你为每一句给出一个1-5的分数，从1到5代表符合程度逐渐增强（1=完全不符合，2=比较不符合，3=不确定，4=比较符合，5-完全符合）
+\"\"\"
+相应格式：\"\"\"
+请你按顺序直接依次给出18个1-5之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
+\"\"\"
+量表：\"\"\"
+1. 我时常在学业上与同学进行激烈的竞争。
+2. 我市场在学业上付出过度的努力。
+3. 我努力增加课程论文、实验报告等的字数以取得高分。
+4. 我为了在课程中取得高分有意在老师面前努力表现。
+5. 为了取得高分，我时常超出课程要求完成任务。
+6. 为了取得高分，我没有上限地投入精力。
+\"\"\"
+"""
+
+interview_text = """请描述你的未来规划，如选择继续升学还是毕业后直接工作，
+升学的途径（保研、考研、出国留学）、工作的类型（选调、考公、互联网企业等）、目标城市（一线城市如北上广深港、二三线城市等）。"""
+
+
 class OurAgent(RecAgent):
     profile: str = Field(...)
     """The agent's profile description"""
@@ -146,89 +286,39 @@ class OurAgent(RecAgent):
         # print("doctor_response_to_student中的结果是：" + response + '\n')
         return response
 
-    # def take_action3(self,now):
-    #     pass
-    def fill_questionnaire(self, now):
-        history = now
-        questionnaire_text = """
-1. 在学习/工作中我感到充满精力。
-2. 在学习/工作中我认为我在做自己真正喜欢的事情。
-3. 学习/工作使我情绪低落。
-4. 在学习/工作中我感到挫败。
-5. 在学习/工作中我感觉到神经紧张或“快被压垮”。
-6. 周围大多数人即使完成了最低任务要求, 还是会继续做出更多的工作量。
-7. 周围大多数人已经习惯超额完成工作/学习任务。
-8. 学习和工作中仅完成最低标准任务量是不够的, 大多数人会继续努力做得更多。
-9. 周围大多数人通过付出比别人更多且过度的努力来表现自己对工作/学习的态度
-10. 我周围的人通过竞争变得杰出。
-11. 我周围的人通过竞争可以获得良好的社会地位。
-12. 我周围的人通过竞争得到了他人的认可。
-13. 我周围的人通过竞争得到了多方面的锻炼。
-14. 我周围的人都会努力争取每次竞争的胜利。
-15. 我所处环境中的有限资源给我的人际关系带来了不利影响。
-16. 我所处环境中的资源太少以至于我无法获得我应得到的回报。
-17. 由于环境中可利用的资源不够, 我无法妥善处理重要的事情。
-18. 与我所做的努力和付出相比, 我的生活本应该比现在更好。
-        """
-        # 历史记录为空，初始评分
-        if history == '':
-            prompt = f"""角色：\"\"\"
-你是一位大学生，你的人设是{self.profile}。
 
-任务：\"\"\"
-你的任务是根据你的心理现状完成以下量表，你将得到18句有关个人心理状态的描述，请你根据自身情况对每一句话填写一个1-5的分数，分数越高，代表自身越认同这句话，1代表完全不认同，5代表全完认同。
-\"\"\"
-
-量表：\"\"\"
-{questionnaire_text}
-\"\"\"
-
-响应格式：\"\"\"
-请你按顺序直接依次给出18个1-5之间的整数，每一行给一个分数。除此之外不要给出任何别的内容。
-\"\"\"
-"""
-            print(f"the prompt is {prompt}")
-
-        # 历史记录非空，交流后评分
-        else:
-            prompt = f"""角色：\"\"\"
+def get_prompt_for_questionnaire(self, now, questionnaire_text):
+    history  = now
+    # 历史记录为空，初始评分
+    if history == '':
+        prompt = questionnaire_text
+    # 历史记录非空，交流后评分
+    else:
+        prompt = f"""角色：\"\"\"
  你是一位大学生，你的人设是{self.profile}。
  你已经和心理咨询师进行过交流，心理咨询师对你进行了开导，交流对话的历史记录为：\"\"\"
  {history}
  \"\"\"
-
- 任务：\"\"\"
- 你的任务是根据和心理咨询师交流后的心理状态完成以下量表，你将得到18句有关个人心理状态的描述，请你根据自身情况对每一句话填写一个1-5的分数，分数越高，代表自身越认同这句话，1代表完全不认同，5代表全完认同。
- \"\"\"
-
- 量表：\"\"\"
- {questionnaire_text}
- \"\"\"
-
- 响应格式：\"\"\"
- 请你按顺序直接依次给出18个1-5之间的整数，每一行给一个分数。除此之外不要给出任何别的内容。
- \"\"\"
+{questionnaire_text}
  """
-            print(f"the prompt is {prompt}")
+    return prompt
 
-        completion = client.chat.completions.create(model="gpt-3.5-turbo",
-                                                          messages=[
-                                                              # {"role": "system", "content": "You are a helpful assistant."},
-                                                              {"role": "user", "content": prompt}
-                                                          ]
-                                                          )
-        response = completion.choices[0].message.content
-        # # 目前好像用不上self.memory.save_context，所以可以先空着？？
-        # self.memory.save_context(
-        #     {},
-        #     {
-        #         self.memory.add_memory_key: f"{self.name} take action: " f"{conversation}",
-        #     },
-        # )
-        print("fill_questionnaire中的结果是：\n" + response + '\n')
-        scores_list = response.split('\n')
-        self.questionnaire_results.append(scores_list)
-        return scores_list
+
+# 增加了text接口，可以根据不同的需要选择不同的量表
+def fill_questionnaire(self, now, questionnaire_text):
+    prompt = get_prompt_for_questionnaire(self, now, questionnaire_text)
+    completion = client.chat.completions.create(model="gpt-3.5-turbo",
+                                                        messages=[
+                                                            # {"role": "system", "content": "You are a helpful assistant."},
+                                                            {"role": "user", "content": prompt}
+                                                        ]
+                                                        )
+    response = completion.choices[0].message.content
+
+    print("fill_questionnaire中的结果是：\n" + response + '\n')
+    scores_list = response.split('\n')
+    self.questionnaire_results.append(scores_list)
+    return scores_list
 
 
 class Simulator:
@@ -413,7 +503,12 @@ class Simulator:
         history = ''  # history记录两人的对话
 
         # 前测
-        init_score = agent.fill_questionnaire(history)
+        # init_score_atmos = agent.fill_questionnaire(history, atmosphere)
+        init_score_PHQ = agent.fill_questionnaire(history, PHQ_9)
+        init_score_GAD = agent.fill_questionnaire(history, GAD_7)
+        init_score_PSS = agent.fill_questionnaire(history, PSS)
+
+
 
         # 写个for循环，交流5次
         for i in range(5):  # 5可以随便改，是俩人对话的轮数
@@ -448,10 +543,14 @@ class Simulator:
                 # )
 
         # 后测
-        final_score = agent.fill_questionnaire(history)
+        final_score_PHQ = agent.fill_questionnaire(history, PHQ_9)
+        final_score_GAD = agent.fill_questionnaire(history, GAD_7)
+        final_score_PSS = agent.fill_questionnaire(history, PSS)
 
-        print(f"init score: {init_score}\n")
-        print(f"final_score:{final_score}\n")
+        print(f"init score: {init_score_PHQ}, {init_score_GAD}, {init_score_PSS}")
+        print(f"final score: {final_score_PHQ}, {final_score_GAD}, {final_score_PSS}")
+        # print(f"init score: {init_score}\n")
+        # print(f"final_score:{final_score}\n")
         print("history最终是\n")
         print(history)
 
