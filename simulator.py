@@ -18,17 +18,12 @@ import json
 from langchain.docstore import InMemoryDocstore
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
 from langchain.vectorstores import FAISS
-<<<<<<< HEAD
+
 # from langchain.experimental.generative_agents import (
 #     GenerativeAgent,
 #     GenerativeAgentMemory,
 # )
-=======
-from langchain.experimental.generative_agents import (
-    GenerativeAgent,
-    GenerativeAgentMemory,
-)
->>>>>>> 6854726c935f9e423bc517bc71ad159d9d8fd545
+
 import math
 import faiss
 import re
@@ -50,7 +45,6 @@ from agents.recagent_memory import RecAgentMemory, RecAgentRetriever
 import heapq
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
-<<<<<<< HEAD
 from pydantic import BaseModel, Field
 import os
 
@@ -255,7 +249,7 @@ class OurAgent(RecAgent):
                                                     ]
                                                     )
         response = completion.choices[0].message.content
-=======
+
 lock = threading.Lock()
 
 class OurAgent(RoleAgent):
@@ -289,16 +283,7 @@ class OurAgent(RoleAgent):
         
         conversation = asyncio.run( self.get_response(prompt
     ))
->>>>>>> 6854726c935f9e423bc517bc71ad159d9d8fd545
-        # # 目前好像用不上self.memory.save_context，所以可以先空着？？
-        # self.memory.save_context(
-        #     {},
-        #     {
-        #         self.memory.add_memory_key: f"{self.name} take action: " f"{conversation}",
-        #     },
-        # )
-<<<<<<< HEAD
-        # print("student_continue_with_doctor中的结果是：" + response + '\n')
+
         return response
     
     
@@ -363,113 +348,6 @@ def fill_questionnaire(self, now, questionnaire_text):
     scores_list = response.split('\n')
     self.questionnaire_results.append(scores_list)
     return scores_list
-=======
-        return conversation
-    
-    def take_action2(self,now):
-        history=now
-        # 咨询师    
-        prompt=f"""角色：\"\"\"
-            你是一位出色的心理咨询师，你的人设是{self.profile}
-            
-            任务：\"\"\"
-            你的任务是和一位大学生进行多轮对话，并分析他的心理现状
-            \"\"\"
-            
-            你们的对话历史记录是：\"\"\"
-            {history}
-            \"\"\"
-            
-            响应格式：\"\"\"
-            你应该遵循以下JSON格式，填写{{}}中的内容，确保其符合Python的json.loads解析标准。
-            {{
-                "回答": "{{回答内容}}"
-            }}
-            \"\"\"
-            """
-        print(f"the prompt is {prompt}")
-        
-        conversation = asyncio.run( self.get_response(prompt
-    ))
-        # # 目前好像用不上self.memory.save_context，所以可以先空着？？
-        # self.memory.save_context(
-        #     {},
-        #     {
-        #         self.memory.add_memory_key: f"{self.name} take action: " f"{conversation}",
-        #     },
-        # )
-        return conversation
-      
-    # def take_action3(self,now):
-    #     pass
-    def fill_questionnaire(self, now):
-        history = now
-        questionnaire_text = """
-            1. 在学习/工作中我感到充满精力。
-            2. 在学习/工作中我认为我在做自己真正喜欢的事情。
-            3. 学习/工作使我情绪低落。
-            4. 在学习/工作中我感到挫败。
-            5. 在学习/工作中我感觉到神经紧张或“快被压垮”。
-            6. 周围大多数人即使完成了最低任务要求, 还是会继续做出更多的工作量。
-            7. 周围大多数人已经习惯超额完成工作/学习任务。
-            8. 学习和工作中仅完成最低标准任务量是不够的, 大多数人会继续努力做得更多。
-            9. 周围大多数人通过付出比别人更多且过度的努力来表现自己对工作/学习的态度
-            10. 我周围的人通过竞争变得杰出。
-            11. 我周围的人通过竞争可以获得良好的社会地位。
-            12. 我周围的人通过竞争得到了他人的认可。
-            13. 我周围的人通过竞争得到了多方面的锻炼。
-            14. 我周围的人都会努力争取每次竞争的胜利。
-            15. 我所处环境中的有限资源给我的人际关系带来了不利影响。
-            16. 我所处环境中的资源太少以至于我无法获得我应得到的回报。
-            17. 由于环境中可利用的资源不够, 我无法妥善处理重要的事情。
-            18. 与我所做的努力和付出相比, 我的生活本应该比现在更好。
-        """
-        # 历史记录为空，初始评分
-        if history == '':
-            prompt = f"""角色：\"\"\"
-                你是一位大学生，你的人设是{self.profile}。
-
-                任务：\"\"\"
-                你的任务是根据你的心理现状完成以下量表，你将得到18句有关个人心理状态的描述，请你根据自身情况对每一句话填写一个1-5的分数，分数越高，代表自身越认同这句话，1代表完全不认同，5代表全完认同。
-                \"\"\"
-                
-                量表：\"\"\"
-                {questionnaire_text}
-                \"\"\"
-
-                响应格式：\"\"\"
-                请你按顺序直接依次给出18个1-5之间的整数，每一行给一个分数。除此之外不要给出任何别的内容。
-                \"\"\"
-                """
-            print(f"the prompt is {prompt}")
-
-        # 历史记录非空，交流后评分
-        else:
-            prompt = f"""角色：\"\"\"
-                你是一位大学生，你的人设是{self.profile}。
-                你已经和心理咨询师进行过交流，心理咨询师对你进行了开导，交流对话的历史记录为：\"\"\"
-                {history}
-                \"\"\"
-
-                任务：\"\"\"
-                你的任务是根据和心理咨询师交流后的心理状态完成以下量表，你将得到18句有关个人心理状态的描述，请你根据自身情况对每一句话填写一个1-5的分数，分数越高，代表自身越认同这句话，1代表完全不认同，5代表全完认同。
-                \"\"\"
-
-                量表：\"\"\"
-                {questionnaire_text}
-                \"\"\"
-
-                响应格式：\"\"\"
-                请你按顺序直接依次给出18个1-5之间的整数，每一行给一个分数。除此之外不要给出任何别的内容。
-                \"\"\"
-                """
-            print(f"the prompt is {prompt}")
-
-        conversation = asyncio.run(self.get_response(prompt))
-        scores_list = [int(score.strip()) for score in conversation.split() if score.strip()]
-        return scores_list
->>>>>>> 6854726c935f9e423bc517bc71ad159d9d8fd545
-
 
 class Simulator:
     """
@@ -650,7 +528,7 @@ class Simulator:
 
         # return message
         message = []
-<<<<<<< HEAD
+
         history = ''  # history记录两人的对话
 
         # 前测
@@ -660,17 +538,10 @@ class Simulator:
         init_score_PSS = agent.fill_questionnaire(history, PSS)
 
 
-=======
-        history = ''    # history记录两人的对话
-
-        # 前测
-        init_score = agent.fill_questionnaire(history)
->>>>>>> 6854726c935f9e423bc517bc71ad159d9d8fd545
 
         # 写个for循环，交流5次
         for i in range(5):  # 5可以随便改，是俩人对话的轮数
             if i % 2 == 0:
-<<<<<<< HEAD
                 if i == 0:
                     observation = agent.introduce(history)
                     history += f"大学生说：{observation}\n"
@@ -711,43 +582,7 @@ class Simulator:
         # print(f"final_score:{final_score}\n")
         print("history最终是\n")
         print(history)
-=======
-                # 奇数，大学生先提问
-                observation = agent.take_action1(history)  # take_action1函数里的prompt对应给大学生准备的，history作为变量拼接入prompt
-                self.logger.info(f"大学生说：{observation}")  # 记录大学生说的话，并放在observation中
-                history += f"大学生说：{observation}"
 
-                # message的格式比较随意，是最后输出的格式，想要记录什么信息就存到里面
-                message.append(
-                    Message(
-                        agent_id=agent_id,
-                        role="大学生",
-                        content=f"{observation}",
-                    )
-                )
-
-            if i % 2 == 1:
-                # 偶数，咨询师回答
-                observation = agent.take_action2(self.now) # take_action2函数里的prompt对应给咨询师准备的，history作为变量拼接入prompt
-                self.logger.info(f"咨询师说：{observation}")  # 记录咨询师说的话，并放在observation中
-                history += f"咨询师说：{observation}"
-
-                # message的格式比较随意，是最后输出的格式，想要记录什么信息就存到里面
-                message.append(
-                    Message(
-                        agent_id=agent_id,
-                        role="咨询师",
-                        content=f"{observation}",
-                    )
-                )
-
-        # 后测
-        final_score = agent.fill_questionnaire(history)
-
-        print(f"init score: {init_score}")
-        print(f"final_score:{final_score}")
-    
->>>>>>> 6854726c935f9e423bc517bc71ad159d9d8fd545
 
     def update_working_agents(self):
         with lock:
@@ -813,8 +648,7 @@ class Simulator:
             now=self.now,
             verbose=False,
             reflection_threshold=10,
-        )
-<<<<<<< HEAD
+
 
         ### Modified! ###
         # 人设信息
@@ -831,10 +665,6 @@ Interpersonal Relationships: {self.data.get_relationship_names(i)}
         # 问卷结果
         questionnaire_results1 = []
 
-=======
-        
-        ### Modified! ###
->>>>>>> 6854726c935f9e423bc517bc71ad159d9d8fd545
         agent = OurAgent(
             id=i,
             name=self.data.users[i]["name"],
