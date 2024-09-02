@@ -250,44 +250,6 @@ class OurAgent(RecAgent):
                                                     )
         response = completion.choices[0].message.content
 
-lock = threading.Lock()
-
-class OurAgent(RoleAgent):
-    def __init__(self, id, name, age,gender, traits, status,interest,relationships,feature, memory_retriever, llm, memory,event,avatar_url,idle_url,watching_url,chatting_url,posting_url):
-        super().__init__(self, id, name, age,gender, traits, status,interest,relationships,feature, memory_retriever, llm, memory,event,avatar_url,idle_url,watching_url,chatting_url,posting_url)
-        
-        self.profile=None ### TODO: 人设，需要修改
-        
-    def take_action1(self,now):
-        history=now
-        # 大学生    
-        prompt=f"""角色：\"\"\"
-            你是一位大学生，你的人设是{self.profile}
-            
-            任务：\"\"\"
-            你的任务是和出色的心理咨询师进行多轮对话，请描述你的心理现状
-            \"\"\"
-            
-            你们的对话历史记录是：\"\"\"
-            {history}
-            \"\"\"
-            
-            响应格式：\"\"\"
-            你应该遵循以下JSON格式，填写{{}}中的内容，确保其符合Python的json.loads解析标准。
-            {{
-                "回答": "{{回答内容}}"
-            }}
-            \"\"\"
-            """
-        print(f"the prompt is {prompt}")
-        
-        conversation = asyncio.run( self.get_response(prompt
-    ))
-
-        return response
-    
-    
-
     def doctor_response_to_student(self, now):
         history = now
         # 咨询师
@@ -315,6 +277,22 @@ class OurAgent(RoleAgent):
         # print("doctor_response_to_student中的结果是：" + response + '\n')
         return response
 
+    # 增加了text接口，可以根据不同的需要选择不同的量表
+    def fill_questionnaire(self, now, questionnaire_text):
+        prompt = get_prompt_for_questionnaire(self, now, questionnaire_text)
+        completion = client.chat.completions.create(model="gpt-3.5-turbo",
+                                                    messages=[
+                                                        # {"role": "system", "content": "You are a helpful assistant."},
+                                                        {"role": "user", "content": prompt}
+                                                    ]
+                                                    )
+        response = completion.choices[0].message.content
+
+        print("fill_questionnaire中的结果是：\n" + response + '\n')
+        scores_list = response.split('\n')
+        self.questionnaire_results.append(scores_list)
+        return scores_list
+
 
 def get_prompt_for_questionnaire(self, now, questionnaire_text):
     history  = now
@@ -333,21 +311,6 @@ def get_prompt_for_questionnaire(self, now, questionnaire_text):
     return prompt
 
 
-# 增加了text接口，可以根据不同的需要选择不同的量表
-def fill_questionnaire(self, now, questionnaire_text):
-    prompt = get_prompt_for_questionnaire(self, now, questionnaire_text)
-    completion = client.chat.completions.create(model="gpt-3.5-turbo",
-                                                        messages=[
-                                                            # {"role": "system", "content": "You are a helpful assistant."},
-                                                            {"role": "user", "content": prompt}
-                                                        ]
-                                                        )
-    response = completion.choices[0].message.content
-
-    print("fill_questionnaire中的结果是：\n" + response + '\n')
-    scores_list = response.split('\n')
-    self.questionnaire_results.append(scores_list)
-    return scores_list
 
 class Simulator:
     """
@@ -648,6 +611,7 @@ class Simulator:
             now=self.now,
             verbose=False,
             reflection_threshold=10,
+        )
 
 
         ### Modified! ###
