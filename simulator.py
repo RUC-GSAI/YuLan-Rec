@@ -56,13 +56,9 @@ os.environ["OPENAI_API_KEY"] = api_key
 
 client = OpenAI()
 
-
 atmosphere = """
 任务：\"\"\"
 你的任务是根据你感知到的环境和心理状态完成以下量表。你将得到6句有关学业内卷氛围的描述，请你为每一句给出一个1-5的分数，从1到5代表符合程度逐渐增强（1=完全不符合，2=比较不符合，3=不确定，4=比较符合，5=完全符合）
-\"\"\"
-相应格式：\"\"\"
-请你按顺序直接依次给出18个1-5之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
 \"\"\"
 量表：\"\"\"
 1. 我感到大多数同学在学业上进行激烈的竞争。
@@ -72,14 +68,12 @@ atmosphere = """
 5. 为了取得高分，我感到大大多数同学时常超出课程要求完成任务。
 6. 为了取得高分，我周围大多数同学没有上限地投入精力。
 \"\"\"
+请你按顺序直接依次给出6个1-5之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
 """
 
 GAD_7 = """
 任务：\"\"\"
 你的任务是根据你目前的心理状态完成以下量表。你将得到7句有关症状的描述，请你为每一句给出一个0-3的分数，从0到3依次代表过去两周里你生活中出现以下症状的频率：0=完全没有，1=有几天，2=超过一半，3=几乎每天。
-\"\"\"
-相应格式：\"\"\"
-请你按顺序直接依次给出7个0-3之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
 \"\"\"
 量表：\"\"\"
 1. 感到不安、担心及烦躁。
@@ -90,14 +84,12 @@ GAD_7 = """
 6. 变得容易烦恼或易被激怒。
 7. 感到好像有什么可怕的事会发生。
 \"\"\"
+请你按顺序直接依次给出7个0-3之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
 """
 
 PHQ_9 = """
 任务：\"\"\"
 你的任务是根据你目前的心理状态完成以下量表。你将得到9句有关症状的描述，请你为每一句给出一个0-3的分数，从0到3依次代表过去两周里你生活中出现以下症状的频率：0=完全没有，1=有几天，2=超过一半，3=几乎每天。
-\"\"\"
-相应格式：\"\"\"
-请你按顺序直接依次给出9个0-3之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
 \"\"\"
 量表：\"\"\"
 1. 对任何事情都提不起兴趣/感受不到兴趣。
@@ -110,14 +102,12 @@ PHQ_9 = """
 8. 行动或说话缓慢，以至于引起旁人注意。相反，或因为烦躁而坐立不安。
 9. 认为死亡或以某种途径伤害自己是解决方式。
 \"\"\"
+请你按顺序直接依次给出9个0-3之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
 """
 
 PSS = """
 任务：\"\"\"
 你的任务是根据你目前的心理状态完成以下量表。你将得到14句有关心理状况的描述，请你为每一句给出一个1-5的分数，从1到5代表状况发生的频率逐渐增强（1=从不，2=偶尔，3=有时，4=常常，5=总是）
-\"\"\"
-相应格式：\"\"\"
-请你按顺序直接依次给出14个1-5之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
 \"\"\"
 量表：\"\"\"
 1. 一些无法预期的事情发生而感到心烦意乱。
@@ -135,14 +125,12 @@ PSS = """
 13. 常能掌握时间安排方式。
 14. 常感到困难的事情堆积如山，自己无法克服它们。
 \"\"\"
+请你按顺序直接依次给出14个1-5之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
 """
 
 relation = """
 任务：\"\"\"
 你的任务是根据你目前的人际关系状态完成以下量表。你将得到28句有关人际关系的描述，请你为每一句给出一个0或者1的分数，0=否，1=是。
-\"\"\"
-相应格式：\"\"\"
-请你按顺序直接依次给出28个0或者1的数字，每一行给一个整数。除此之外不要给出任何别的内容。
 \"\"\"
 量表：\"\"\"
 1. 关于自己的烦恼有口难言。
@@ -174,14 +162,12 @@ relation = """
 27. 常被别人谈论、愚弄。
 28. 与异性交往不知如何更好相处。
 \"\"\"
+请你按顺序直接依次给出28个0或者1的数字，每一行给一个整数。除此之外不要给出任何别的内容。
 """
 
 personal = """
 任务：\"\"\"
 你的任务是根据你个人的心理状态完成以下量表。你将得到6句有关个人学业内卷情况的描述，请你为每一句给出一个1-5的分数，从1到5代表符合程度逐渐增强（1=完全不符合，2=比较不符合，3=不确定，4=比较符合，5-完全符合）
-\"\"\"
-相应格式：\"\"\"
-请你按顺序直接依次给出18个1-5之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
 \"\"\"
 量表：\"\"\"
 1. 我时常在学业上与同学进行激烈的竞争。
@@ -191,6 +177,7 @@ personal = """
 5. 为了取得高分，我时常超出课程要求完成任务。
 6. 为了取得高分，我没有上限地投入精力。
 \"\"\"
+请你按顺序直接依次给出18个1-5之间的整数，每一行给一个整数。除此之外不要给出任何别的内容。
 """
 
 interview_text = """请描述你的未来规划，如选择继续升学还是毕业后直接工作，
@@ -217,10 +204,10 @@ class OurAgent(RecAgent):
         # print(f"the prompt is {prompt}")
 
         completion = client.chat.completions.create(model="gpt-3.5-turbo",
-                                                          messages=[
-                                                              {"role": "user", "content": prompt}
-                                                          ]
-                                                          )
+                                                    messages=[
+                                                        {"role": "user", "content": prompt}
+                                                    ]
+                                                    )
         response = completion.choices[0].message.content
         # # 目前好像用不上self.memory.save_context，所以可以先空着？？
         # self.memory.save_context(
@@ -262,10 +249,10 @@ class OurAgent(RecAgent):
         # print(f"the prompt is {prompt}")
 
         completion = client.chat.completions.create(model="gpt-3.5-turbo",
-                                                          messages=[
-                                                              {"role": "user", "content": prompt}
-                                                          ]
-                                                          )
+                                                    messages=[
+                                                        {"role": "user", "content": prompt}
+                                                    ]
+                                                    )
         response = completion.choices[0].message.content
         # # 目前好像用不上self.memory.save_context，所以可以先空着？？
         # self.memory.save_context(
@@ -295,7 +282,7 @@ class OurAgent(RecAgent):
 
 
 def get_prompt_for_questionnaire(self, now, questionnaire_text):
-    history  = now
+    history = now
     # 历史记录为空，初始评分
     if history == '':
         prompt = questionnaire_text
@@ -309,7 +296,6 @@ def get_prompt_for_questionnaire(self, now, questionnaire_text):
 {questionnaire_text}
  """
     return prompt
-
 
 
 class Simulator:
@@ -500,8 +486,6 @@ class Simulator:
         init_score_GAD = agent.fill_questionnaire(history, GAD_7)
         init_score_PSS = agent.fill_questionnaire(history, PSS)
 
-
-
         # 写个for循环，交流5次
         for i in range(5):  # 5可以随便改，是俩人对话的轮数
             if i % 2 == 0:
@@ -509,7 +493,8 @@ class Simulator:
                     observation = agent.introduce(history)
                     history += f"大学生说：{observation}\n"
                 else:
-                    observation = agent.student_continue_with_doctor(history)  # introduce函数里的prompt对应给大学生准备的，history作为变量拼接入prompt
+                    observation = agent.student_continue_with_doctor(history)
+                    # introduce函数里的prompt对应给大学生准备的，history作为变量拼接入prompt
                     history += f"大学生说：{observation}\n"
                 # message的格式比较随意，是最后输出的格式，想要记录什么信息就存到里面
                 # message.append(
@@ -522,7 +507,8 @@ class Simulator:
 
             if i % 2 == 1:
                 # 偶数，咨询师回答
-                observation = agent.doctor_response_to_student(history)  # doctor_response_to_student函数里的prompt对应给咨询师准备的，history作为变量拼接入prompt
+                observation = agent.doctor_response_to_student(history)
+                # doctor_response_to_student函数里的prompt对应给咨询师准备的，history作为变量拼接入prompt
                 history += f"咨询师说：{observation}\n"
 
                 # message的格式比较随意，是最后输出的格式，想要记录什么信息就存到里面
@@ -539,13 +525,10 @@ class Simulator:
         final_score_GAD = agent.fill_questionnaire(history, GAD_7)
         final_score_PSS = agent.fill_questionnaire(history, PSS)
 
-        print(f"init score: {init_score_PHQ}, {init_score_GAD}, {init_score_PSS}")
-        print(f"final score: {final_score_PHQ}, {final_score_GAD}, {final_score_PSS}")
-        # print(f"init score: {init_score}\n")
-        # print(f"final_score:{final_score}\n")
+        print(f"init score: \n{init_score_PHQ}\n {init_score_GAD}\n {init_score_PSS}\n")
+        print(f"final score: \n{final_score_PHQ}\n {final_score_GAD}\n {final_score_PSS}\n")
         print("history最终是\n")
         print(history)
-
 
     def update_working_agents(self):
         with lock:
@@ -612,7 +595,6 @@ class Simulator:
             verbose=False,
             reflection_threshold=10,
         )
-
 
         ### Modified! ###
         # 人设信息
