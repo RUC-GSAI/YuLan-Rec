@@ -219,6 +219,35 @@ class OurAgent(RecAgent):
         # print("introduce中的结果是：" + response + '\n')
         return response
 
+    def interview_after_introduce(self, now):
+        history = now
+        # 大学生
+        prompt = f"""你是一位中国大学生，你的人设是{self.profile}
+你在学习生活中遇到了一些烦心事，或者对学习生活有一些迷茫，现在你来到了心理咨询室。
+你做了一个自我介绍：
+{history}
+现在请你结合你的自我介绍，用一个词描述你现在的情绪。
+请你直接输出一个词语来描述情绪，除此之外不要生成任何别的东西
+\"\"\"
+            """
+        # print(f"the prompt is {prompt}")
+
+        completion = client.chat.completions.create(model="gpt-3.5-turbo",
+                                                    messages=[
+                                                        {"role": "user", "content": prompt}
+                                                    ]
+                                                    )
+        response = completion.choices[0].message.content
+        # # 目前好像用不上self.memory.save_context，所以可以先空着？？
+        # self.memory.save_context(
+        #     {},
+        #     {
+        #         self.memory.add_memory_key: f"{self.name} take action: " f"{conversation}",
+        #     },
+        # )
+        # print("introduce中的结果是：" + response + '\n')
+        return response
+
     def student_continue_with_doctor(self, now):
         history = now
         # 咨询师
@@ -280,6 +309,36 @@ class OurAgent(RecAgent):
         self.questionnaire_results.append(scores_list)
         return scores_list
 
+    def interview_after_all(self, now):
+        history = now
+        # 大学生
+        prompt = f"""你是一位中国大学生，你的人设是{self.profile}
+你在学习生活中遇到了一些烦心事，或者对学习生活有一些迷茫，现在你来到了心理咨询室。
+你和心理咨询师有一段对话：
+{history}
+现在请你结合你和心理咨询师的对话，认真思考谈话过后你的情绪有没有什么变化。
+现在请你用一个词描述你现在的情绪。
+请你直接输出一个词语来描述情绪，除此之外不要生成任何别的东西
+\"\"\"
+            """
+        # print(f"the prompt is {prompt}")
+
+        completion = client.chat.completions.create(model="gpt-3.5-turbo",
+                                                    messages=[
+                                                        {"role": "user", "content": prompt}
+                                                    ]
+                                                    )
+        response = completion.choices[0].message.content
+        # # 目前好像用不上self.memory.save_context，所以可以先空着？？
+        # self.memory.save_context(
+        #     {},
+        #     {
+        #         self.memory.add_memory_key: f"{self.name} take action: " f"{conversation}",
+        #     },
+        # )
+        # print("introduce中的结果是：" + response + '\n')
+        return response
+
 
 def get_prompt_for_questionnaire(self, now, questionnaire_text):
     history = now
@@ -293,9 +352,17 @@ def get_prompt_for_questionnaire(self, now, questionnaire_text):
  你已经和心理咨询师进行过交流，心理咨询师对你进行了开导，交流对话的历史记录为：\"\"\"
  {history}
  \"\"\"
+ 请你仔细回忆和心理咨询师的对话，仔细思考心理咨询师的话对你的心理状态有没有什么影响，自己内心的想法是否有所改观，自己的心理状态是否有所改善，然后再填写如下的问卷：
 {questionnaire_text}
  """
     return prompt
+
+
+
+# 返回问卷得分的总和
+def sum_of_string_numbers(str_list):
+    # 使用 map 函数将字符串列表转换为整数列表，然后求和
+    return sum(map(int, str_list))
 
 
 class Simulator:
@@ -525,8 +592,17 @@ class Simulator:
         final_score_GAD = agent.fill_questionnaire(history, GAD_7)
         final_score_PSS = agent.fill_questionnaire(history, PSS)
 
-        print(f"init score: \n{init_score_PHQ}\n {init_score_GAD}\n {init_score_PSS}\n")
-        print(f"final score: \n{final_score_PHQ}\n {final_score_GAD}\n {final_score_PSS}\n")
+        print("init score: \n")
+        print(f"PHQ: {init_score_PHQ}，总分{sum_of_string_numbers(init_score_PHQ)}\n")
+        print(f"GAD: {init_score_GAD}，总分{sum_of_string_numbers(init_score_GAD)}\n")
+        print(f"PSS: {init_score_PSS}，总分{sum_of_string_numbers(init_score_PSS)}\n")
+
+        # print(f"init score: \n{init_score_PHQ}\n {init_score_GAD}\n {init_score_PSS}\n")
+        # print(f"final score: \n{final_score_PHQ}\n {final_score_GAD}\n {final_score_PSS}\n")
+        print("final score: \n")
+        print(f"PHQ: {final_score_PHQ}，总分{sum_of_string_numbers(final_score_PHQ)}\n")
+        print(f"GAD: {final_score_GAD}，总分{sum_of_string_numbers(final_score_GAD)}\n")
+        print(f"PSS: {final_score_PSS}，总分{sum_of_string_numbers(final_score_PSS)}\n")
         print("history最终是\n")
         print(history)
 
