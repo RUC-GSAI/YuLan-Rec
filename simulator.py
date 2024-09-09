@@ -230,7 +230,7 @@ class OurAgent(RecAgent):
 请你直接输出一个词语来描述情绪，除此之外不要生成任何别的东西
 \"\"\"
             """
-        # print(f"the prompt is {prompt}")
+        # print(f"描述情绪的prompt-1： {prompt}")
 
         completion = client.chat.completions.create(model="gpt-3.5-turbo",
                                                     messages=[
@@ -257,7 +257,7 @@ class OurAgent(RecAgent):
 请你根据谈话记录，结合自身的情况和心理咨询师的言语，做出自己的回答。你可以认同、反驳心理咨询师，也可以对她提出新的疑问，不过尽量都要详细。
 请你直接输出对应回答，除此之外不要生成任何别的东西。
         """
-        print(f"the prompt is {prompt}")
+        # print(f"the prompt is {prompt}")
 
         completion = client.chat.completions.create(model="gpt-3.5-turbo",
                                                     messages=[
@@ -265,6 +265,7 @@ class OurAgent(RecAgent):
                                                     ]
                                                     )
         response = completion.choices[0].message.content
+        return response
 
     def doctor_response_to_student(self, now):
         history = now
@@ -304,7 +305,7 @@ class OurAgent(RecAgent):
                                                     )
         response = completion.choices[0].message.content
 
-        print("fill_questionnaire中的结果是：\n" + response + '\n')
+        # print("fill_questionnaire中的结果是：\n" + response + '\n')
         scores_list = response.split('\n')
         self.questionnaire_results.append(scores_list)
         return scores_list
@@ -321,7 +322,7 @@ class OurAgent(RecAgent):
 请你直接输出一个词语来描述情绪，除此之外不要生成任何别的东西
 \"\"\"
             """
-        # print(f"the prompt is {prompt}")
+        # print(f"描述情绪的prompt-2：{prompt}")
 
         completion = client.chat.completions.create(model="gpt-3.5-turbo",
                                                     messages=[
@@ -329,14 +330,6 @@ class OurAgent(RecAgent):
                                                     ]
                                                     )
         response = completion.choices[0].message.content
-        # # 目前好像用不上self.memory.save_context，所以可以先空着？？
-        # self.memory.save_context(
-        #     {},
-        #     {
-        #         self.memory.add_memory_key: f"{self.name} take action: " f"{conversation}",
-        #     },
-        # )
-        # print("introduce中的结果是：" + response + '\n')
         return response
 
 
@@ -546,6 +539,8 @@ class Simulator:
         message = []
 
         history = ''  # history记录两人的对话
+        mood_before = ''
+        mood_after = ''
 
         # 前测
         # init_score_atmos = agent.fill_questionnaire(history, atmosphere)
@@ -559,6 +554,7 @@ class Simulator:
                 if i == 0:
                     observation = agent.introduce(history)
                     history += f"大学生说：{observation}\n"
+                    mood_before = agent.interview_after_introduce(history)
                 else:
                     observation = agent.student_continue_with_doctor(history)
                     # introduce函数里的prompt对应给大学生准备的，history作为变量拼接入prompt
@@ -577,15 +573,7 @@ class Simulator:
                 observation = agent.doctor_response_to_student(history)
                 # doctor_response_to_student函数里的prompt对应给咨询师准备的，history作为变量拼接入prompt
                 history += f"咨询师说：{observation}\n"
-
-                # message的格式比较随意，是最后输出的格式，想要记录什么信息就存到里面
-                # message.append(
-                #     Message(
-                #         agent_id=agent_id,
-                #         role="咨询师",
-                #         content=f"{observation}",
-                #     )
-                # )
+        mood_after = agent.interview_after_all(history)
 
         # 后测
         final_score_PHQ = agent.fill_questionnaire(history, PHQ_9)
@@ -596,13 +584,13 @@ class Simulator:
         print(f"PHQ: {init_score_PHQ}，总分{sum_of_string_numbers(init_score_PHQ)}\n")
         print(f"GAD: {init_score_GAD}，总分{sum_of_string_numbers(init_score_GAD)}\n")
         print(f"PSS: {init_score_PSS}，总分{sum_of_string_numbers(init_score_PSS)}\n")
+        print(f"咨询前情绪为{mood_before}\n")
 
-        # print(f"init score: \n{init_score_PHQ}\n {init_score_GAD}\n {init_score_PSS}\n")
-        # print(f"final score: \n{final_score_PHQ}\n {final_score_GAD}\n {final_score_PSS}\n")
         print("final score: \n")
         print(f"PHQ: {final_score_PHQ}，总分{sum_of_string_numbers(final_score_PHQ)}\n")
         print(f"GAD: {final_score_GAD}，总分{sum_of_string_numbers(final_score_GAD)}\n")
         print(f"PSS: {final_score_PSS}，总分{sum_of_string_numbers(final_score_PSS)}\n")
+        print(f"咨询后情绪为{mood_after}\n")
         print("history最终是\n")
         print(history)
 
