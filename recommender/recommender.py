@@ -27,7 +27,10 @@ class Recommender:
         )
 
         self.criterion = nn.BCEWithLogitsLoss()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=config["lr"])
+        if config["rec_model"]=='Random':
+            self.optimizer = None
+        else:
+            self.optimizer = optim.Adam(self.model.parameters(), lr=config["lr"])
         self.epoch_num = config["epoch_num"]
         self.train_data = []
 

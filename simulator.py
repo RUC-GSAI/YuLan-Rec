@@ -30,7 +30,7 @@ import queue
 from typing import List
 
 
-from recommender.recommender import Recommender
+from recommender.recommender import Recommender,Random
 from recommender.data.data import Data
 from agents import RecAgent
 from agents import RoleAgent
@@ -103,27 +103,52 @@ class Simulator:
         file_name = f"{ID}-Round[{self.round_cnt}]-AgentNum[{self.config['agent_num']}]-{datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}"
         self.file_name_path.append(file_name)
         save_file_name = os.path.join(save_dir_name, file_name + ".pkl")
+        state = self.__dict__.copy()
+        for agent in state.get('agents', {}).values():
+            if hasattr(agent, 'llm'):
+                agent.llm = None
+            if hasattr(agent, 'memory') and hasattr(agent.memory, 'llm'):
+                agent.memory.llm = None
+        
         with open(save_file_name, "wb") as f:
-            dill.dump(self.__dict__, f)
+            dill.dump(state, f)
+        
         self.logger.info("Current simulator Save in: \n" + str(save_file_name) + "\n")
         self.logger.info(
             "Simulator File Path (root -> node): \n" + str(self.file_name_path) + "\n"
         )
         utils.ensure_dir(self.config["ckpt_path"])
         cpkt_path = os.path.join(self.config["ckpt_path"], file_name + ".pth")
-        self.recsys.save_model(cpkt_path)
-        self.logger.info(
-            "Current Recommender Model Save in: \n" + str(cpkt_path) + "\n"
-        )
+
+        if not isinstance(self.recsys.model, Random):
+            self.recsys.save_model(cpkt_path)
+            self.logger.info(
+                "Current Recommender Model Save in: \n" + str(cpkt_path) + "\n"
+            )
+        else:
+            self.logger.info(
+                "Random model does not need to be saved.\n"
+            )
 
     @classmethod
     def restore(cls, restore_file_name, config, logger):
         """Restore the simulator status from the specific file"""
-        with open(restore_file_name + ".pkl", "rb") as f:
+        if not restore_file_name.endswith(".pkl"):
+            restore_file_name += ".pkl"
+        with open(restore_file_name, "rb") as f:
             obj = cls.__new__(cls)
             obj.__dict__ = dill.load(f)
             obj.config, obj.logger = config, logger
-            return obj
+        
+        # 重新初始化不可序列化的对象
+        for agent in obj.agents.values():
+            api_key=config['api_keys'][agent.id%len(config['api_keys'])]
+            if hasattr(agent, 'llm') and agent.llm is None:
+                agent.llm = utils.get_llm(config=obj.config, logger=obj.logger, api_key=api_key)
+            if hasattr(agent, 'memory') and agent.memory is not None and hasattr(agent.memory, 'llm') and agent.memory.llm is None:
+                agent.memory.llm = utils.get_llm(config=obj.config, logger=obj.logger, api_key=api_key)
+        
+        return obj
 
     def relevance_score_fn(self, score: float) -> float:
         """Return a similarity score on a scale [0, 1]."""
@@ -881,7 +906,7 @@ class Simulator:
     def convert_agent_to_role(self, agent_id):
         self.agents[agent_id] = RoleAgent.from_recagent(self.agents[agent_id])
 
-    def create_agent(self, i, api_key) -> RecAgent:
+    def create_agent(self, id, api_key) -> RecAgent:
         """
         Create an agent with the given id.
         """
@@ -900,33 +925,33 @@ class Simulator:
             reflection_threshold=10,
         )
         agent = RecAgent(
-            id=i,
-            name=self.data.users[i]["name"],
-            age=self.data.users[i]["age"],
-            gender=self.data.users[i]["gender"],
-            traits=self.data.users[i]["traits"],
-            status=self.data.users[i]["status"],
-            interest=self.data.users[i]["interest"],
-            relationships=self.data.get_relationship_names(i),
-            feature=utils.get_feature_description(self.data.users[i]["feature"]),
+            id=id,
+            name=self.data.users[id]["name"],
+            age=self.data.users[id]["age"],
+            gender=self.data.users[id]["gender"],
+            traits=self.data.users[id]["traits"],
+            status=self.data.users[id]["status"],
+            interest=self.data.users[id]["interest"],
+            relationships=self.data.get_relationship_names(id),
+            feature=utils.get_feature_description(self.data.users[id]["feature"]),
             memory_retriever=self.create_new_memory_retriever(),
             llm=LLM,
             memory=agent_memory,
             event=reset_event(self.now),
             avatar_url=utils.get_avatar_url(
-                id=i, gender=self.data.users[i]["gender"], type="origin"
+                id=id, gender=self.data.users[id]["gender"], type="origin"
             ),
             idle_url=utils.get_avatar_url(
-                id=i, gender=self.data.users[i]["gender"], type="idle"
+                id=id, gender=self.data.users[id]["gender"], type="idle"
             ),
             watching_url=utils.get_avatar_url(
-                id=i, gender=self.data.users[i]["gender"], type="watching"
+                id=id, gender=self.data.users[id]["gender"], type="watching"
             ),
             chatting_url=utils.get_avatar_url(
-                id=i, gender=self.data.users[i]["gender"], type="chatting"
+                id=id, gender=self.data.users[id]["gender"], type="chatting"
             ),
             posting_url=utils.get_avatar_url(
-                id=i, gender=self.data.users[i]["gender"], type="posting"
+                id=id, gender=self.data.users[id]["gender"], type="posting"
             ),
         )
         # observations = self.data.users[i]["observations"].strip(".").split(".")
@@ -1072,7 +1097,8 @@ class Simulator:
             with open(self.config["output_file"], "w") as file:
                 json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
             self.recsys.save_interaction()
-            self.save(os.path.join(self.config["simulator_dir"]))
+            if self.config['simulator_dir'] is not None:
+                self.save(os.path.join(self.config["simulator_dir"]))
 
     def clear_social(self):
         for i in self.agents:
@@ -1279,7 +1305,7 @@ def main():
     config.merge_from_file(args.config_file)
     logger.info(f"\n{config}")
     os.environ["OPENAI_API_KEY"] = config["api_keys"][0]
-
+    st=time.time()
     if config["simulator_restore_file_name"]:
         restore_path = os.path.join(
             config["simulator_dir"], config["simulator_restore_file_name"]
@@ -1293,10 +1319,12 @@ def main():
     if recagent.config["social_random_k"] > 0:
         recagent.clear_social()
         recagent.add_social(recagent.config["social_random_k"])
-
+    print("Time for loading simulator: ", time.time()-st)
     messages = []
     recagent.play()
+    
     for i in tqdm(range(recagent.round_cnt + 1, config["round"] + 1)):
+        round_st=time.time()
         recagent.round_cnt = recagent.round_cnt + 1
         recagent.logger.info(f"Round {recagent.round_cnt}")
         recagent.active_agents.clear()
@@ -1304,8 +1332,11 @@ def main():
         messages.append(message)
         with open(config["output_file"], "w") as file:
             json.dump(messages, file, default=lambda o: o.__dict__, indent=4)
+        print("Time for round: ", time.time()-round_st)
+        print("Time for all: ", time.time()-st)
         recagent.recsys.save_interaction()
-        recagent.save(os.path.join(config["simulator_dir"]))
+        if config['simulator_dir'] is not None:
+            recagent.save(os.path.join(config["simulator_dir"]))
 
 
 if __name__ == "__main__":

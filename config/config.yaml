@@ -8,10 +8,11 @@ user_path: data/user_1000.csv
 relationship_path: data/relationship_1000.csv
 # path for save interaction records
 interaction_path: data/interaction.csv
-# directory name for faiss index
+# directory name for checkpoint of recommender system model, if not specified, the model will not be saved
 ckpt_path: data/ckpt
+# directory name for faiss index
 index_name: data/faiss_index
-# simulator directory name for saving and restoring
+# simulator directory name for saving and restoring, if not specified, the simulator will not be saved
 simulator_dir: data/simulator
 # simulator restoring name
 simulator_restore_file_name:
