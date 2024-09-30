@@ -12,16 +12,17 @@ class SingletonLocalLLM:
     _lock = threading.Lock()
 
     @classmethod
-    def get_instance(cls, config, logger, api_key) -> 'LocalLLM':
+    def get_instance(cls, config, logger, api_key, api_base) -> 'LocalLLM':
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
                     cls._instance = LocalLLM(
                         max_token=config["max_token"],
-                        model_path=api_key,
-                        logger=logger
+                        model_path=api_base,
+                        logger=logger,
                     )
         return cls._instance
+
 
 class LocalLLM(LLM):
    

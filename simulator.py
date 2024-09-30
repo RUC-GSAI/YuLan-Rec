@@ -109,10 +109,11 @@ class Simulator:
                 agent.llm = None
             if hasattr(agent, 'memory') and hasattr(agent.memory, 'llm'):
                 agent.memory.llm = None
-        
+                agent.memory.memory_retriever = None
+
         with open(save_file_name, "wb") as f:
             dill.dump(state, f)
-        
+
         self.logger.info("Current simulator Save in: \n" + str(save_file_name) + "\n")
         self.logger.info(
             "Simulator File Path (root -> node): \n" + str(self.file_name_path) + "\n"
@@ -139,15 +140,27 @@ class Simulator:
             obj = cls.__new__(cls)
             obj.__dict__ = dill.load(f)
             obj.config, obj.logger = config, logger
-        
-        # 重新初始化不可序列化的对象
+
+        # Reinitialize the LLM for each agent
         for agent in obj.agents.values():
             api_key=config['api_keys'][agent.id%len(config['api_keys'])]
+            api_base = config['api_bases'][agent.id % len(config['api_bases'])]
             if hasattr(agent, 'llm') and agent.llm is None:
-                agent.llm = utils.get_llm(config=obj.config, logger=obj.logger, api_key=api_key)
+                agent.llm = utils.get_llm(
+                    config=obj.config,
+                    logger=obj.logger,
+                    api_key=api_key,
+                    api_base=api_base,
+                )
             if hasattr(agent, 'memory') and agent.memory is not None and hasattr(agent.memory, 'llm') and agent.memory.llm is None:
-                agent.memory.llm = utils.get_llm(config=obj.config, logger=obj.logger, api_key=api_key)
-        
+                agent.memory.llm = utils.get_llm(
+                    config=obj.config,
+                    logger=obj.logger,
+                    api_key=api_key,
+                    api_base=api_base,
+                )
+                agent.memory.memory_retriever = cls.create_new_memory_retriever()
+
         return obj
 
     def relevance_score_fn(self, score: float) -> float:
@@ -906,11 +919,16 @@ class Simulator:
     def convert_agent_to_role(self, agent_id):
         self.agents[agent_id] = RoleAgent.from_recagent(self.agents[agent_id])
 
-    def create_agent(self, id, api_key) -> RecAgent:
+    def create_agent(self, id, api_key, api_base) -> RecAgent:
         """
         Create an agent with the given id.
+        :param id: the id of the agent.
+        :param api_key: the API key of the agent.
+        :param api_base: the API base of the agent.
         """
-        LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
+        LLM = utils.get_llm(
+            config=self.config, logger=self.logger, api_key=api_key, api_base=api_base
+        )
         MemoryClass = (
             RecAgentMemory
             if self.config["recagent_memory"] == "recagent"
@@ -959,12 +977,13 @@ class Simulator:
         #     agent.memory.add_memory(observation, now=self.now)
         return agent
 
-    def create_user_role(self, id, api_key):
+    def create_user_role(self, id, api_key, api_base):
         """
         @ Zeyu Zhang
         Create a user controllable agent.
         :param id: the id of role.
         :param api_key: the API key of the role.
+        :param api_base: the API base of the role.
         :return: an object of `RoleAgent`.
         """
         name, gender, age, traits, status, interest, feature = (
@@ -991,7 +1010,9 @@ class Simulator:
         posting_url = utils.get_avatar_url(
             id=id, gender=gender, type="posting", role=True
         )
-        LLM = utils.get_llm(config=self.config, logger=self.logger, api_key=api_key)
+        LLM = utils.get_llm(
+            config=self.config, logger=self.logger, api_key=api_key, api_base=api_base
+        )
         MemoryClass = (
             RecAgentMemory
             if self.config["recagent_memory"] == "recagent"
@@ -1037,13 +1058,15 @@ class Simulator:
         """
         agents = {}
         api_keys = list(self.config["api_keys"])
+        api_bases = list(self.config["api_bases"])
         agent_num = int(self.config["agent_num"])
         # Add ONE user controllable user into the simulator if the flag is true.
         # We block the main thread when the user is creating the role.
         if self.config["play_role"]:
             role_id = self.data.get_user_num()
             api_key = api_keys[role_id % len(api_keys)]
-            agent = self.create_user_role(role_id, api_key)
+            api_base = api_bases[role_id % len(api_bases)]
+            agent = self.create_user_role(role_id, api_key, api_base)
             agents[role_id] = agent
             self.data.role_id = role_id
         if self.active_method == "random":
@@ -1058,7 +1081,8 @@ class Simulator:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 for i in range(agent_num):
                     api_key = api_keys[i % len(api_keys)]
-                    futures.append(executor.submit(self.create_agent, i, api_key))
+                    api_base = api_bases[i % len(api_bases)]
+                    futures.append(executor.submit(self.create_agent, i, api_key,api_base))
                 for future in tqdm(concurrent.futures.as_completed(futures)):
                     agent = future.result()
                     agent.active_prob = active_probs[agent.id]
@@ -1070,7 +1094,8 @@ class Simulator:
         else:
             for i in tqdm(range(agent_num)):
                 api_key = api_keys[i % len(api_keys)]
-                agent = self.create_agent(i, api_key)
+                api_base = api_bases[i % len(api_bases)]
+                agent = self.create_agent(i, api_key,api_base)
                 agent.active_prob = active_probs[agent.id]
                 agents[agent.id] = agent
 
@@ -1145,7 +1170,6 @@ class Simulator:
                 self.recsys.round_record[i].append(
                     self.recsys.record[i][r * 5 : (r + 1) * 5]
                 )
-
 
 
 def parse_args():

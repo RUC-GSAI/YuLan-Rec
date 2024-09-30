@@ -54,6 +54,9 @@ active_method: random
 active_prob: 1
 # implementation of agent memory, recagent or GenerativeAgentMemory
 agent_memory: recagent
+# list of api bases for LLM API, None for running locally of default OpenAI API Base
+api_bases:
+  - http://
 # list of api keys for LLM API or model path of open-sourced LLM running locally
 api_keys:
   - xxx

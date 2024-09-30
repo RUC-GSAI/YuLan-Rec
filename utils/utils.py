@@ -313,7 +313,7 @@ def generate_id(dir_name):
     return id
 
 
-def get_llm(config, logger, api_key):
+def get_llm(config, logger, api_key, api_base):
     """
     Get the large language model.
     Args:
@@ -321,37 +321,27 @@ def get_llm(config, logger, api_key):
         logger (Logger): The logger.
         api_key (str): The API key.
     """
-    if config["llm"] == "gpt-4":
+    if config["llm"].find("gpt") != -1:
         LLM = ChatOpenAI(
             max_tokens=config["max_token"],
             temperature=config["temperature"],
             openai_api_key=api_key,
-            model="gpt-4",
-            max_retries=config["max_retries"]
+            openai_api_base=api_base,
+            model=config["llm"],
+            max_retries=config["max_retries"],
         )
-    elif config["llm"] == "gpt-3.5-16k":
-        LLM = ChatOpenAI(
-            max_tokens=config["max_token"],
-            temperature=config["temperature"],
-            openai_api_key=api_key,
-            model="gpt-3.5-turbo-16k",
-            max_retries=config["max_retries"]
-        )
-    elif config["llm"] == "gpt-3.5":
-        LLM = ChatOpenAI(
-            max_tokens=config["max_token"],
-            temperature=config["temperature"],
-            openai_api_key=api_key,
-            model="gpt-3.5-turbo",
-            max_retries=config["max_retries"]
-        )
-    elif "http" not in api_key:
+    elif "http" not in api_base:
         LLM = SingletonLocalLLM.get_instance(
-            config=config,
+            config=config, api_key=api_key, logger=logger, api_base=api_base
+        )
+    else:
+        LLM = CustomLLM(
+            model=config['llm'],
+            max_token=config['max_token'],
+            logger=logger,
+            URL=api_base,
             api_key=api_key,
-            logger=logger)
-    else :
-        LLM = CustomLLM(model=config['llm'],max_token=config['max_token'], logger=logger, URL=api_key)
+        )
     return LLM
 
 
@@ -416,8 +406,8 @@ def get_entropy(inters, data):
 
 
 def get_embedding_model():
-    #model_name = "sentence-transformers/all-mpnet-base-v2"
-    model_name="/data/pretrain_dir/all-mpnet-base-v2"
+    model_name = "sentence-transformers/all-mpnet-base-v2"
+    # model_name="/data/pretrain_dir/all-mpnet-base-v2"
     model_kwargs = {'device': 'cpu'}
     embeddings_model = HuggingFaceEmbeddings(model_name=model_name, model_kwargs=model_kwargs)
     return 768, embeddings_model

@@ -10,11 +10,12 @@ client = OpenAI(api_key="")
 class CustomLLM(LLM):
     max_token: int
     URL: str = "http://xxxxx"
+    api_key: str = ""
     headers: dict = {"Content-Type": "application/json"}
     payload: dict = {"prompt": "", "history": []}
     logger: Any
     model: str
-    
+
     @property
     def _llm_type(self) -> str:
         return "CustomLLM"
@@ -28,12 +29,13 @@ class CustomLLM(LLM):
     ) -> str:
         try:
             client.base_url = self.URL
+            client.api_key = self.api_key
             response = client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 stop=stop,
                 n=1,
-                max_tokens=self.max_token  # 你可以根据需要调整这个值
+                max_tokens=self.max_token,
             )
             return response.choices[0].text.strip()
         except Exception as e:
