@@ -4,8 +4,7 @@ from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.base import LLM
 import requests
 import json
-from openai import OpenAI
-client = OpenAI(api_key="")
+import openai
 
 class CustomLLM(LLM):
     max_token: int
@@ -28,9 +27,9 @@ class CustomLLM(LLM):
         run_manager: Optional[CallbackManagerForLLMRun] = None,
     ) -> str:
         try:
-            client.base_url = self.URL
-            client.api_key = self.api_key
-            response = client.chat.completions.create(
+            openai.api_key = self.api_key
+            openai.api_base = self.URL
+            response = openai.ChatCompletion.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 stop=stop,

@@ -14,9 +14,9 @@ from pydantic import BaseModel, Field
 
 from langchain import LLMChain
 from langchain.base_language import BaseLanguageModel
-from langchain_experimental.generative_agents.memory import GenerativeAgentMemory
+from langchain.experimental.generative_agents.memory import GenerativeAgentMemory
 from langchain.prompts import PromptTemplate
-from langchain_experimental.generative_agents import (
+from langchain.experimental.generative_agents import (
     GenerativeAgent,
     GenerativeAgentMemory,
 )
@@ -30,7 +30,26 @@ class RoleAgent(RecAgent):
     human inputs in them.
     """
     run_location: str="web"
-    def __init__(self, id, name, age,gender, traits, status,interest,relationships,feature, memory_retriever, llm, memory,event,avatar_url,idle_url,watching_url,chatting_url,posting_url):
+    def __init__(
+        self,
+        id,
+        name,
+        age,
+        gender,
+        traits,
+        status,
+        interest,
+        relationships,
+        feature,
+        llm,
+        memory,
+        event,
+        avatar_url,
+        idle_url,
+        watching_url,
+        chatting_url,
+        posting_url,
+    ):
         super(RoleAgent, self).__init__(
             id=id,
             name=name,
@@ -41,7 +60,6 @@ class RoleAgent(RecAgent):
             interest=interest,
             relationships=relationships,
             feature=feature,
-            memory_retriever=memory_retriever,
             llm=llm,
             memory=memory,
             event=event,
@@ -49,13 +67,14 @@ class RoleAgent(RecAgent):
             idle_url=idle_url,
             watching_url=watching_url,
             chatting_url=chatting_url,
-            posting_url=posting_url
+            posting_url=posting_url,
         )
         self.role="user"
 
     @classmethod
     def from_recagent(cls, recagent_instance: RecAgent):
-        new_instance = cls(id=recagent_instance.id,
+        new_instance = cls(
+            id=recagent_instance.id,
             name=recagent_instance.name,
             age=recagent_instance.age,
             gender=recagent_instance.gender,
@@ -64,14 +83,14 @@ class RoleAgent(RecAgent):
             interest=recagent_instance.interest,
             relationships=recagent_instance.relationships,
             feature=recagent_instance.feature,
-            memory_retriever=recagent_instance.memory.longTermMemory.memory_retriever,
             llm=recagent_instance.llm,
             memory=recagent_instance.memory,
             event=recagent_instance.event,
             avatar_url=recagent_instance.avatar_url,
             idle_url=recagent_instance.idle_url,
             watching_url=recagent_instance.watching_url,
-            chatting_ulr=recagent_instance.chatting_url)
+            chatting_ulr=recagent_instance.chatting_url,
+        )
         return new_instance
 
     async def get_response(self,message:str)->str:
@@ -83,13 +102,12 @@ class RoleAgent(RecAgent):
         # if self.run_location=="location":
         #     response=self.get_response(message)
         # else:
-        
+
         await connect.websocket_manager.send_personal_message("role-play",message)
         while True:
             if len(connect.message_queue) > 0:
                 response = connect.message_queue.pop()
                 return response
-
 
     def take_action(self,now) -> Tuple[str, str]:
         """

@@ -21,7 +21,7 @@ class WebSocketManager:
 
     def get_connection(self, route: str):
         return self.active_connections.get(route)
-    
+
     async def send_personal_message(self, route: str,message: str):
         websocket = self.active_connections.get(route)
         if websocket:
@@ -31,11 +31,10 @@ class WebSocketManager:
         websocket = self.active_connections.get(route)
         if not websocket:
             return None
-        
+
         await websocket.send_text(message)
         response = await websocket.receive_text()
-        input()
         return response
-    
+
 websocket_manager = WebSocketManager()
 message_queue = []

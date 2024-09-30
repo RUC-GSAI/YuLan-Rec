@@ -6,12 +6,12 @@ from pydantic import BaseModel, Field
 
 from langchain import LLMChain
 from langchain.base_language import BaseLanguageModel
-from langchain_experimental.generative_agents.memory import (
+from langchain.experimental.generative_agents.memory import (
     GenerativeAgentMemory,
     BaseMemory,
 )
 from langchain.prompts import PromptTemplate
-from langchain_experimental.generative_agents import (
+from langchain.experimental.generative_agents import (
     GenerativeAgent,
     GenerativeAgentMemory,
 )
@@ -88,7 +88,6 @@ class RecAgent(GenerativeAgent):
             interest=roleagent_instance.interest,
             relationships=roleagent_instance.relationships,
             feature=roleagent_instance.feature,
-            memory_retriever=roleagent_instance.memory_retriever,
             llm=roleagent_instance.llm,
             memory=roleagent_instance.memory,
             event=roleagent_instance.event,

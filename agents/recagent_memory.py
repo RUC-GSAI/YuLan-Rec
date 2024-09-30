@@ -21,7 +21,7 @@ from langchain.base_language import BaseLanguageModel
 from langchain.prompts import PromptTemplate
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
 from langchain.schema import BaseMemory, Document
-from langchain_experimental.generative_agents.memory import GenerativeAgentMemory
+from langchain.experimental.generative_agents.memory import GenerativeAgentMemory
 from langchain.schema import BaseOutputParser
 
 from utils import utils

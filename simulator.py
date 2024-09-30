@@ -17,7 +17,7 @@ import json
 from langchain.docstore import InMemoryDocstore
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
 from langchain.vectorstores import FAISS
-from langchain_experimental.generative_agents import (
+from langchain.experimental.generative_agents import (
     GenerativeAgent,
     GenerativeAgentMemory,
 )
@@ -65,7 +65,6 @@ class Simulator:
         self.now = datetime.now().replace(hour=8, minute=0, second=0)
         self.interval = interval.parse_interval(config["interval"])
         self.round_entropy = []
-        self.rec_cnt = [20] * config["agent_num"]
         self.rec_stat = message.RecommenderStat(
             tot_user_num=0,
             cur_user_num=0,
@@ -103,24 +102,14 @@ class Simulator:
         file_name = f"{ID}-Round[{self.round_cnt}]-AgentNum[{self.config['agent_num']}]-{datetime.now().strftime('%Y-%m-%d-%H_%M_%S')}"
         self.file_name_path.append(file_name)
         save_file_name = os.path.join(save_dir_name, file_name + ".pkl")
-        state = self.__dict__.copy()
-        for agent in state.get('agents', {}).values():
-            if hasattr(agent, 'llm'):
-                agent.llm = None
-            if hasattr(agent, 'memory') and hasattr(agent.memory, 'llm'):
-                agent.memory.llm = None
-                agent.memory.memory_retriever = None
-
         with open(save_file_name, "wb") as f:
-            dill.dump(state, f)
-
+            dill.dump(self.__dict__, f)
         self.logger.info("Current simulator Save in: \n" + str(save_file_name) + "\n")
         self.logger.info(
             "Simulator File Path (root -> node): \n" + str(self.file_name_path) + "\n"
         )
         utils.ensure_dir(self.config["ckpt_path"])
         cpkt_path = os.path.join(self.config["ckpt_path"], file_name + ".pth")
-
         if not isinstance(self.recsys.model, Random):
             self.recsys.save_model(cpkt_path)
             self.logger.info(
@@ -134,34 +123,11 @@ class Simulator:
     @classmethod
     def restore(cls, restore_file_name, config, logger):
         """Restore the simulator status from the specific file"""
-        if not restore_file_name.endswith(".pkl"):
-            restore_file_name += ".pkl"
-        with open(restore_file_name, "rb") as f:
+        with open(restore_file_name + ".pkl", "rb") as f:
             obj = cls.__new__(cls)
             obj.__dict__ = dill.load(f)
             obj.config, obj.logger = config, logger
-
-        # Reinitialize the LLM for each agent
-        for agent in obj.agents.values():
-            api_key=config['api_keys'][agent.id%len(config['api_keys'])]
-            api_base = config['api_bases'][agent.id % len(config['api_bases'])]
-            if hasattr(agent, 'llm') and agent.llm is None:
-                agent.llm = utils.get_llm(
-                    config=obj.config,
-                    logger=obj.logger,
-                    api_key=api_key,
-                    api_base=api_base,
-                )
-            if hasattr(agent, 'memory') and agent.memory is not None and hasattr(agent.memory, 'llm') and agent.memory.llm is None:
-                agent.memory.llm = utils.get_llm(
-                    config=obj.config,
-                    logger=obj.logger,
-                    api_key=api_key,
-                    api_base=api_base,
-                )
-                agent.memory.memory_retriever = cls.create_new_memory_retriever()
-
-        return obj
+            return obj
 
     def relevance_score_fn(self, score: float) -> float:
         """Return a similarity score on a scale [0, 1]."""
@@ -273,7 +239,6 @@ class Simulator:
             heapq.heappush(self.working_agents, agent)
         if "RECOMMENDER" in choice:
             ids = []
-            self.rec_cnt[agent_id] += 1
             self.logger.info(f"{name} enters the recommender system.")
             message.append(
                 Message(
