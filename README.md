@@ -253,6 +253,8 @@ User profiles and relationships between users are fabricated for simulation purp
 | [WarAgent](https://arxiv.org/abs/2311.17227)                           | 11/23 | Utilize LLM-based agent to simulate historical international conflicts                                                                                            |
 | [UGI](https://arxiv.org/abs/2312.11813)                                | 12/23 | Introduce UGI using LLMs and CityGPT to simulate and address urban complexities through intelligent agent interactions                                            |
 
+| [GAR](https://arxiv.org/abs/2412.10415)                                | 12/24 | Introduce automated paper review through agent interactions and multi-round reasoning                                            |
+
 ## 💪 Maintainers
    
 <div>
