@@ -21,6 +21,8 @@ find that the simulated behaviors of our method are very close to the ones of re
 
 
 ## 🔥 News
+- [16/12/2024] After approximately a year and a half of research, the RecAgent project has officially been accepted by TOIS (https://dl.acm.org/doi/10.1145/3708985). At the same time, this project is now coming to a close. We extend our heartfelt thanks to all colleagues from academia and industry who have shown interest in this work. Since the inception of this project, we have firmly believed that leveraging large models and multi-agent systems to simulate user behavior is a highly promising research direction. We look forward to seeing more peers join this field.
+  
 - [15/2/2024] RecAgent `v3.0` is released on arXiv with the following updates: 
   - 🧠 More comprehensive experiments to validate RecAgent's believablity in simulating real human behaviors
   - 🔬 More experiments on the potential of RecAgent for studying social phenomena (e.g., **information cocoons** and **user conformity behavior**)
