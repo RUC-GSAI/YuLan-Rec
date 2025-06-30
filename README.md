@@ -254,8 +254,8 @@ User profiles and relationships between users are fabricated for simulation purp
 | [AUCARENA](https://arxiv.org/abs/2310.05746)                           | 10/23 | Evaluate LLM-based agent in auction simulations, highlighting their strategic and resource management skills                                                      |
 | [WarAgent](https://arxiv.org/abs/2311.17227)                           | 11/23 | Utilize LLM-based agent to simulate historical international conflicts                                                                                            |
 | [UGI](https://arxiv.org/abs/2312.11813)                                | 12/23 | Introduce UGI using LLMs and CityGPT to simulate and address urban complexities through intelligent agent interactions                                            |
-
 | [GAR](https://arxiv.org/abs/2412.10415)                                | 12/24 | Introduce automated paper review through agent interactions and multi-round reasoning                                            |
+| [CitySim]([https://arxiv.org/abs/2412.10415](https://arxiv.org/abs/2506.21805))                                | 06/30 | Introduce agent-driven city simulation, where agents interact with each other and navigate in the city                                            |
 
 ## 💪 Maintainers
    
