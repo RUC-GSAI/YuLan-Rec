@@ -253,9 +253,9 @@ User profiles and relationships between users are fabricated for simulation purp
 | [CompeteAI](https://arxiv.org/abs/2310.17512)                          | 10/23 | Investigate competition between restaurant and customer agents in a GPT-4 simulated environment                                                                   |
 | [AUCARENA](https://arxiv.org/abs/2310.05746)                           | 10/23 | Evaluate LLM-based agent in auction simulations, highlighting their strategic and resource management skills                                                      |
 | [WarAgent](https://arxiv.org/abs/2311.17227)                           | 11/23 | Utilize LLM-based agent to simulate historical international conflicts                                                                                            |
-| [UGI](https://arxiv.org/abs/2312.11813)                                | 12/23 | Introduce UGI using LLMs and CityGPT to simulate and address urban complexities through intelligent agent interactions                                            |
-
-| [GAR](https://arxiv.org/abs/2412.10415)                                | 12/24 | Introduce automated paper review through agent interactions and multi-round reasoning                                            |
+| [UGI](https://arxiv.org/abs/2312.11813)                                | 12/23 | Introduce UGI using LLMs and CityGPT to simulate and address urban complexities through intelligent agent interactions |
+| [GAR](https://arxiv.org/abs/2412.10415)                                | 12/24 | Introduce automated paper review through agent interactions and multi-round reasoning                                  |
+| [RecInter](https://aclanthology.org/2025.emnlp-main.956)                                | 05/25 | Introduce an interaction-centric agent simulation platform for dynamic recommender systems evaluation                                           |
 
 ## 💪 Maintainers
    
@@ -287,3 +287,5 @@ Welcome to cite our paper if you find it helpful. [![Paper](https://img.shields.
       primaryClass={cs.IR}
 }
 ```
+
+
